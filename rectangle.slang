@@ -23,26 +23,25 @@ RectangleVertexOutput rectangle_vertex(
 ) {
     var quad: QuadData = rectangleResources.buffer[instanceIndex];
 
-    // Generate quad corner offsets from vertex index, with flipped y
-    // vertexIndex -> uv: 0->(0,1), 1->(1,1), 2->(0,0), 3->(1,0)
     float2 uv = float2(
         vertexIndex & 1u,
-        1u - ((vertexIndex >> 1u) & 1u)
+        vertexIndex >> 1u & 1u
     );
 
-    let resolution: float2 = float2(800.0, 600.0);
-    let p: float2 = (quad.top_left + uv * quad.size) / resolution;
-    let p2 = p * 2.0 - 1.0;
-    let p3 = float2(p2.x, -p2.y);
+    float2 resolution = float2(800.0, 600.0);
 
-    position = float4(p3, 0.0, 1.0);
+    float2 p = quad.top_left + uv * quad.size;
+    float2 ndc = (p / resolution) * 2.0 - 1.0;
 
-    var output: RectangleVertexOutput;
+    position = float4(ndc.x, -ndc.y, 0.0, 1.0); // flip y
+
+    RectangleVertexOutput output;
     output.uv = uv;
     output.color = quad.color;
     output._padding = float2(0.0, 0.0);
     return output;
 }
+
 
 float4 rectangle_fragment(RectangleVertexOutput data): SV_Target {
     return float4(data.color, 1.0);
