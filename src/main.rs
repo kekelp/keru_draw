@@ -128,12 +128,17 @@ impl State {
                 module: &vs_module,
                 entry_point: Some("main"),
                 buffers: &[wgpu::VertexBufferLayout {
-                    array_stride: 4,
+                    array_stride: 8,
                     step_mode: wgpu::VertexStepMode::Instance,
                     attributes: &[
                         wgpu::VertexAttribute {
                             offset: 0,
                             shader_location: 0,
+                            format: wgpu::VertexFormat::Uint32,
+                        },
+                        wgpu::VertexAttribute {
+                            offset: 4,
+                            shader_location: 1,
                             format: wgpu::VertexFormat::Uint32,
                         },
                     ],
@@ -169,10 +174,17 @@ impl State {
             cache: None,
         });
 
-        // Instance buffer - one u32 per instance for primitive type
+        // Instance buffer - primitive type and primitive index per instance
+        #[repr(C)]
+        #[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
+        struct Instance {
+            primitive_type: u32,
+            primitive_index: u32,
+        }
+
         let instances = [
-            0u32, // Quad
-            1u32, // Ellipse
+            Instance { primitive_type: 0, primitive_index: 0 }, // Quad 0
+            Instance { primitive_type: 1, primitive_index: 0 }, // Ellipse 0
         ];
 
         let vertex_buffer = device.create_buffer(&wgpu::BufferDescriptor {

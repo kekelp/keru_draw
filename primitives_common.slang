@@ -1,3 +1,8 @@
+enum PrimitiveType: uint {
+    Quad = 0,
+    Ellipse = 1,
+}
+
 // Output from vertex processing
 struct VertexOutput {
     float4 position: SV_Position;
@@ -9,4 +14,5 @@ struct VertexOutput {
 // Input to vertex shader
 struct VertexInput {
     uint primitiveType: PRIMTYPE;
+    uint primitiveIndex: PRIMINDEX;
 }
