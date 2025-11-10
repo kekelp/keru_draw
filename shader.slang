@@ -7,6 +7,14 @@ enum PrimitiveType: uint {
     Ellipse = 1,
 }
 
+struct Globals {
+    float2 resolution;
+    float time;
+    float _padding;
+}
+
+ParameterBlock<Globals> globals;
+
 // Packed vertex output struct. Must be at least as big as the biggest vertex output struct for all primitives.
 // If the size is not sufficient, Slang should be able to give an error or warning on the reinterpret<T> calls.
 struct Union {

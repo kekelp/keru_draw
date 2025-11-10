@@ -10,20 +10,23 @@ pub struct QuadData {
 }
 
 pub struct Rectangles {
-    pub buffer: wgpu::Buffer,
+    primitives: Vec<QuadData>,
+    buffer: wgpu::Buffer,
+    buffer_capacity: usize,
     pub bind_group: wgpu::BindGroup,
+    bind_group_layout: wgpu::BindGroupLayout,
 }
 
 impl Rectangles {
-    pub fn new(device: &wgpu::Device, queue: &wgpu::Queue, data: &[QuadData]) -> Self {
+    pub fn new(device: &wgpu::Device) -> Self {
+        let initial_capacity = 64;
+
         let buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Quad Buffer"),
-            size: (std::mem::size_of::<QuadData>() * data.len()) as u64,
+            size: (std::mem::size_of::<QuadData>() * initial_capacity) as u64,
             usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
-
-        queue.write_buffer(&buffer, 0, bytemuck::cast_slice(data));
 
         let bind_group_layout = Self::create_bind_group_layout(device);
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
@@ -37,7 +40,61 @@ impl Rectangles {
             ],
         });
 
-        Self { buffer, bind_group }
+        Self {
+            primitives: Vec::new(),
+            buffer,
+            buffer_capacity: initial_capacity,
+            bind_group,
+            bind_group_layout,
+        }
+    }
+
+    pub fn clear(&mut self) {
+        self.primitives.clear();
+    }
+
+    pub fn push(&mut self, primitive: QuadData) {
+        self.primitives.push(primitive);
+    }
+
+    pub fn len(&self) -> usize {
+        self.primitives.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.primitives.is_empty()
+    }
+
+    pub fn upload(&mut self, device: &wgpu::Device, queue: &wgpu::Queue) {
+        if self.primitives.is_empty() {
+            return;
+        }
+
+        // Grow buffer if needed
+        if self.primitives.len() > self.buffer_capacity {
+            let new_capacity = self.primitives.len().next_power_of_two();
+            self.buffer = device.create_buffer(&wgpu::BufferDescriptor {
+                label: Some("Quad Buffer"),
+                size: (std::mem::size_of::<QuadData>() * new_capacity) as u64,
+                usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
+                mapped_at_creation: false,
+            });
+            self.buffer_capacity = new_capacity;
+
+            // Recreate bind group with new buffer
+            self.bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+                label: Some("RectangleResources Bind Group"),
+                layout: &self.bind_group_layout,
+                entries: &[
+                    wgpu::BindGroupEntry {
+                        binding: 0,
+                        resource: self.buffer.as_entire_binding(),
+                    },
+                ],
+            });
+        }
+
+        queue.write_buffer(&self.buffer, 0, bytemuck::cast_slice(&self.primitives));
     }
 
     pub fn create_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {

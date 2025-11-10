@@ -6,9 +6,11 @@ use winit::{
 
 mod rectangle;
 mod ellipse;
+mod globals;
 
 use rectangle::{Rectangles, QuadData};
 use ellipse::{Ellipses, EllipseData};
+use globals::Globals;
 
 struct State {
     surface: wgpu::Surface<'static>,
@@ -18,6 +20,7 @@ struct State {
     size: winit::dpi::PhysicalSize<u32>,
     render_pipeline: wgpu::RenderPipeline,
     vertex_buffer: wgpu::Buffer,
+    globals: Globals,
     rectangle_resources: Rectangles,
     ellipse_resources: Ellipses,
     num_quads: u32,
@@ -91,13 +94,14 @@ impl State {
         });
 
         // Create bind group layouts for each parameter block
+        let globals_layout = Globals::create_bind_group_layout(&device);
         let rectangle_layout = Rectangles::create_bind_group_layout(&device);
         let ellipse_layout = Ellipses::create_bind_group_layout(&device);
 
         let render_pipeline_layout =
             device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                 label: Some("Render Pipeline Layout"),
-                bind_group_layouts: &[&rectangle_layout, &ellipse_layout],
+                bind_group_layouts: &[&globals_layout, &rectangle_layout, &ellipse_layout],
                 push_constant_ranges: &[],
             });
 
@@ -176,28 +180,36 @@ impl State {
 
         queue.write_buffer(&vertex_buffer, 0, bytemuck::cast_slice(&instances));
 
-        // Create primitive data
-        let quads = [
-            QuadData {
-                center: [-0.5, 0.5],
-                size: [0.4, 0.4],
-                color: [1.0, 0.0, 0.0],
-                _padding: 0.0,
-            },
-        ];
-
-        let ellipses = [
-            EllipseData {
-                center: [0.5, -0.5],
-                size: [0.3, 0.3],
-                color: [0.0, 1.0, 0.0],
-                _padding: 0.0,
-            },
-        ];
+        // Create globals
+        let mut globals = Globals::new(&device);
+        globals.set_resolution(size.width as f32, size.height as f32);
+        globals.upload(&queue);
 
         // Create resource modules
-        let rectangle_resources = Rectangles::new(&device, &queue, &quads);
-        let ellipse_resources = Ellipses::new(&device, &queue, &ellipses);
+        let mut rectangle_resources = Rectangles::new(&device);
+        let mut ellipse_resources = Ellipses::new(&device);
+
+        // Add initial primitives
+        rectangle_resources.push(QuadData {
+            center: [-0.5, 0.5],
+            size: [0.4, 0.4],
+            color: [1.0, 0.0, 0.0],
+            _padding: 0.0,
+        });
+
+        ellipse_resources.push(EllipseData {
+            center: [0.5, -0.5],
+            size: [0.3, 0.3],
+            color: [0.0, 1.0, 0.0],
+            _padding: 0.0,
+        });
+
+        // Upload to GPU
+        rectangle_resources.upload(&device, &queue);
+        ellipse_resources.upload(&device, &queue);
+
+        let num_quads = rectangle_resources.len() as u32;
+        let num_ellipses = ellipse_resources.len() as u32;
 
         Self {
             surface,
@@ -207,10 +219,11 @@ impl State {
             size,
             render_pipeline,
             vertex_buffer,
+            globals,
             rectangle_resources,
             ellipse_resources,
-            num_quads: quads.len() as u32,
-            num_ellipses: ellipses.len() as u32,
+            num_quads,
+            num_ellipses,
         }
     }
 
@@ -220,6 +233,10 @@ impl State {
             self.config.width = new_size.width;
             self.config.height = new_size.height;
             self.surface.configure(&self.device, &self.config);
+
+            // Update globals with new resolution
+            self.globals.set_resolution(new_size.width as f32, new_size.height as f32);
+            self.globals.upload(&self.queue);
         }
     }
 
@@ -257,10 +274,11 @@ impl State {
             });
 
             render_pass.set_pipeline(&self.render_pipeline);
-            // The binding indices has to match the order in which the modules are imported in the shader!
+            // The binding indices has to match the order in which the parameter blocks appear in the shader!
             // See also the slangc_reflection.json file produced when compiling the shaders.
-            render_pass.set_bind_group(0, &self.ellipse_resources.bind_group, &[]);
-            render_pass.set_bind_group(1, &self.rectangle_resources.bind_group, &[]);
+            render_pass.set_bind_group(0, &self.globals.bind_group, &[]);
+            render_pass.set_bind_group(1, &self.ellipse_resources.bind_group, &[]);
+            render_pass.set_bind_group(2, &self.rectangle_resources.bind_group, &[]);
             render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
 
             // Draw instanced quads: 4 vertices per quad, n instances
