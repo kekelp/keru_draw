@@ -3,17 +3,41 @@ import primitives_common;
 import ellipse;
 import rectangle;
 
+enum PrimitiveType: uint {
+    Quad = 0,
+    Ellipse = 1,
+}
+
+
+struct Union {
+    float4 data0;
+    float4 data1;
+}
+
+struct VertexOutput {
+    float4 position: SV_Position;
+    uint primitiveType: PRIMTYPE;
+    Union bytes: TEXCOORD0;
+}
+
+struct VertexInput {
+    uint primitiveType: PRIMTYPE;
+    uint primitiveIndex: PRIMINDEX;
+}
+
+
 [shader("vertex")]
 VertexOutput vertexMain(VertexInput input, uint vertexIndex: SV_VulkanVertexID) {
     VertexOutput output;
     output.primitiveType = input.primitiveType;
 
-    // Dispatch to primitive-specific vertex function using primitive index from input
     if (input.primitiveType == uint(PrimitiveType::Quad)) {
-        rectangle_vertex(input.primitiveIndex, vertexIndex, output.position, output.uv, output.color);
+        RectangleVertexOutput rectData = rectangle_vertex(input.primitiveIndex, vertexIndex, output.position);
+        output.bytes = reinterpret<Union>(rectData);
     }
     else if (input.primitiveType == uint(PrimitiveType::Ellipse)) {
-        ellipse_vertex(input.primitiveIndex, vertexIndex, output.position, output.uv, output.color);
+        EllipseVertexOutput ellipseData = ellipse_vertex(input.primitiveIndex, vertexIndex, output.position);
+        output.bytes = reinterpret<Union>(ellipseData);
     }
 
     return output;
@@ -21,11 +45,15 @@ VertexOutput vertexMain(VertexInput input, uint vertexIndex: SV_VulkanVertexID) 
 
 [shader("fragment")]
 float4 fragmentMain(VertexOutput input): SV_Target {
-    // Dispatch to primitive-specific fragment function
+
     if (input.primitiveType == uint(PrimitiveType::Quad)) {
-        return rectangle_fragment(input);
+        RectangleVertexOutput rectData = reinterpret<RectangleVertexOutput>(input.bytes);
+        return rectangle_fragment(rectData);
     }
     else if (input.primitiveType == uint(PrimitiveType::Ellipse)) {
-        return ellipse_fragment(input);
+        EllipseVertexOutput ellipseData = reinterpret<EllipseVertexOutput>(input.bytes);
+        return ellipse_fragment(ellipseData);
     }
+
+    return float4(0.0, 1.0, 0.0, 1.0);  // Greenscreen for error
 }

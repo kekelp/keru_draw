@@ -6,15 +6,20 @@ struct EllipseData {
     float3 color;
 }
 
+// Custom vertex output for ellipses
+struct EllipseVertexOutput {
+    float2 uv;
+    float3 color;
+    float2 _padding;
+}
+
 [[vk::binding(1, 0)]]
 StructuredBuffer<EllipseData> ellipseBuffer;
 
-void ellipse_vertex(
+EllipseVertexOutput ellipse_vertex(
     uint instanceIndex,
     uint vertexIndex,
-    out float4 position,
-    out float2 uv,
-    out float3 color
+    out float4 position
 ) {
     EllipseData ellipse = ellipseBuffer[instanceIndex];
 
@@ -38,14 +43,18 @@ void ellipse_vertex(
     float2 worldPos = ellipse.center + localPos;
 
     position = float4(worldPos, 0.0, 1.0);
-    uv = uvs[vertexIndex];
-    color = ellipse.color;
+
+    EllipseVertexOutput output;
+    output.uv = uvs[vertexIndex];
+    output.color = ellipse.color;
+    output._padding = float2(0.0, 0.0);
+    return output;
 }
 
-float4 ellipse_fragment(VertexOutput input): SV_Target {
+float4 ellipse_fragment(EllipseVertexOutput data): SV_Target {
     // UV is in range [0,1], center is at (0.5, 0.5)
     // Map to [-1, 1] range
-    float2 p = (input.uv - 0.5) * 2.0;
+    float2 p = (data.uv - 0.5) * 2.0;
 
     // Ellipse distance test
     float dist = length(p);
@@ -53,5 +62,5 @@ float4 ellipse_fragment(VertexOutput input): SV_Target {
         discard;
     }
 
-    return float4(input.color, 1.0);
+    return float4(data.color, 1.0);
 }
