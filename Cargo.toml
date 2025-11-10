@@ -1,0 +1,10 @@
+[package]
+name = "slang"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+winit = "0.30"
+wgpu = { version = "23", features = ["spirv"] }
+pollster = "0.4"
+bytemuck = { version = "1.14", features = ["derive"] }
