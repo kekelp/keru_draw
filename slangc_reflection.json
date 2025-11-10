@@ -47,16 +47,16 @@
                     }
                 },
                 {
-                    "name": "rectanglePrimitive",
+                    "name": "RectangleResources",
                     "binding": {"kind": "subElementRegisterSpace", "index": 0},
                     "type": {
                         "kind": "parameterBlock",
                         "elementType": {
                             "kind": "struct",
-                            "name": "RectanglePrimitive",
+                            "name": "RectangleResources",
                             "fields": [
                                 {
-                                    "name": "dataBuffer",
+                                    "name": "buffer",
                                     "type": {
                                         "kind": "resource",
                                         "baseShape": "structuredBuffer",
@@ -113,10 +113,10 @@
                         "elementVarLayout": {
                             "type": {
                                 "kind": "struct",
-                                "name": "RectanglePrimitive",
+                                "name": "RectangleResources",
                                 "fields": [
                                     {
-                                        "name": "dataBuffer",
+                                        "name": "buffer",
                                         "type": {
                                             "kind": "resource",
                                             "baseShape": "structuredBuffer",
@@ -181,7 +181,7 @@
                             "name": "EllipseResources",
                             "fields": [
                                 {
-                                    "name": "dataBuffer",
+                                    "name": "buffer",
                                     "type": {
                                         "kind": "resource",
                                         "baseShape": "structuredBuffer",
@@ -241,7 +241,7 @@
                                 "name": "EllipseResources",
                                 "fields": [
                                     {
-                                        "name": "dataBuffer",
+                                        "name": "buffer",
                                         "type": {
                                             "kind": "resource",
                                             "baseShape": "structuredBuffer",

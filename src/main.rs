@@ -4,6 +4,12 @@ use winit::{
     window::Window,
 };
 
+mod rectangle;
+mod ellipse;
+
+use rectangle::{RectangleResources, QuadData};
+use ellipse::{EllipseResources, EllipseData};
+
 struct State {
     surface: wgpu::Surface<'static>,
     device: wgpu::Device,
@@ -12,11 +18,8 @@ struct State {
     size: winit::dpi::PhysicalSize<u32>,
     render_pipeline: wgpu::RenderPipeline,
     vertex_buffer: wgpu::Buffer,
-    #[allow(dead_code)]
-    quad_buffer: wgpu::Buffer,
-    #[allow(dead_code)]
-    ellipse_buffer: wgpu::Buffer,
-    bind_group: wgpu::BindGroup,
+    rectangle_resources: RectangleResources,
+    ellipse_resources: EllipseResources,
     num_quads: u32,
     num_ellipses: u32,
 }
@@ -87,37 +90,14 @@ impl State {
             source: wgpu::util::make_spirv(&fs_spirv),
         });
 
-        // Create bind group layout for primitive buffers
-        let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: Some("Primitive Buffers Bind Group Layout"),
-            entries: &[
-                wgpu::BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: wgpu::ShaderStages::VERTEX,
-                    ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Storage { read_only: true },
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
-                    },
-                    count: None,
-                },
-                wgpu::BindGroupLayoutEntry {
-                    binding: 1,
-                    visibility: wgpu::ShaderStages::VERTEX,
-                    ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Storage { read_only: true },
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
-                    },
-                    count: None,
-                },
-            ],
-        });
+        // Create bind group layouts for each parameter block
+        let rectangle_layout = RectangleResources::create_bind_group_layout(&device);
+        let ellipse_layout = EllipseResources::create_bind_group_layout(&device);
 
         let render_pipeline_layout =
             device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                 label: Some("Render Pipeline Layout"),
-                bind_group_layouts: &[&bind_group_layout],
+                bind_group_layouts: &[&rectangle_layout, &ellipse_layout],
                 push_constant_ranges: &[],
             });
 
@@ -196,16 +176,7 @@ impl State {
 
         queue.write_buffer(&vertex_buffer, 0, bytemuck::cast_slice(&instances));
 
-        // Create quad buffer data
-        #[repr(C)]
-        #[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
-        struct QuadData {
-            center: [f32; 2],
-            size: [f32; 2],
-            color: [f32; 3],
-            _padding: f32,
-        }
-
+        // Create primitive data
         let quads = [
             QuadData {
                 center: [-0.5, 0.5],
@@ -215,58 +186,18 @@ impl State {
             },
         ];
 
-        let quad_buffer = device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some("Quad Buffer"),
-            size: std::mem::size_of_val(&quads) as u64,
-            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
-            mapped_at_creation: false,
-        });
-
-        queue.write_buffer(&quad_buffer, 0, bytemuck::cast_slice(&quads));
-
-        // Create ellipse buffer data
-        #[repr(C)]
-        #[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
-        struct EllipseData {
-            center: [f32; 2],
-            radii: [f32; 2],
-            color: [f32; 3],
-            _padding: f32,
-        }
-
         let ellipses = [
             EllipseData {
                 center: [0.5, -0.5],
-                radii: [0.3, 0.3],
+                size: [0.3, 0.3],
                 color: [0.0, 1.0, 0.0],
                 _padding: 0.0,
             },
         ];
 
-        let ellipse_buffer = device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some("Ellipse Buffer"),
-            size: std::mem::size_of_val(&ellipses) as u64,
-            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
-            mapped_at_creation: false,
-        });
-
-        queue.write_buffer(&ellipse_buffer, 0, bytemuck::cast_slice(&ellipses));
-
-        // Create bind group
-        let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("Primitive Buffers Bind Group"),
-            layout: &bind_group_layout,
-            entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: quad_buffer.as_entire_binding(),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 1,
-                    resource: ellipse_buffer.as_entire_binding(),
-                },
-            ],
-        });
+        // Create resource modules
+        let rectangle_resources = RectangleResources::new(&device, &queue, &quads);
+        let ellipse_resources = EllipseResources::new(&device, &queue, &ellipses);
 
         Self {
             surface,
@@ -276,9 +207,8 @@ impl State {
             size,
             render_pipeline,
             vertex_buffer,
-            quad_buffer,
-            ellipse_buffer,
-            bind_group,
+            rectangle_resources,
+            ellipse_resources,
             num_quads: quads.len() as u32,
             num_ellipses: ellipses.len() as u32,
         }
@@ -327,7 +257,8 @@ impl State {
             });
 
             render_pass.set_pipeline(&self.render_pipeline);
-            render_pass.set_bind_group(0, &self.bind_group, &[]);
+            render_pass.set_bind_group(0, &self.rectangle_resources.bind_group, &[]);
+            render_pass.set_bind_group(1, &self.ellipse_resources.bind_group, &[]);
             render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
 
             // Draw instanced quads: 4 vertices per quad, n instances
