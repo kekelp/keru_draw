@@ -9,12 +9,12 @@ pub struct EllipseData {
     pub _padding: f32,
 }
 
-pub struct EllipseResources {
+pub struct Ellipses {
     pub buffer: wgpu::Buffer,
     pub bind_group: wgpu::BindGroup,
 }
 
-impl EllipseResources {
+impl Ellipses {
     pub fn new(device: &wgpu::Device, queue: &wgpu::Queue, data: &[EllipseData]) -> Self {
         let buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Ellipse Buffer"),

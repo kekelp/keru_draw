@@ -1,4 +1,10 @@
 compile_shaders:
-    slangc shader.slang -target spirv -entry vertexMain -stage vertex -o shader.vert.spv && slangc shader.slang -target spirv -entry fragmentMain -stage fragment -o shader.frag.spv
+    mkdir -p slangc_output
+    slangc shader.slang -target spirv -entry vertexMain -stage vertex -o slangc_output/shader.vert.spv -reflection-json slangc_output/vertex_reflection.json
+    slangc shader.slang -target spirv -entry fragmentMain -stage fragment -o slangc_output/shader.frag.spv -reflection-json slangc_output/fragment_reflection.json
+
 show_bindings:
-    jq -r '.parameters[] | select(.type.kind == "parameterBlock") | "\(.binding.index): \(.name)"' slangc_reflection.json
+    @echo "Vertex:"
+    @jq -r '.parameters[] | select(.type.kind == "parameterBlock") | "\(.binding.index): \(.name)"' slangc_output/vertex_reflection.json
+    @echo "Fragment:"
+    @jq -r '.parameters[] | select(.type.kind == "parameterBlock") | "\(.binding.index): \(.name)"' slangc_output/fragment_reflection.json

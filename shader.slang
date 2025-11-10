@@ -1,4 +1,4 @@
-// The order of the imports has to match the order in which the binding groups are bound!
+// The order of the imports has to match the binding indices in the Rust code!
 import ellipse;
 import rectangle;
 

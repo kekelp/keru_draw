@@ -9,12 +9,12 @@ pub struct QuadData {
     pub _padding: f32,
 }
 
-pub struct RectangleResources {
+pub struct Rectangles {
     pub buffer: wgpu::Buffer,
     pub bind_group: wgpu::BindGroup,
 }
 
-impl RectangleResources {
+impl Rectangles {
     pub fn new(device: &wgpu::Device, queue: &wgpu::Queue, data: &[QuadData]) -> Self {
         let buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Quad Buffer"),

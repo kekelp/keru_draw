@@ -7,8 +7,8 @@ use winit::{
 mod rectangle;
 mod ellipse;
 
-use rectangle::{RectangleResources, QuadData};
-use ellipse::{EllipseResources, EllipseData};
+use rectangle::{Rectangles, QuadData};
+use ellipse::{Ellipses, EllipseData};
 
 struct State {
     surface: wgpu::Surface<'static>,
@@ -18,8 +18,8 @@ struct State {
     size: winit::dpi::PhysicalSize<u32>,
     render_pipeline: wgpu::RenderPipeline,
     vertex_buffer: wgpu::Buffer,
-    rectangle_resources: RectangleResources,
-    ellipse_resources: EllipseResources,
+    rectangle_resources: Rectangles,
+    ellipse_resources: Ellipses,
     num_quads: u32,
     num_ellipses: u32,
 }
@@ -77,22 +77,22 @@ impl State {
         };
         surface.configure(&device, &config);
 
-        let vs_spirv = std::fs::read("shader.vert.spv").unwrap();
-        let fs_spirv = std::fs::read("shader.frag.spv").unwrap();
+        let vs_spirv = include_bytes!("../slangc_output/shader.vert.spv");
+        let fs_spirv = include_bytes!("../slangc_output/shader.frag.spv");
 
         let vs_module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("Vertex Shader"),
-            source: wgpu::util::make_spirv(&vs_spirv),
+            source: wgpu::util::make_spirv(vs_spirv),
         });
 
         let fs_module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("Fragment Shader"),
-            source: wgpu::util::make_spirv(&fs_spirv),
+            source: wgpu::util::make_spirv(fs_spirv),
         });
 
         // Create bind group layouts for each parameter block
-        let rectangle_layout = RectangleResources::create_bind_group_layout(&device);
-        let ellipse_layout = EllipseResources::create_bind_group_layout(&device);
+        let rectangle_layout = Rectangles::create_bind_group_layout(&device);
+        let ellipse_layout = Ellipses::create_bind_group_layout(&device);
 
         let render_pipeline_layout =
             device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
@@ -196,8 +196,8 @@ impl State {
         ];
 
         // Create resource modules
-        let rectangle_resources = RectangleResources::new(&device, &queue, &quads);
-        let ellipse_resources = EllipseResources::new(&device, &queue, &ellipses);
+        let rectangle_resources = Rectangles::new(&device, &queue, &quads);
+        let ellipse_resources = Ellipses::new(&device, &queue, &ellipses);
 
         Self {
             surface,
@@ -257,8 +257,10 @@ impl State {
             });
 
             render_pass.set_pipeline(&self.render_pipeline);
-            render_pass.set_bind_group(1, &self.rectangle_resources.bind_group, &[]);
+            // The binding indices has to match the order in which the modules are imported in the shader!
+            // See also the slangc_reflection.json file produced when compiling the shaders.
             render_pass.set_bind_group(0, &self.ellipse_resources.bind_group, &[]);
+            render_pass.set_bind_group(1, &self.rectangle_resources.bind_group, &[]);
             render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
 
             // Draw instanced quads: 4 vertices per quad, n instances
