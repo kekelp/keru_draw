@@ -103,7 +103,7 @@
                                     "name": "EllipseData",
                                     "fields": [
                                         {
-                                            "name": "center",
+                                            "name": "top_left",
                                             "type": {
                                                 "kind": "vector",
                                                 "elementCount": 2,
@@ -163,7 +163,7 @@
                                         "name": "EllipseData",
                                         "fields": [
                                             {
-                                                "name": "center",
+                                                "name": "top_left",
                                                 "type": {
                                                     "kind": "vector",
                                                     "elementCount": 2,

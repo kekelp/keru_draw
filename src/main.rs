@@ -198,8 +198,8 @@ impl State {
         });
 
         ellipses.push(EllipseData {
-            center: [600.0, 400.0],  // 600px from left, 400px from top
-            size: [150.0, 150.0],    // 150px diameter
+            top_left: [500.0, 300.0],
+            size: [150.0, 200.0],
             color: [0.0, 1.0, 0.0],
             _padding: 0.0,
         });

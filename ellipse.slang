@@ -1,5 +1,5 @@
 struct EllipseData {
-    float2 center;
+    float2 top_left;
     float2 size;
     float3 color;
 }
@@ -21,28 +21,19 @@ EllipseVertexOutput ellipse_vertex(
     uint vertexIndex,
     out float4 position
 ) {
-    EllipseData ellipse = ellipseResources.buffer[instanceIndex];
+    var ellipse: EllipseData = ellipseResources.buffer[instanceIndex];
 
-    // Generate quad corner offsets from vertex index
-    uint2 ucoords = uint2(
+    float2 uv = float2(
         vertexIndex & 1u,
-        (vertexIndex >> 1u) & 1u
+        vertexIndex >> 1u & 1u
     );
-    float2 uv = float2(ucoords);  // [0,1] range
 
-    // Calculate offset from center: -0.5 to +0.5
-    float2 offset = uv - 0.5;
-
-    // Calculate pixel position
-    float2 pixelPos = ellipse.center + offset * ellipse.size;
-
-    // Convert from pixel coordinates to NDC (hardcoded 800x600 for now)
     float2 resolution = float2(800.0, 600.0);
-    float2 ndc;
-    ndc.x = (pixelPos.x / resolution.x) * 2.0 - 1.0;
-    ndc.y = 1.0 - (pixelPos.y / resolution.y) * 2.0;
 
-    position = float4(ndc, 0.0, 1.0);
+    float2 p = ellipse.top_left + uv * ellipse.size;
+    float2 ndc = (p / resolution) * 2.0 - 1.0;
+
+    position = float4(ndc.x, -ndc.y, 0.0, 1.0); // flip y
 
     EllipseVertexOutput output;
     output.uv = uv;
