@@ -27,17 +27,22 @@ struct VertexInput {
 
 
 [shader("vertex")]
-VertexOutput vertexMain(VertexInput input, uint vertexIndex: SV_VulkanVertexID) {
+VertexOutput vertexMain(
+    VertexInput input,
+    uint vertexIndex: SV_VulkanVertexID,
+    uniform ParameterBlock<RectangleResources> RectangleResources,
+    uniform ParameterBlock<EllipseResources> EllipseResources
+) {
     VertexOutput output;
     output.primitiveType = input.primitiveType;
     output.primitiveIndex = input.primitiveIndex;
 
     if (input.primitiveType == PrimitiveType::Quad) {
-        RectangleVertexOutput rectData = rectangle_vertex(input.primitiveIndex, vertexIndex, output.position);
+        RectangleVertexOutput rectData = rectangle_vertex(RectangleResources, input.primitiveIndex, vertexIndex, output.position);
         output.bytes = reinterpret<Union>(rectData);
     }
     else if (input.primitiveType == PrimitiveType::Ellipse) {
-        EllipseVertexOutput ellipseData = ellipse_vertex(input.primitiveIndex, vertexIndex, output.position);
+        EllipseVertexOutput ellipseData = ellipse_vertex(EllipseResources, input.primitiveIndex, vertexIndex, output.position);
         output.bytes = reinterpret<Union>(ellipseData);
     }
 

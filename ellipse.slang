@@ -10,15 +10,17 @@ struct EllipseVertexOutput {
     float2 _padding;
 }
 
-[[vk::binding(1, 0)]]
-StructuredBuffer<EllipseData> ellipseBuffer;
+struct EllipseResources {
+    StructuredBuffer<EllipseData> buffer;
+}
 
 EllipseVertexOutput ellipse_vertex(
+    EllipseResources resources,
     uint instanceIndex,
     uint vertexIndex,
     out float4 position
 ) {
-    EllipseData ellipse = ellipseBuffer[instanceIndex];
+    EllipseData ellipse = resources.buffer[instanceIndex];
 
     // Generate quad vertices from vertex index
     uint2 ucoords = uint2(

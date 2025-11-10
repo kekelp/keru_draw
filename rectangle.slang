@@ -10,15 +10,17 @@ struct RectangleVertexOutput {
     float2 _padding;
 }
 
-[[vk::binding(0, 0)]]
-StructuredBuffer<QuadData> quadBuffer;
+struct RectangleResources {
+    StructuredBuffer<QuadData> buffer;
+}
 
 RectangleVertexOutput rectangle_vertex(
+    RectangleResources resources,
     uint instanceIndex,
     uint vertexIndex,
     out float4 position
 ) {
-    QuadData quad = quadBuffer[instanceIndex];
+    QuadData quad = resources.buffer[instanceIndex];
 
     // Generate quad vertices from vertex index
     uint2 ucoords = uint2(
