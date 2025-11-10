@@ -466,7 +466,7 @@
             "bindings": [
                 {
                     "name": "globals",
-                    "binding": {"kind": "subElementRegisterSpace", "index": 0, "used": 0}
+                    "binding": {"kind": "subElementRegisterSpace", "index": 0, "used": 1}
                 },
                 {
                     "name": "ellipseResources",

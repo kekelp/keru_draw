@@ -19,6 +19,7 @@ ParameterBlock<EllipseResources> ellipseResources;
 EllipseVertexOutput ellipse_vertex(
     uint instanceIndex,
     uint vertexIndex,
+    float2 resolution,
     out float4 position
 ) {
     var ellipse: EllipseData = ellipseResources.buffer[instanceIndex];
@@ -27,8 +28,6 @@ EllipseVertexOutput ellipse_vertex(
         vertexIndex & 1u,
         vertexIndex >> 1u & 1u
     );
-
-    float2 resolution = float2(800.0, 600.0);
 
     float2 p = ellipse.top_left + uv * ellipse.size;
     float2 ndc = (p / resolution) * 2.0 - 1.0;

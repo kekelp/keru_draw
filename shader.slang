@@ -45,11 +45,11 @@ VertexOutput vertexMain(
     output.primitiveIndex = input.primitiveIndex;
 
     if (input.primitiveType == PrimitiveType::Quad) {
-        RectangleVertexOutput rectData = rectangle_vertex(input.primitiveIndex, vertexIndex, output.position);
+        RectangleVertexOutput rectData = rectangle_vertex(input.primitiveIndex, vertexIndex, globals.resolution, output.position);
         output.bytes = reinterpret<Union>(rectData);
     }
     else if (input.primitiveType == PrimitiveType::Ellipse) {
-        EllipseVertexOutput ellipseData = ellipse_vertex(input.primitiveIndex, vertexIndex, output.position);
+        EllipseVertexOutput ellipseData = ellipse_vertex(input.primitiveIndex, vertexIndex, globals.resolution, output.position);
         output.bytes = reinterpret<Union>(ellipseData);
     }
 
