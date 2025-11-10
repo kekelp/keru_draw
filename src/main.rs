@@ -13,13 +13,12 @@ struct State {
     render_pipeline: wgpu::RenderPipeline,
     vertex_buffer: wgpu::Buffer,
     #[allow(dead_code)]
-    triangle_buffer: wgpu::Buffer,
-    #[allow(dead_code)]
     quad_buffer: wgpu::Buffer,
     #[allow(dead_code)]
-    circle_buffer: wgpu::Buffer,
+    ellipse_buffer: wgpu::Buffer,
     bind_group: wgpu::BindGroup,
-    num_vertices: u32,
+    num_quads: u32,
+    num_ellipses: u32,
 }
 
 impl State {
@@ -112,16 +111,6 @@ impl State {
                     },
                     count: None,
                 },
-                wgpu::BindGroupLayoutEntry {
-                    binding: 2,
-                    visibility: wgpu::ShaderStages::VERTEX,
-                    ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Storage { read_only: true },
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
-                    },
-                    count: None,
-                },
             ],
         });
 
@@ -139,22 +128,12 @@ impl State {
                 module: &vs_module,
                 entry_point: Some("main"),
                 buffers: &[wgpu::VertexBufferLayout {
-                    array_stride: 12,
-                    step_mode: wgpu::VertexStepMode::Vertex,
+                    array_stride: 4,
+                    step_mode: wgpu::VertexStepMode::Instance,
                     attributes: &[
                         wgpu::VertexAttribute {
                             offset: 0,
                             shader_location: 0,
-                            format: wgpu::VertexFormat::Uint32,
-                        },
-                        wgpu::VertexAttribute {
-                            offset: 4,
-                            shader_location: 1,
-                            format: wgpu::VertexFormat::Uint32,
-                        },
-                        wgpu::VertexAttribute {
-                            offset: 8,
-                            shader_location: 2,
                             format: wgpu::VertexFormat::Uint32,
                         },
                     ],
@@ -172,7 +151,7 @@ impl State {
                 compilation_options: wgpu::PipelineCompilationOptions::default(),
             }),
             primitive: wgpu::PrimitiveState {
-                topology: wgpu::PrimitiveTopology::TriangleList,
+                topology: wgpu::PrimitiveTopology::TriangleStrip,
                 strip_index_format: None,
                 front_face: wgpu::FrontFace::Ccw,
                 cull_mode: Some(wgpu::Face::Back),
@@ -190,80 +169,76 @@ impl State {
             cache: None,
         });
 
-        #[repr(C)]
-        #[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
-        struct Vertex {
-            primitive_type: u32,
-            primitive_index: u32,
-            local_vertex_index: u32,
-        }
-
-        // Create two triangles
-        let vertices = [
-            // First triangle (primitive 0)
-            Vertex { primitive_type: 0, primitive_index: 0, local_vertex_index: 0 },
-            Vertex { primitive_type: 0, primitive_index: 0, local_vertex_index: 1 },
-            Vertex { primitive_type: 0, primitive_index: 0, local_vertex_index: 2 },
-            // Second triangle (primitive 1)
-            Vertex { primitive_type: 0, primitive_index: 1, local_vertex_index: 0 },
-            Vertex { primitive_type: 0, primitive_index: 1, local_vertex_index: 1 },
-            Vertex { primitive_type: 0, primitive_index: 1, local_vertex_index: 2 },
+        // Instance buffer - one u32 per instance for primitive type
+        let instances = [
+            0u32, // Quad
+            1u32, // Ellipse
         ];
 
         let vertex_buffer = device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some("Vertex Buffer"),
-            size: std::mem::size_of_val(&vertices) as u64,
+            label: Some("Instance Buffer"),
+            size: std::mem::size_of_val(&instances) as u64,
             usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
 
-        queue.write_buffer(&vertex_buffer, 0, bytemuck::cast_slice(&vertices));
+        queue.write_buffer(&vertex_buffer, 0, bytemuck::cast_slice(&instances));
 
-        // Create triangle buffer data
+        // Create quad buffer data
         #[repr(C)]
         #[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
-        struct TriangleData {
-            positions: [[f32; 2]; 3],
+        struct QuadData {
+            center: [f32; 2],
+            size: [f32; 2],
             color: [f32; 3],
             _padding: f32,
         }
 
-        let triangles = [
-            TriangleData {
-                positions: [[0.0, 0.5], [-0.3, 0.0], [0.3, 0.0]],
+        let quads = [
+            QuadData {
+                center: [-0.5, 0.5],
+                size: [0.4, 0.4],
                 color: [1.0, 0.0, 0.0],
                 _padding: 0.0,
             },
-            TriangleData {
-                positions: [[0.0, -0.5], [-0.3, -0.3], [0.3, -0.3]],
+        ];
+
+        let quad_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("Quad Buffer"),
+            size: std::mem::size_of_val(&quads) as u64,
+            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+
+        queue.write_buffer(&quad_buffer, 0, bytemuck::cast_slice(&quads));
+
+        // Create ellipse buffer data
+        #[repr(C)]
+        #[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
+        struct EllipseData {
+            center: [f32; 2],
+            radii: [f32; 2],
+            color: [f32; 3],
+            _padding: f32,
+        }
+
+        let ellipses = [
+            EllipseData {
+                center: [0.5, -0.5],
+                radii: [0.3, 0.3],
                 color: [0.0, 1.0, 0.0],
                 _padding: 0.0,
             },
         ];
 
-        let triangle_buffer = device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some("Triangle Buffer"),
-            size: std::mem::size_of_val(&triangles) as u64,
+        let ellipse_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("Ellipse Buffer"),
+            size: std::mem::size_of_val(&ellipses) as u64,
             usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
 
-        queue.write_buffer(&triangle_buffer, 0, bytemuck::cast_slice(&triangles));
-
-        // Create empty quad and circle buffers (for now)
-        let quad_buffer = device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some("Quad Buffer"),
-            size: 256,
-            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
-            mapped_at_creation: false,
-        });
-
-        let circle_buffer = device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some("Circle Buffer"),
-            size: 256,
-            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
-            mapped_at_creation: false,
-        });
+        queue.write_buffer(&ellipse_buffer, 0, bytemuck::cast_slice(&ellipses));
 
         // Create bind group
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
@@ -272,15 +247,11 @@ impl State {
             entries: &[
                 wgpu::BindGroupEntry {
                     binding: 0,
-                    resource: triangle_buffer.as_entire_binding(),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 1,
                     resource: quad_buffer.as_entire_binding(),
                 },
                 wgpu::BindGroupEntry {
-                    binding: 2,
-                    resource: circle_buffer.as_entire_binding(),
+                    binding: 1,
+                    resource: ellipse_buffer.as_entire_binding(),
                 },
             ],
         });
@@ -293,11 +264,11 @@ impl State {
             size,
             render_pipeline,
             vertex_buffer,
-            triangle_buffer,
             quad_buffer,
-            circle_buffer,
+            ellipse_buffer,
             bind_group,
-            num_vertices: vertices.len() as u32,
+            num_quads: quads.len() as u32,
+            num_ellipses: ellipses.len() as u32,
         }
     }
 
@@ -346,7 +317,10 @@ impl State {
             render_pass.set_pipeline(&self.render_pipeline);
             render_pass.set_bind_group(0, &self.bind_group, &[]);
             render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
-            render_pass.draw(0..self.num_vertices, 0..1);
+
+            // Draw instanced quads: 4 vertices per quad, n instances
+            let total_instances = self.num_quads + self.num_ellipses;
+            render_pass.draw(0..4, 0..total_instances);
         }
 
         self.queue.submit(std::iter::once(encoder.finish()));

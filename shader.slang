@@ -1,26 +1,22 @@
 // Main shader - dispatches to primitive-specific modules
 import primitives_common;
-import triangle_primitive;
+import quad_primitive_new;
 import quad_primitive;
-import circle_primitive;
 
 [shader("vertex")]
-VertexOutput vertexMain(VertexInput input) {
+VertexOutput vertexMain(VertexInput input, uint vertexIndex: SV_VulkanVertexID, uint instanceIndex: SV_VulkanInstanceID) {
     VertexOutput output;
-
     output.primitiveType = input.primitiveType;
-    output.primitiveIndex = input.primitiveIndex;
 
     // Dispatch to primitive-specific vertex function
-    if (input.primitiveType == uint(PrimitiveType::Triangle)) {
-        triangleVertex(input.primitiveIndex, input.localVertexIndex, output.position, output.color);
-    } else if (input.primitiveType == uint(PrimitiveType::Quad)) {
-        quadVertex(input.primitiveIndex, input.localVertexIndex, output.position, output.color);
-    } else if (input.primitiveType == uint(PrimitiveType::Circle)) {
-        circleVertex(input.primitiveIndex, input.localVertexIndex, output.position, output.color);
+    if (input.primitiveType == uint(PrimitiveType::Quad)) {
+        quadVertex(instanceIndex, vertexIndex, output.position, output.uv, output.color);
+    } else if (input.primitiveType == uint(PrimitiveType::Ellipse)) {
+        ellipseVertex(instanceIndex, vertexIndex, output.position, output.uv, output.color);
     } else {
         // Default case
         output.position = float4(0.0, 0.0, 0.0, 1.0);
+        output.uv = float2(0.0, 0.0);
         output.color = float3(1.0, 0.0, 1.0);  // Magenta for error
     }
 
@@ -30,12 +26,10 @@ VertexOutput vertexMain(VertexInput input) {
 [shader("fragment")]
 float4 fragmentMain(VertexOutput input): SV_Target {
     // Dispatch to primitive-specific fragment function
-    if (input.primitiveType == uint(PrimitiveType::Triangle)) {
-        return triangleFragment(input);
-    } else if (input.primitiveType == uint(PrimitiveType::Quad)) {
+    if (input.primitiveType == uint(PrimitiveType::Quad)) {
         return quadFragment(input);
-    } else if (input.primitiveType == uint(PrimitiveType::Circle)) {
-        return circleFragment(input);
+    } else if (input.primitiveType == uint(PrimitiveType::Ellipse)) {
+        return ellipseFragment(input);
     } else {
         return float4(1.0, 0.0, 1.0, 1.0);  // Magenta for error
     }

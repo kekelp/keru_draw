@@ -1,22 +1,22 @@
 import primitives_common;
 
-struct EllipseData {
+struct QuadData {
     float2 center;
-    float2 radii;
+    float2 size;
     float3 color;
 }
 
-[[vk::binding(1, 0)]]
-StructuredBuffer<EllipseData> ellipseBuffer;
+[[vk::binding(0, 0)]]
+StructuredBuffer<QuadData> quadBuffer;
 
-void ellipseVertex(
+void quadVertex(
     uint instanceIndex,
     uint vertexIndex,
     out float4 position,
     out float2 uv,
     out float3 color
 ) {
-    EllipseData ellipse = ellipseBuffer[instanceIndex];
+    QuadData quad = quadBuffer[instanceIndex];
 
     // Generate quad vertices from vertex index (0-3)
     float2 corners[4] = {
@@ -34,24 +34,14 @@ void ellipseVertex(
     };
 
     float2 corner = corners[vertexIndex];
-    float2 localPos = corner * ellipse.radii;
-    float2 worldPos = ellipse.center + localPos;
+    float2 localPos = corner * quad.size * 0.5;
+    float2 worldPos = quad.center + localPos;
 
     position = float4(worldPos, 0.0, 1.0);
     uv = uvs[vertexIndex];
-    color = ellipse.color;
+    color = quad.color;
 }
 
-float4 ellipseFragment(VertexOutput input): SV_Target {
-    // UV is in range [0,1], center is at (0.5, 0.5)
-    // Map to [-1, 1] range
-    float2 p = (input.uv - 0.5) * 2.0;
-
-    // Ellipse distance test
-    float dist = length(p);
-    if (dist > 1.0) {
-        discard;
-    }
-
+float4 quadFragment(VertexOutput input): SV_Target {
     return float4(input.color, 1.0);
 }
