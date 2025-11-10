@@ -1,6 +1,6 @@
 struct EllipseData {
     float2 center;
-    float2 radii;
+    float2 size;
     float3 color;
 }
 
@@ -28,7 +28,7 @@ EllipseVertexOutput ellipse_vertex(
     float2 uv = float2(ucoords);
     float2 corner = uv * 2.0 - 1.0;  // Map [0,1] to [-1,1]
 
-    float2 localPos = corner * ellipse.radii;
+    float2 localPos = corner * ellipse.size;
     float2 worldPos = ellipse.center + localPos;
 
     position = float4(worldPos, 0.0, 1.0);
