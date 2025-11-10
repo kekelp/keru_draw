@@ -6,7 +6,8 @@ enum PrimitiveType: uint {
     Ellipse = 1,
 }
 
-// Packed struct. Must be at least as big as 
+// Packed vertex output struct. Must be at least as big as the biggest vertex output struct for all primitives.
+// Apparently slang's reinterpret<T> doesn't have any compile time check that the sizes actually match, but I assume that will come in the future?? 
 struct Union {
     float4 data0;
     float4 data1;
