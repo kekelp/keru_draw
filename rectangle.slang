@@ -21,7 +21,7 @@ RectangleVertexOutput rectangle_vertex(
     uint vertexIndex,
     out float4 position
 ) {
-    QuadData quad = rectangleResources.buffer[instanceIndex];
+    var quad: QuadData = rectangleResources.buffer[instanceIndex];
 
     // Generate quad corner offsets from vertex index
     // vertexIndex: 0 -> (0,0), 1 -> (1,0), 2 -> (0,1), 3 -> (1,1)
@@ -29,15 +29,15 @@ RectangleVertexOutput rectangle_vertex(
         vertexIndex & 1u,
         (vertexIndex >> 1u) & 1u
     );
-    float2 uv = float2(ucoords);
+    let uv: float2 = float2(ucoords);
 
-    float2 resolution = float2(800.0, 600.0);
-    float2 p = (quad.top_left + uv * quad.size) / resolution;
-    p = p * 2.0 - 1.0;
+    let resolution: float2 = float2(800.0, 600.0);
+    let p: float2 = (quad.top_left + uv * quad.size) / resolution;
+    let p2 = p * 2.0 - 1.0;
 
-    position = float4(p, 0.0, 1.0);
+    position = float4(p2, 0.0, 1.0);
 
-    RectangleVertexOutput output;
+    var output: RectangleVertexOutput;
     output.uv = uv;
     output.color = quad.color;
     output._padding = float2(0.0, 0.0);
