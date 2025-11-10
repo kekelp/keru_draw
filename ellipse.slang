@@ -23,18 +23,26 @@ EllipseVertexOutput ellipse_vertex(
 ) {
     EllipseData ellipse = ellipseResources.buffer[instanceIndex];
 
-    // Generate quad vertices from vertex index
+    // Generate quad corner offsets from vertex index
     uint2 ucoords = uint2(
         vertexIndex & 1u,
         (vertexIndex >> 1u) & 1u
     );
-    float2 uv = float2(ucoords);
-    float2 corner = uv * 2.0 - 1.0;  // Map [0,1] to [-1,1]
+    float2 uv = float2(ucoords);  // [0,1] range
 
-    float2 localPos = corner * ellipse.size;
-    float2 worldPos = ellipse.center + localPos;
+    // Calculate offset from center: -0.5 to +0.5
+    float2 offset = uv - 0.5;
 
-    position = float4(worldPos, 0.0, 1.0);
+    // Calculate pixel position
+    float2 pixelPos = ellipse.center + offset * ellipse.size;
+
+    // Convert from pixel coordinates to NDC (hardcoded 800x600 for now)
+    float2 resolution = float2(800.0, 600.0);
+    float2 ndc;
+    ndc.x = (pixelPos.x / resolution.x) * 2.0 - 1.0;
+    ndc.y = 1.0 - (pixelPos.y / resolution.y) * 2.0;
+
+    position = float4(ndc, 0.0, 1.0);
 
     EllipseVertexOutput output;
     output.uv = uv;

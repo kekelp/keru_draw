@@ -186,30 +186,30 @@ impl State {
         globals.upload(&queue);
 
         // Create resource modules
-        let mut rectangle_resources = Rectangles::new(&device);
-        let mut ellipse_resources = Ellipses::new(&device);
+        let mut rectangles = Rectangles::new(&device);
+        let mut ellipses = Ellipses::new(&device);
 
-        // Add initial primitives
-        rectangle_resources.push(QuadData {
-            center: [-0.5, 0.5],
-            size: [0.4, 0.4],
+        // Add initial primitives (pixel coordinates, assuming 800x600)
+        rectangles.push(QuadData {
+            top_left: [100.0, 100.0],
+            size: [300.0, 200.0],
             color: [1.0, 0.0, 0.0],
             _padding: 0.0,
         });
 
-        ellipse_resources.push(EllipseData {
-            center: [0.5, -0.5],
-            size: [0.3, 0.3],
+        ellipses.push(EllipseData {
+            center: [600.0, 400.0],  // 600px from left, 400px from top
+            size: [150.0, 150.0],    // 150px diameter
             color: [0.0, 1.0, 0.0],
             _padding: 0.0,
         });
 
         // Upload to GPU
-        rectangle_resources.upload(&device, &queue);
-        ellipse_resources.upload(&device, &queue);
+        rectangles.upload(&device, &queue);
+        ellipses.upload(&device, &queue);
 
-        let num_quads = rectangle_resources.len() as u32;
-        let num_ellipses = ellipse_resources.len() as u32;
+        let num_quads = rectangles.len() as u32;
+        let num_ellipses = ellipses.len() as u32;
 
         Self {
             surface,
@@ -220,8 +220,8 @@ impl State {
             render_pipeline,
             vertex_buffer,
             globals,
-            rectangle_resources,
-            ellipse_resources,
+            rectangle_resources: rectangles,
+            ellipse_resources: ellipses,
             num_quads,
             num_ellipses,
         }

@@ -1,5 +1,5 @@
 struct QuadData {
-    float2 center;
+    float2 top_left;
     float2 size;
     float3 color;
 }
@@ -23,18 +23,19 @@ RectangleVertexOutput rectangle_vertex(
 ) {
     QuadData quad = rectangleResources.buffer[instanceIndex];
 
-    // Generate quad vertices from vertex index
+    // Generate quad corner offsets from vertex index
+    // vertexIndex: 0 -> (0,0), 1 -> (1,0), 2 -> (0,1), 3 -> (1,1)
     uint2 ucoords = uint2(
         vertexIndex & 1u,
         (vertexIndex >> 1u) & 1u
     );
     float2 uv = float2(ucoords);
-    float2 corner = uv * 2.0 - 1.0;  // Map [0,1] to [-1,1]
 
-    float2 localPos = corner * quad.size * 0.5;
-    float2 worldPos = quad.center + localPos;
+    float2 resolution = float2(800.0, 600.0);
+    float2 p = (quad.top_left + uv * quad.size) / resolution;
+    p = p * 2.0 - 1.0;
 
-    position = float4(worldPos, 0.0, 1.0);
+    position = float4(p, 0.0, 1.0);
 
     RectangleVertexOutput output;
     output.uv = uv;

@@ -3,7 +3,7 @@
 #[repr(C)]
 #[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct QuadData {
-    pub center: [f32; 2],
+    pub top_left: [f32; 2],
     pub size: [f32; 2],
     pub color: [f32; 3],
     pub _padding: f32,
