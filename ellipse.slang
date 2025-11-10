@@ -14,13 +14,14 @@ struct EllipseResources {
     StructuredBuffer<EllipseData> buffer;
 }
 
+ParameterBlock<EllipseResources> ellipseResources;
+
 EllipseVertexOutput ellipse_vertex(
-    EllipseResources resources,
     uint instanceIndex,
     uint vertexIndex,
     out float4 position
 ) {
-    EllipseData ellipse = resources.buffer[instanceIndex];
+    EllipseData ellipse = ellipseResources.buffer[instanceIndex];
 
     // Generate quad vertices from vertex index
     uint2 ucoords = uint2(

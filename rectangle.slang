@@ -14,13 +14,14 @@ struct RectangleResources {
     StructuredBuffer<QuadData> buffer;
 }
 
+ParameterBlock<RectangleResources> rectangleResources;
+
 RectangleVertexOutput rectangle_vertex(
-    RectangleResources resources,
     uint instanceIndex,
     uint vertexIndex,
     out float4 position
 ) {
-    QuadData quad = resources.buffer[instanceIndex];
+    QuadData quad = rectangleResources.buffer[instanceIndex];
 
     // Generate quad vertices from vertex index
     uint2 ucoords = uint2(
