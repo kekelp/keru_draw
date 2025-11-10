@@ -1,5 +1,3 @@
-import primitives_common;
-
 struct QuadData {
     float2 center;
     float2 size;

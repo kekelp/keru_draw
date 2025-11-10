@@ -1,5 +1,3 @@
-import primitives_common;
-
 struct EllipseData {
     float2 center;
     float2 radii;

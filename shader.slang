@@ -1,5 +1,3 @@
-// Main shader - dispatches to primitive-specific modules
-import primitives_common;
 import ellipse;
 import rectangle;
 
@@ -8,7 +6,7 @@ enum PrimitiveType: uint {
     Ellipse = 1,
 }
 
-
+// Packed struct. Must be at least as big as 
 struct Union {
     float4 data0;
     float4 data1;
@@ -17,6 +15,7 @@ struct Union {
 struct VertexOutput {
     float4 position: SV_Position;
     uint primitiveType: PRIMTYPE;
+    uint primitiveIndex: PRIMINDEX;
     Union bytes: TEXCOORD0;
 }
 
@@ -30,6 +29,7 @@ struct VertexInput {
 VertexOutput vertexMain(VertexInput input, uint vertexIndex: SV_VulkanVertexID) {
     VertexOutput output;
     output.primitiveType = input.primitiveType;
+    output.primitiveIndex = input.primitiveIndex;
 
     if (input.primitiveType == uint(PrimitiveType::Quad)) {
         RectangleVertexOutput rectData = rectangle_vertex(input.primitiveIndex, vertexIndex, output.position);
