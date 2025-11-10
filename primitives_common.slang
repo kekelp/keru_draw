@@ -6,11 +6,6 @@ enum PrimitiveType: uint {
     Circle = 2,
 }
 
-// Raw primitive data storage - 64 bytes
-struct PrimitiveData {
-    uint4 data[4];
-}
-
 // Output from vertex processing
 struct VertexOutput {
     float4 position: SV_Position;
@@ -22,5 +17,6 @@ struct VertexOutput {
 // Input to vertex shader
 struct VertexInput {
     uint primitiveType: PRIMTYPE;
-    uint vertexIndex: VERTEXID;
+    uint primitiveIndex: PRIMINDEX;
+    uint localVertexIndex: LOCALVERTEX;
 }

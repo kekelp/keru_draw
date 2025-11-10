@@ -13,7 +13,11 @@ struct State {
     render_pipeline: wgpu::RenderPipeline,
     vertex_buffer: wgpu::Buffer,
     #[allow(dead_code)]
-    primitive_buffer: wgpu::Buffer,
+    triangle_buffer: wgpu::Buffer,
+    #[allow(dead_code)]
+    quad_buffer: wgpu::Buffer,
+    #[allow(dead_code)]
+    circle_buffer: wgpu::Buffer,
     bind_group: wgpu::BindGroup,
     num_vertices: u32,
 }
@@ -84,19 +88,41 @@ impl State {
             source: wgpu::util::make_spirv(&fs_spirv),
         });
 
-        // Create bind group layout for primitive buffer
+        // Create bind group layout for primitive buffers
         let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: Some("Primitive Buffer Bind Group Layout"),
-            entries: &[wgpu::BindGroupLayoutEntry {
-                binding: 0,
-                visibility: wgpu::ShaderStages::VERTEX,
-                ty: wgpu::BindingType::Buffer {
-                    ty: wgpu::BufferBindingType::Storage { read_only: true },
-                    has_dynamic_offset: false,
-                    min_binding_size: None,
+            label: Some("Primitive Buffers Bind Group Layout"),
+            entries: &[
+                wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::VERTEX,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Storage { read_only: true },
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
                 },
-                count: None,
-            }],
+                wgpu::BindGroupLayoutEntry {
+                    binding: 1,
+                    visibility: wgpu::ShaderStages::VERTEX,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Storage { read_only: true },
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 2,
+                    visibility: wgpu::ShaderStages::VERTEX,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Storage { read_only: true },
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
+            ],
         });
 
         let render_pipeline_layout =
@@ -113,7 +139,7 @@ impl State {
                 module: &vs_module,
                 entry_point: Some("main"),
                 buffers: &[wgpu::VertexBufferLayout {
-                    array_stride: 8,
+                    array_stride: 12,
                     step_mode: wgpu::VertexStepMode::Vertex,
                     attributes: &[
                         wgpu::VertexAttribute {
@@ -124,6 +150,11 @@ impl State {
                         wgpu::VertexAttribute {
                             offset: 4,
                             shader_location: 1,
+                            format: wgpu::VertexFormat::Uint32,
+                        },
+                        wgpu::VertexAttribute {
+                            offset: 8,
+                            shader_location: 2,
                             format: wgpu::VertexFormat::Uint32,
                         },
                     ],
@@ -163,19 +194,20 @@ impl State {
         #[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
         struct Vertex {
             primitive_type: u32,
-            vertex_index: u32,
+            primitive_index: u32,
+            local_vertex_index: u32,
         }
 
         // Create two triangles
         let vertices = [
-            // First triangle (index 0-2)
-            Vertex { primitive_type: 0, vertex_index: 0 },
-            Vertex { primitive_type: 0, vertex_index: 1 },
-            Vertex { primitive_type: 0, vertex_index: 2 },
-            // Second triangle (index 3-5)
-            Vertex { primitive_type: 0, vertex_index: 3 },
-            Vertex { primitive_type: 0, vertex_index: 4 },
-            Vertex { primitive_type: 0, vertex_index: 5 },
+            // First triangle (primitive 0)
+            Vertex { primitive_type: 0, primitive_index: 0, local_vertex_index: 0 },
+            Vertex { primitive_type: 0, primitive_index: 0, local_vertex_index: 1 },
+            Vertex { primitive_type: 0, primitive_index: 0, local_vertex_index: 2 },
+            // Second triangle (primitive 1)
+            Vertex { primitive_type: 0, primitive_index: 1, local_vertex_index: 0 },
+            Vertex { primitive_type: 0, primitive_index: 1, local_vertex_index: 1 },
+            Vertex { primitive_type: 0, primitive_index: 1, local_vertex_index: 2 },
         ];
 
         let vertex_buffer = device.create_buffer(&wgpu::BufferDescriptor {
@@ -187,56 +219,70 @@ impl State {
 
         queue.write_buffer(&vertex_buffer, 0, bytemuck::cast_slice(&vertices));
 
-        // Create primitive buffer data
-        // Each PrimitiveData is 64 bytes (4 * uint4 = 4 * 16 bytes)
+        // Create triangle buffer data
         #[repr(C)]
         #[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
-        struct PrimitiveData {
-            data: [[u32; 4]; 4],
+        struct TriangleData {
+            positions: [[f32; 2]; 3],
+            color: [f32; 3],
+            _padding: f32,
         }
 
-        // Helper to convert f32 to u32 bits
-        let f32_bits = |f: f32| f.to_bits();
+        let triangles = [
+            TriangleData {
+                positions: [[0.0, 0.5], [-0.3, 0.0], [0.3, 0.0]],
+                color: [1.0, 0.0, 0.0],
+                _padding: 0.0,
+            },
+            TriangleData {
+                positions: [[0.0, -0.5], [-0.3, -0.3], [0.3, -0.3]],
+                color: [0.0, 1.0, 0.0],
+                _padding: 0.0,
+            },
+        ];
 
-        // Triangle 1: top triangle (red)
-        let tri1 = PrimitiveData {
-            data: [
-                [f32_bits(0.0), f32_bits(0.5), f32_bits(-0.3), f32_bits(0.0)],  // positions[0], positions[1].x
-                [f32_bits(0.3), f32_bits(0.0), f32_bits(1.0), f32_bits(0.0)],   // positions[1].y, positions[2], color.r
-                [f32_bits(0.0), 0, 0, 0],                                         // color.gb, unused
-                [0, 0, 0, 0],
-            ],
-        };
-
-        // Triangle 2: bottom triangle (green)
-        let tri2 = PrimitiveData {
-            data: [
-                [f32_bits(0.0), f32_bits(-0.5), f32_bits(-0.3), f32_bits(-0.3)], // positions[0], positions[1].x
-                [f32_bits(0.3), f32_bits(-0.3), f32_bits(0.0), f32_bits(1.0)],   // positions[1].y, positions[2], color.r
-                [f32_bits(0.0), 0, 0, 0],                                          // color.gb, unused
-                [0, 0, 0, 0],
-            ],
-        };
-
-        let primitives = [tri1, tri2];
-
-        let primitive_buffer = device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some("Primitive Buffer"),
-            size: std::mem::size_of_val(&primitives) as u64,
+        let triangle_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("Triangle Buffer"),
+            size: std::mem::size_of_val(&triangles) as u64,
             usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
 
-        queue.write_buffer(&primitive_buffer, 0, bytemuck::cast_slice(&primitives));
+        queue.write_buffer(&triangle_buffer, 0, bytemuck::cast_slice(&triangles));
+
+        // Create empty quad and circle buffers (for now)
+        let quad_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("Quad Buffer"),
+            size: 256,
+            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+
+        let circle_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("Circle Buffer"),
+            size: 256,
+            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
 
         // Create bind group
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("Primitive Buffer Bind Group"),
+            label: Some("Primitive Buffers Bind Group"),
             layout: &bind_group_layout,
-            entries: &[wgpu::BindGroupEntry {
-                binding: 0,
-                resource: primitive_buffer.as_entire_binding(),
-            }],
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: triangle_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: quad_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 2,
+                    resource: circle_buffer.as_entire_binding(),
+                },
+            ],
         });
 
         Self {
@@ -247,7 +293,9 @@ impl State {
             size,
             render_pipeline,
             vertex_buffer,
-            primitive_buffer,
+            triangle_buffer,
+            quad_buffer,
+            circle_buffer,
             bind_group,
             num_vertices: vertices.len() as u32,
         }
