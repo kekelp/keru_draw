@@ -1,4 +1,6 @@
+ParameterBlock<Globals> globals;
 // The order of the imports has to match the binding indices in the Rust code!
+// If there are issues, compile the shaders with the -reflection-json flag and see the parameterBlock fields.
 import ellipse;
 import rectangle;
 
@@ -13,7 +15,6 @@ struct Globals {
     float _padding;
 }
 
-ParameterBlock<Globals> globals;
 
 // Packed vertex output struct. Must be at least as big as the biggest vertex output struct for all primitives.
 // If the size is not sufficient, Slang should be able to give an error or warning on the reinterpret<T> calls.

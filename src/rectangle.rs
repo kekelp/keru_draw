@@ -6,7 +6,9 @@ pub struct QuadData {
     pub top_left: [f32; 2],
     pub size: [f32; 2],
     pub color: [f32; 3],
-    pub _padding: f32,
+    pub corner_radius: f32,
+    pub border_width: f32,
+    pub border_color: [f32; 3],
 }
 
 pub struct Rectangles {

@@ -134,7 +134,7 @@ impl State {
                 entry_point: Some("main"),
                 targets: &[Some(wgpu::ColorTargetState {
                     format: config.format,
-                    blend: Some(wgpu::BlendState::REPLACE),
+                    blend: Some(wgpu::BlendState::ALPHA_BLENDING),
                     write_mask: wgpu::ColorWrites::ALL,
                 })],
                 compilation_options: wgpu::PipelineCompilationOptions::default(),
@@ -189,12 +189,14 @@ impl State {
         let mut rectangles = Rectangles::new(&device);
         let mut ellipses = Ellipses::new(&device);
 
-        // Add initial primitives (pixel coordinates, assuming 800x600)
+        // Add initial primitives (pixel coordinates)
         rectangles.push(QuadData {
             top_left: [100.0, 100.0],
             size: [300.0, 200.0],
             color: [1.0, 0.0, 0.0],
-            _padding: 0.0,
+            corner_radius: 20.0,
+            border_width: 2.0,
+            border_color: [0.0, 0.0, 1.0],
         });
 
         ellipses.push(EllipseData {
@@ -275,7 +277,7 @@ impl State {
 
             render_pass.set_pipeline(&self.render_pipeline);
             // The binding indices has to match the order in which the parameter blocks appear in the shader!
-            // See also the slangc_reflection.json file produced when compiling the shaders.
+            // If there are issues, compile the shaders with the -reflection-json flag and see the parameterBlock fields.
             render_pass.set_bind_group(0, &self.globals.bind_group, &[]);
             render_pass.set_bind_group(1, &self.ellipse_resources.bind_group, &[]);
             render_pass.set_bind_group(2, &self.rectangle_resources.bind_group, &[]);
