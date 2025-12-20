@@ -22,7 +22,10 @@ float2 rectangle_vertex(
     out float4 position
 ) {
     var quad: QuadData = rectangleResources.buffer[instanceIndex];
-    return quad_vertex(quad.top_left, quad.size, vertexIndex, resolution, position);
+
+    AABB clip = { float2(200.0, 200.0), float2(500.0, 400.0) };
+
+    return quad_vertex(quad.top_left, quad.size, clip, vertexIndex, resolution, position);
 }
 
 
@@ -46,7 +49,7 @@ float4 rectangle_fragment(uint primitiveIndex, float2 uv): SV_Target {
     float dist = sd_rounded_box(p, half_size, quad.corner_radius);
 
     // Antialiasing using derivative-based smoothstep
-    float edge_softness = length(float2(ddx(dist), ddy(dist)));
+    float edge_softness = 1.0;
     float alpha = 1.0 - smoothstep(-edge_softness, edge_softness, dist);
 
     // Handle border

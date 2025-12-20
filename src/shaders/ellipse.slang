@@ -19,7 +19,10 @@ float2 ellipse_vertex(
     out float4 position
 ) {
     var ellipse: EllipseData = ellipseResources.buffer[instanceIndex];
-    return quad_vertex(ellipse.top_left, ellipse.size, vertexIndex, resolution, position);
+
+    AABB clip = { float2(100.0, 100.0), float2(900.0, 700.0) };
+
+    return quad_vertex(ellipse.top_left, ellipse.size, clip, vertexIndex, resolution, position);
 }
 
 float4 ellipse_fragment(uint primitiveIndex, float2 uv): SV_Target {
