@@ -40,11 +40,9 @@ float2 quad_vertex(
     // Calculate the clipped position for this vertex
     float2 p = clipped_min + uv * (clipped_max - clipped_min);
 
-    // Adjust UV coordinates based on clipping
-    // Map the clipped region back to the original quad's UV space
-    float2 uv_min = (clipped_min - quad_min) / size;
-    float2 uv_max = (clipped_max - quad_min) / size;
-    float2 adjusted_uv = uv_min + uv * (uv_max - uv_min);
+    // Calculate UV in the original quad's space
+    // This ensures fragment shaders can correctly center coordinates
+    float2 adjusted_uv = (p - quad_min) / size;
 
     // Convert to NDC
     float2 ndc = (p / resolution) * 2.0 - 1.0;

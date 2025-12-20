@@ -41,8 +41,10 @@ float sd_rounded_box(float2 p, float2 size, float r) {
 float4 rectangle_fragment(uint primitiveIndex, float2 uv): SV_Target {
     var quad: QuadData = rectangleResources.buffer[primitiveIndex];
 
-    // Convert UV [0,1] to position relative to center
-    float2 p = (uv - 0.5) * quad.size;
+    // Convert UV [0,1] to pixel position, then to position relative to center
+    float2 pixel_pos = quad.top_left + uv * quad.size;
+    float2 quad_center = quad.top_left + quad.size * 0.5;
+    float2 p = pixel_pos - quad_center;
 
     // Calculate SDF
     float2 half_size = quad.size * 0.5;

@@ -26,8 +26,8 @@ float2 ellipse_vertex(
 float4 ellipse_fragment(uint primitiveIndex, float2 uv): SV_Target {
     var ellipse: EllipseData = ellipseResources.buffer[primitiveIndex];
 
-    // UV is in range [0,1], center is at (0.5, 0.5)
-    // Map to [-1, 1] range
+    // Convert UV to position in ellipse's local space
+    // UV is relative to the original quad, map to [-1, 1] range
     float2 p = (uv - 0.5) * 2.0;
 
     float dist = length(p);
