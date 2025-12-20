@@ -13,6 +13,8 @@ struct RectangleResources {
 
 ParameterBlock<RectangleResources> rectangleResources;
 
+import quad;
+
 float2 rectangle_vertex(
     uint instanceIndex,
     uint vertexIndex,
@@ -20,18 +22,7 @@ float2 rectangle_vertex(
     out float4 position
 ) {
     var quad: QuadData = rectangleResources.buffer[instanceIndex];
-
-    float2 uv = float2(
-        vertexIndex & 1u,
-        vertexIndex >> 1u & 1u
-    );
-
-    float2 p = quad.top_left + uv * quad.size;
-    float2 ndc = (p / resolution) * 2.0 - 1.0;
-
-    position = float4(ndc.x, -ndc.y, 0.0, 1.0); // flip y
-
-    return uv;
+    return quad_vertex(quad.top_left, quad.size, vertexIndex, resolution, position);
 }
 
 

@@ -10,6 +10,8 @@ struct EllipseResources {
 
 ParameterBlock<EllipseResources> ellipseResources;
 
+import quad;
+
 float2 ellipse_vertex(
     uint instanceIndex,
     uint vertexIndex,
@@ -17,18 +19,7 @@ float2 ellipse_vertex(
     out float4 position
 ) {
     var ellipse: EllipseData = ellipseResources.buffer[instanceIndex];
-
-    float2 uv = float2(
-        vertexIndex & 1u,
-        vertexIndex >> 1u & 1u
-    );
-
-    float2 p = ellipse.top_left + uv * ellipse.size;
-    float2 ndc = (p / resolution) * 2.0 - 1.0;
-
-    position = float4(ndc.x, -ndc.y, 0.0, 1.0); // flip y
-
-    return uv;
+    return quad_vertex(ellipse.top_left, ellipse.size, vertexIndex, resolution, position);
 }
 
 float4 ellipse_fragment(uint primitiveIndex, float2 uv): SV_Target {

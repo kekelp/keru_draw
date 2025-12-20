@@ -1,6 +1,7 @@
 ParameterBlock<Globals> globals;
 // The order of the imports has to match the binding indices in the Rust code!
 // If there are issues, compile the shaders with the -reflection-json flag and see the parameterBlock fields.
+import quad;
 import ellipse;
 import rectangle;
 
