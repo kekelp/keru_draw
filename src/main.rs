@@ -180,7 +180,7 @@ impl State {
         // Add initial primitives (pixel coordinates)
         rectangles.push(QuadData {
             top_left: [0.0, 0.0],
-            size: [600.0, 600.0],
+            size: [400.0, 400.0],
             color: [1.0, 0.0, 0.0],
             _padding1: 0.0,
             corner_radius: 60.0,
@@ -193,20 +193,20 @@ impl State {
             },
         });
 
-        // ellipses.push(EllipseData {
-        //     top_left: [0.0, 0.0],
-        //     size: [400.0, 400.0],
-        //     color: [0.0, 1.0, 0.0],
-        //     _padding: 0.0,
-        //     clip: Aabb {
-        //         min: [0.0, 50.0],
-        //         max: [300.0, 5000.0],
-        //     },
-        // });
+        ellipses.push(EllipseData {
+            top_left: [400.0, 400.0],
+            size: [400.0, 400.0],
+            color: [0.0, 1.0, 0.0],
+            _padding: 0.0,
+            clip: Aabb {
+                min: [0.0, 50.0],
+                max: [750.0, 5000.0],
+            },
+        });
         
         let instances = [
             Instance { primitive_type: 0, primitive_index: 0 },
-            // Instance { primitive_type: 1, primitive_index: 0 },
+            Instance { primitive_type: 1, primitive_index: 0 },
         ];
 
         let vertex_buffer = device.create_buffer(&wgpu::BufferDescriptor {
