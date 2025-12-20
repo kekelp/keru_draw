@@ -3,13 +3,13 @@ import quad;
 struct QuadData {
     float2 top_left;
     float2 size;
+    AABB clip;
     float3 color;
     float _padding1;
     float corner_radius;
     float border_width;
     float3 border_color;
     float _padding2;
-    AABB clip;
 }
 
 struct RectangleResources {
@@ -68,4 +68,7 @@ float4 rectangle_fragment(uint primitiveIndex, float2 uv): SV_Target {
     }
 
     return float4(final_color, alpha);
+
+    // return float4(1.0, 0.0, 0.0, 1.0);
+
 }

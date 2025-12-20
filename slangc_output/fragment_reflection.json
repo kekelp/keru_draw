@@ -320,62 +320,6 @@
                                             "binding": {"kind": "uniform", "offset": 8, "size": 8, "elementStride": 4}
                                         },
                                         {
-                                            "name": "color",
-                                            "type": {
-                                                "kind": "vector",
-                                                "elementCount": 3,
-                                                "elementType": {
-                                                    "kind": "scalar",
-                                                    "scalarType": "float32"
-                                                }
-                                            },
-                                            "binding": {"kind": "uniform", "offset": 16, "size": 12, "elementStride": 4}
-                                        },
-                                        {
-                                            "name": "_padding1",
-                                            "type": {
-                                                "kind": "scalar",
-                                                "scalarType": "float32"
-                                            },
-                                            "binding": {"kind": "uniform", "offset": 28, "size": 4, "elementStride": 0}
-                                        },
-                                        {
-                                            "name": "corner_radius",
-                                            "type": {
-                                                "kind": "scalar",
-                                                "scalarType": "float32"
-                                            },
-                                            "binding": {"kind": "uniform", "offset": 32, "size": 4, "elementStride": 0}
-                                        },
-                                        {
-                                            "name": "border_width",
-                                            "type": {
-                                                "kind": "scalar",
-                                                "scalarType": "float32"
-                                            },
-                                            "binding": {"kind": "uniform", "offset": 36, "size": 4, "elementStride": 0}
-                                        },
-                                        {
-                                            "name": "border_color",
-                                            "type": {
-                                                "kind": "vector",
-                                                "elementCount": 3,
-                                                "elementType": {
-                                                    "kind": "scalar",
-                                                    "scalarType": "float32"
-                                                }
-                                            },
-                                            "binding": {"kind": "uniform", "offset": 48, "size": 12, "elementStride": 4}
-                                        },
-                                        {
-                                            "name": "_padding2",
-                                            "type": {
-                                                "kind": "scalar",
-                                                "scalarType": "float32"
-                                            },
-                                            "binding": {"kind": "uniform", "offset": 60, "size": 4, "elementStride": 0}
-                                        },
-                                        {
                                             "name": "clip",
                                             "type": {
                                                 "kind": "struct",
@@ -407,7 +351,63 @@
                                                     }
                                                 ]
                                             },
-                                            "binding": {"kind": "uniform", "offset": 64, "size": 16, "elementStride": 0}
+                                            "binding": {"kind": "uniform", "offset": 16, "size": 16, "elementStride": 0}
+                                        },
+                                        {
+                                            "name": "color",
+                                            "type": {
+                                                "kind": "vector",
+                                                "elementCount": 3,
+                                                "elementType": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                }
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 32, "size": 12, "elementStride": 4}
+                                        },
+                                        {
+                                            "name": "_padding1",
+                                            "type": {
+                                                "kind": "scalar",
+                                                "scalarType": "float32"
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 44, "size": 4, "elementStride": 0}
+                                        },
+                                        {
+                                            "name": "corner_radius",
+                                            "type": {
+                                                "kind": "scalar",
+                                                "scalarType": "float32"
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 48, "size": 4, "elementStride": 0}
+                                        },
+                                        {
+                                            "name": "border_width",
+                                            "type": {
+                                                "kind": "scalar",
+                                                "scalarType": "float32"
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 52, "size": 4, "elementStride": 0}
+                                        },
+                                        {
+                                            "name": "border_color",
+                                            "type": {
+                                                "kind": "vector",
+                                                "elementCount": 3,
+                                                "elementType": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                }
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 64, "size": 12, "elementStride": 4}
+                                        },
+                                        {
+                                            "name": "_padding2",
+                                            "type": {
+                                                "kind": "scalar",
+                                                "scalarType": "float32"
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 76, "size": 4, "elementStride": 0}
                                         }
                                     ]
                                 }
@@ -458,62 +458,6 @@
                                                 "binding": {"kind": "uniform", "offset": 8, "size": 8, "elementStride": 4}
                                             },
                                             {
-                                                "name": "color",
-                                                "type": {
-                                                    "kind": "vector",
-                                                    "elementCount": 3,
-                                                    "elementType": {
-                                                        "kind": "scalar",
-                                                        "scalarType": "float32"
-                                                    }
-                                                },
-                                                "binding": {"kind": "uniform", "offset": 16, "size": 12, "elementStride": 4}
-                                            },
-                                            {
-                                                "name": "_padding1",
-                                                "type": {
-                                                    "kind": "scalar",
-                                                    "scalarType": "float32"
-                                                },
-                                                "binding": {"kind": "uniform", "offset": 28, "size": 4, "elementStride": 0}
-                                            },
-                                            {
-                                                "name": "corner_radius",
-                                                "type": {
-                                                    "kind": "scalar",
-                                                    "scalarType": "float32"
-                                                },
-                                                "binding": {"kind": "uniform", "offset": 32, "size": 4, "elementStride": 0}
-                                            },
-                                            {
-                                                "name": "border_width",
-                                                "type": {
-                                                    "kind": "scalar",
-                                                    "scalarType": "float32"
-                                                },
-                                                "binding": {"kind": "uniform", "offset": 36, "size": 4, "elementStride": 0}
-                                            },
-                                            {
-                                                "name": "border_color",
-                                                "type": {
-                                                    "kind": "vector",
-                                                    "elementCount": 3,
-                                                    "elementType": {
-                                                        "kind": "scalar",
-                                                        "scalarType": "float32"
-                                                    }
-                                                },
-                                                "binding": {"kind": "uniform", "offset": 48, "size": 12, "elementStride": 4}
-                                            },
-                                            {
-                                                "name": "_padding2",
-                                                "type": {
-                                                    "kind": "scalar",
-                                                    "scalarType": "float32"
-                                                },
-                                                "binding": {"kind": "uniform", "offset": 60, "size": 4, "elementStride": 0}
-                                            },
-                                            {
                                                 "name": "clip",
                                                 "type": {
                                                     "kind": "struct",
@@ -545,7 +489,63 @@
                                                         }
                                                     ]
                                                 },
-                                                "binding": {"kind": "uniform", "offset": 64, "size": 16, "elementStride": 0}
+                                                "binding": {"kind": "uniform", "offset": 16, "size": 16, "elementStride": 0}
+                                            },
+                                            {
+                                                "name": "color",
+                                                "type": {
+                                                    "kind": "vector",
+                                                    "elementCount": 3,
+                                                    "elementType": {
+                                                        "kind": "scalar",
+                                                        "scalarType": "float32"
+                                                    }
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 32, "size": 12, "elementStride": 4}
+                                            },
+                                            {
+                                                "name": "_padding1",
+                                                "type": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 44, "size": 4, "elementStride": 0}
+                                            },
+                                            {
+                                                "name": "corner_radius",
+                                                "type": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 48, "size": 4, "elementStride": 0}
+                                            },
+                                            {
+                                                "name": "border_width",
+                                                "type": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 52, "size": 4, "elementStride": 0}
+                                            },
+                                            {
+                                                "name": "border_color",
+                                                "type": {
+                                                    "kind": "vector",
+                                                    "elementCount": 3,
+                                                    "elementType": {
+                                                        "kind": "scalar",
+                                                        "scalarType": "float32"
+                                                    }
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 64, "size": 12, "elementStride": 4}
+                                            },
+                                            {
+                                                "name": "_padding2",
+                                                "type": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 76, "size": 4, "elementStride": 0}
                                             }
                                         ]
                                     }
