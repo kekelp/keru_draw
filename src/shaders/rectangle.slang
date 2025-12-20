@@ -1,6 +1,6 @@
 import quad;
 
-struct QuadData {
+struct RectangleData {
     float2 top_left;
     float2 size;
     Aabb clip;
@@ -9,7 +9,7 @@ struct QuadData {
 }
 
 struct RectangleResources {
-    StructuredBuffer<QuadData> buffer;
+    StructuredBuffer<RectangleData> buffer;
 }
 
 ParameterBlock<RectangleResources> rectangleResources;
@@ -20,8 +20,8 @@ float2 rectangle_vertex(
     float2 resolution,
     out float4 position
 ) {
-    var quad: QuadData = rectangleResources.buffer[instanceIndex];
-    return quad_vertex(quad.top_left, quad.size, quad.clip, vertexIndex, resolution, position);
+    var rect: RectangleData = rectangleResources.buffer[instanceIndex];
+    return quad_vertex(rect.top_left, rect.size, rect.clip, vertexIndex, resolution, position);
 }
 
 float sd_rounded_box(float2 p, float2 size, float r) {
@@ -30,12 +30,12 @@ float sd_rounded_box(float2 p, float2 size, float r) {
 }
 
 float4 rectangle_fragment(uint primitiveIndex, float2 uv): SV_Target {
-    var quad: QuadData = rectangleResources.buffer[primitiveIndex];
+    var rect: RectangleData = rectangleResources.buffer[primitiveIndex];
 
-    float2 p = (uv - 0.5) * quad.size;
+    float2 p = (uv - 0.5) * rect.size;
 
-    float2 half_size = quad.size * 0.5;
-    float dist = sd_rounded_box(p, half_size, quad.corner_radius);
+    float2 half_size = rect.size * 0.5;
+    float dist = sd_rounded_box(p, half_size, rect.corner_radius);
 
     float alpha = 1.0 - smoothstep(-1.0, 1.0, dist);
 
@@ -43,5 +43,5 @@ float4 rectangle_fragment(uint primitiveIndex, float2 uv): SV_Target {
         discard;
     }
 
-    return float4(quad.color, alpha);
+    return float4(rect.color, alpha);
 }

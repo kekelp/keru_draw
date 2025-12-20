@@ -13,7 +13,7 @@ pub struct RectangleData {
 }
 
 pub struct Rectangles {
-    primitives: Vec<RectangleData>,
+    pub primitives: Vec<RectangleData>,
     buffer: wgpu::Buffer,
     buffer_capacity: usize,
     pub bind_group: wgpu::BindGroup,
