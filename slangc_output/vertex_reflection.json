@@ -309,7 +309,7 @@
                                 "baseShape": "structuredBuffer",
                                 "resultType": {
                                     "kind": "struct",
-                                    "name": "QuadData",
+                                    "name": "RectangleData",
                                     "fields": [
                                         {
                                             "name": "top_left",
@@ -411,7 +411,7 @@
                                     "baseShape": "structuredBuffer",
                                     "resultType": {
                                         "kind": "struct",
-                                        "name": "QuadData",
+                                        "name": "RectangleData",
                                         "fields": [
                                             {
                                                 "name": "top_left",
