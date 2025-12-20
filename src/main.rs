@@ -4,10 +4,12 @@ use winit::{
     window::Window,
 };
 
+mod aabb;
 mod rectangle;
 mod ellipse;
 mod globals;
 
+use aabb::AABB;
 use rectangle::{Rectangles, QuadData};
 use ellipse::{Ellipses, EllipseData};
 use globals::Globals;
@@ -191,20 +193,29 @@ impl State {
 
         // Add initial primitives (pixel coordinates)
         rectangles.push(QuadData {
-            top_left: [100.0, 100.0],
-            size: [300.0, 200.0],
+            top_left: [0.0, 0.0],
+            size: [600.0, 600.0],
             color: [1.0, 0.0, 0.0],
             corner_radius: 20.0,
             border_width: 2.0,
             border_color: [0.0, 0.0, 1.0],
+            _padding: 0.0,
+            clip: AABB {
+                min: [0.0, 0.0],
+                max: [8000.0, 6000.0],
+            },
         });
 
-        ellipses.push(EllipseData {
-            top_left: [500.0, 300.0],
-            size: [150.0, 200.0],
-            color: [0.0, 1.0, 0.0],
-            _padding: 0.0,
-        });
+        // ellipses.push(EllipseData {
+        //     top_left: [0.0, 0.0],
+        //     size: [600.0, 600.0],
+        //     color: [0.0, 1.0, 0.0],
+        //     _padding: 0.0,
+        //     clip: AABB {
+        //         min: [100.0, 100.0],
+        //         max: [7000.0, 5000.0],
+        //     },
+        // });
 
         // Upload to GPU
         rectangles.upload(&device, &queue);

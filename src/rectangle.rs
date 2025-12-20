@@ -1,5 +1,7 @@
 // Rectangle primitive module
 
+use crate::aabb::AABB;
+
 #[repr(C)]
 #[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct QuadData {
@@ -9,6 +11,8 @@ pub struct QuadData {
     pub corner_radius: f32,
     pub border_width: f32,
     pub border_color: [f32; 3],
+    pub _padding: f32,
+    pub clip: AABB,
 }
 
 pub struct Rectangles {

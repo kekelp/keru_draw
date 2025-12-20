@@ -1,7 +1,10 @@
+import quad;
+
 struct EllipseData {
     float2 top_left;
     float2 size;
     float3 color;
+    AABB clip;
 }
 
 struct EllipseResources {
@@ -10,8 +13,6 @@ struct EllipseResources {
 
 ParameterBlock<EllipseResources> ellipseResources;
 
-import quad;
-
 float2 ellipse_vertex(
     uint instanceIndex,
     uint vertexIndex,
@@ -19,10 +20,7 @@ float2 ellipse_vertex(
     out float4 position
 ) {
     var ellipse: EllipseData = ellipseResources.buffer[instanceIndex];
-
-    AABB clip = { float2(100.0, 100.0), float2(900.0, 700.0) };
-
-    return quad_vertex(ellipse.top_left, ellipse.size, clip, vertexIndex, resolution, position);
+    return quad_vertex(ellipse.top_left, ellipse.size, ellipse.clip, vertexIndex, resolution, position);
 }
 
 float4 ellipse_fragment(uint primitiveIndex, float2 uv): SV_Target {

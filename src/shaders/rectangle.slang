@@ -1,3 +1,5 @@
+import quad;
+
 struct QuadData {
     float2 top_left;
     float2 size;
@@ -5,6 +7,7 @@ struct QuadData {
     float corner_radius;
     float border_width;
     float3 border_color;
+    AABB clip;
 }
 
 struct RectangleResources {
@@ -13,8 +16,6 @@ struct RectangleResources {
 
 ParameterBlock<RectangleResources> rectangleResources;
 
-import quad;
-
 float2 rectangle_vertex(
     uint instanceIndex,
     uint vertexIndex,
@@ -22,10 +23,7 @@ float2 rectangle_vertex(
     out float4 position
 ) {
     var quad: QuadData = rectangleResources.buffer[instanceIndex];
-
-    AABB clip = { float2(200.0, 200.0), float2(500.0, 400.0) };
-
-    return quad_vertex(quad.top_left, quad.size, clip, vertexIndex, resolution, position);
+    return quad_vertex(quad.top_left, quad.size, quad.clip, vertexIndex, resolution, position);
 }
 
 

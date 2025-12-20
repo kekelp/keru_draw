@@ -1,5 +1,7 @@
 // Ellipse primitive module
 
+use crate::aabb::AABB;
+
 #[repr(C)]
 #[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct EllipseData {
@@ -7,6 +9,7 @@ pub struct EllipseData {
     pub size: [f32; 2],
     pub color: [f32; 3],
     pub _padding: f32,
+    pub clip: AABB,
 }
 
 pub struct Ellipses {
