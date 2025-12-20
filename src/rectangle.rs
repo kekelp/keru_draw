@@ -4,7 +4,7 @@ use crate::aabb::Aabb;
 
 #[repr(C)]
 #[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
-pub struct QuadData {
+pub struct RectangleData {
     pub top_left: [f32; 2],
     pub size: [f32; 2],
     pub clip: Aabb,
@@ -13,7 +13,7 @@ pub struct QuadData {
 }
 
 pub struct Rectangles {
-    primitives: Vec<QuadData>,
+    primitives: Vec<RectangleData>,
     buffer: wgpu::Buffer,
     buffer_capacity: usize,
     pub bind_group: wgpu::BindGroup,
@@ -26,7 +26,7 @@ impl Rectangles {
 
         let buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Quad Buffer"),
-            size: (std::mem::size_of::<QuadData>() * initial_capacity) as u64,
+            size: (std::mem::size_of::<RectangleData>() * initial_capacity) as u64,
             usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
@@ -56,7 +56,7 @@ impl Rectangles {
         self.primitives.clear();
     }
 
-    pub fn push(&mut self, primitive: QuadData) {
+    pub fn push(&mut self, primitive: RectangleData) {
         self.primitives.push(primitive);
     }
 
@@ -78,7 +78,7 @@ impl Rectangles {
             let new_capacity = self.primitives.len().next_power_of_two();
             self.buffer = device.create_buffer(&wgpu::BufferDescriptor {
                 label: Some("Quad Buffer"),
-                size: (std::mem::size_of::<QuadData>() * new_capacity) as u64,
+                size: (std::mem::size_of::<RectangleData>() * new_capacity) as u64,
                 usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
                 mapped_at_creation: false,
             });

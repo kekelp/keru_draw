@@ -1,3 +1,4 @@
+// should be two [f32; 2] so there's no need for this.
 #[repr(C)]
 #[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct Aabb {

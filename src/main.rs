@@ -1,16 +1,16 @@
+mod aabb; use aabb::*;
+mod rectangle; use rectangle::*;
+mod ellipse; use ellipse::*;
+mod globals; use globals::*;
+
 use winit::{
     dpi::PhysicalSize, event::WindowEvent, event_loop::EventLoop, window::Window
 };
 
-mod aabb;
-mod rectangle;
-mod ellipse;
-mod globals;
-
-use aabb::*;
-use rectangle::*;
-use ellipse::*;
-use globals::*;
+pub mod primitive {
+    pub const RECTANGLE: u32 = 0;
+    pub const ELLIPSE: u32 = 1;
+}
 
 struct State {
     surface: wgpu::Surface<'static>,
@@ -162,8 +162,8 @@ impl State {
         #[repr(C)]
         #[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
         struct Instance {
-            primitive_type: u32,
-            primitive_index: u32,
+            p_type: u32,
+            p_index: u32,
         }
 
 
@@ -178,7 +178,7 @@ impl State {
         let mut ellipses = Ellipses::new(&device);
 
         // Add initial primitives (pixel coordinates)
-        rectangles.push(QuadData {
+        rectangles.push(RectangleData {
             top_left: [0.0, 0.0],
             size: [400.0, 400.0],
             color: [1.0, 0.0, 0.0],
@@ -201,8 +201,8 @@ impl State {
         });
         
         let instances = [
-            Instance { primitive_type: 0, primitive_index: 0 },
-            Instance { primitive_type: 1, primitive_index: 0 },
+            Instance { p_type: primitive::RECTANGLE, p_index: 0 },
+            Instance { p_type: primitive::ELLIPSE, p_index: 0 },
         ];
 
         let vertex_buffer = device.create_buffer(&wgpu::BufferDescriptor {

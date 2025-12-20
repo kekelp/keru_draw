@@ -6,7 +6,7 @@ import ellipse;
 import rectangle;
 
 enum PrimitiveType: uint {
-    Quad = 0,
+    Rectangle = 0,
     Ellipse = 1,
 }
 
@@ -39,7 +39,7 @@ VertexOutput vertexMain(
     output.primitiveType = input.primitiveType;
     output.primitiveIndex = input.primitiveIndex;
 
-    if (input.primitiveType == PrimitiveType::Quad) {
+    if (input.primitiveType == PrimitiveType::Rectangle) {
         output.uv = rectangle_vertex(input.primitiveIndex, vertexIndex, globals.resolution, output.position);
     }
     else if (input.primitiveType == PrimitiveType::Ellipse) {
@@ -52,7 +52,7 @@ VertexOutput vertexMain(
 [shader("fragment")]
 float4 fragmentMain(VertexOutput input): SV_Target {
 
-    if (input.primitiveType == PrimitiveType::Quad) {
+    if (input.primitiveType == PrimitiveType::Rectangle) {
         return rectangle_fragment(input.primitiveIndex, input.uv);
     }
     else if (input.primitiveType == PrimitiveType::Ellipse) {
