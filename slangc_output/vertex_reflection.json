@@ -332,7 +332,7 @@
                                             "binding": {"kind": "uniform", "offset": 16, "size": 12, "elementStride": 4}
                                         },
                                         {
-                                            "name": "corner_radius",
+                                            "name": "_padding1",
                                             "type": {
                                                 "kind": "scalar",
                                                 "scalarType": "float32"
@@ -340,12 +340,20 @@
                                             "binding": {"kind": "uniform", "offset": 28, "size": 4, "elementStride": 0}
                                         },
                                         {
-                                            "name": "border_width",
+                                            "name": "corner_radius",
                                             "type": {
                                                 "kind": "scalar",
                                                 "scalarType": "float32"
                                             },
                                             "binding": {"kind": "uniform", "offset": 32, "size": 4, "elementStride": 0}
+                                        },
+                                        {
+                                            "name": "border_width",
+                                            "type": {
+                                                "kind": "scalar",
+                                                "scalarType": "float32"
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 36, "size": 4, "elementStride": 0}
                                         },
                                         {
                                             "name": "border_color",
@@ -358,6 +366,14 @@
                                                 }
                                             },
                                             "binding": {"kind": "uniform", "offset": 48, "size": 12, "elementStride": 4}
+                                        },
+                                        {
+                                            "name": "_padding2",
+                                            "type": {
+                                                "kind": "scalar",
+                                                "scalarType": "float32"
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 60, "size": 4, "elementStride": 0}
                                         },
                                         {
                                             "name": "clip",
@@ -454,7 +470,7 @@
                                                 "binding": {"kind": "uniform", "offset": 16, "size": 12, "elementStride": 4}
                                             },
                                             {
-                                                "name": "corner_radius",
+                                                "name": "_padding1",
                                                 "type": {
                                                     "kind": "scalar",
                                                     "scalarType": "float32"
@@ -462,12 +478,20 @@
                                                 "binding": {"kind": "uniform", "offset": 28, "size": 4, "elementStride": 0}
                                             },
                                             {
-                                                "name": "border_width",
+                                                "name": "corner_radius",
                                                 "type": {
                                                     "kind": "scalar",
                                                     "scalarType": "float32"
                                                 },
                                                 "binding": {"kind": "uniform", "offset": 32, "size": 4, "elementStride": 0}
+                                            },
+                                            {
+                                                "name": "border_width",
+                                                "type": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 36, "size": 4, "elementStride": 0}
                                             },
                                             {
                                                 "name": "border_color",
@@ -480,6 +504,14 @@
                                                     }
                                                 },
                                                 "binding": {"kind": "uniform", "offset": 48, "size": 12, "elementStride": 4}
+                                            },
+                                            {
+                                                "name": "_padding2",
+                                                "type": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 60, "size": 4, "elementStride": 0}
                                             },
                                             {
                                                 "name": "clip",

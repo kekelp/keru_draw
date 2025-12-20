@@ -4,9 +4,11 @@ struct QuadData {
     float2 top_left;
     float2 size;
     float3 color;
+    float _padding1;
     float corner_radius;
     float border_width;
     float3 border_color;
+    float _padding2;
     AABB clip;
 }
 
