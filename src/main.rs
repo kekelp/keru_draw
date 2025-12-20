@@ -180,7 +180,7 @@ impl State {
         // Add initial primitives (pixel coordinates)
         rectangles.push(QuadData {
             top_left: [0.0, 0.0],
-            size: [800.0, 800.0],
+            size: [600.0, 600.0],
             color: [1.0, 0.0, 0.0],
             _padding1: 0.0,
             corner_radius: 60.0,

@@ -139,6 +139,14 @@
                                             "binding": {"kind": "uniform", "offset": 16, "size": 12, "elementStride": 4}
                                         },
                                         {
+                                            "name": "_padding",
+                                            "type": {
+                                                "kind": "scalar",
+                                                "scalarType": "float32"
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 28, "size": 4, "elementStride": 0}
+                                        },
+                                        {
                                             "name": "clip",
                                             "type": {
                                                 "kind": "struct",
@@ -231,6 +239,14 @@
                                                     }
                                                 },
                                                 "binding": {"kind": "uniform", "offset": 16, "size": 12, "elementStride": 4}
+                                            },
+                                            {
+                                                "name": "_padding",
+                                                "type": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 28, "size": 4, "elementStride": 0}
                                             },
                                             {
                                                 "name": "clip",

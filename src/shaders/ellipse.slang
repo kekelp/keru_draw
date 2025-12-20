@@ -4,6 +4,7 @@ struct EllipseData {
     float2 top_left;
     float2 size;
     float3 color;
+    float _padding;
     Aabb clip;
 }
 
