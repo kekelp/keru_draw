@@ -5,9 +5,9 @@ use crate::aabb::Aabb;
 #[repr(C)]
 #[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct QuadData {
-    pub clip: Aabb,
     pub top_left: [f32; 2],
     pub size: [f32; 2],
+    pub clip: Aabb,
     pub color: [f32; 3],
     pub _padding1: f32,
     pub corner_radius: f32,

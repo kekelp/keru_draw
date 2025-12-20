@@ -4,7 +4,7 @@ struct EllipseData {
     float2 top_left;
     float2 size;
     float3 color;
-    AABB clip;
+    Aabb clip;
 }
 
 struct EllipseResources {
@@ -26,8 +26,6 @@ float2 ellipse_vertex(
 float4 ellipse_fragment(uint primitiveIndex, float2 uv): SV_Target {
     var ellipse: EllipseData = ellipseResources.buffer[primitiveIndex];
 
-    // Convert UV to position in ellipse's local space
-    // UV is relative to the original quad, map to [-1, 1] range
     float2 p = (uv - 0.5) * 2.0;
 
     float dist = length(p);

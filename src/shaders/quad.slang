@@ -1,25 +1,12 @@
-// Shared quad vertex generation logic
-
-struct AABB {
+struct Aabb {
     float2 min;
     float2 max;
 }
 
-// Generates a quad using vertex index with AABB clipping support
-// vertexIndex layout:
-//   0: (0, 0) - top-left
-//   1: (1, 0) - top-right
-//   2: (0, 1) - bottom-left
-//   3: (1, 1) - bottom-right
-//
-// AABB clipping:
-//   clip: defines the clipping rectangle in pixel space (min, max)
-//   When the quad is clipped, vertex positions are adjusted and UV coordinates
-//   are modified to maintain correct texture mapping
 float2 quad_vertex(
     float2 top_left,
     float2 size,
-    AABB clip,
+    Aabb clip,
     uint vertexIndex,
     float2 resolution,
     out float4 position
@@ -33,15 +20,14 @@ float2 quad_vertex(
     float2 quad_min = top_left;
     float2 quad_max = top_left + size;
 
-    // Clip the quad to the AABB
+    // Clip the quad to the Aabb
     float2 clipped_min = max(quad_min, clip.min);
     float2 clipped_max = min(quad_max, clip.max);
 
     // Calculate the clipped position for this vertex
     float2 p = clipped_min + uv * (clipped_max - clipped_min);
 
-    // Calculate UV in the original quad's space
-    // This ensures fragment shaders can correctly center coordinates
+    // Calculate UV in the original quad's space [0,1]
     float2 adjusted_uv = (p - quad_min) / size;
 
     // Convert to NDC

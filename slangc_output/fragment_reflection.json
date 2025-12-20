@@ -142,7 +142,7 @@
                                             "name": "clip",
                                             "type": {
                                                 "kind": "struct",
-                                                "name": "AABB",
+                                                "name": "Aabb",
                                                 "fields": [
                                                     {
                                                         "name": "min",
@@ -236,7 +236,7 @@
                                                 "name": "clip",
                                                 "type": {
                                                     "kind": "struct",
-                                                    "name": "AABB",
+                                                    "name": "Aabb",
                                                     "fields": [
                                                         {
                                                             "name": "min",
@@ -323,7 +323,7 @@
                                             "name": "clip",
                                             "type": {
                                                 "kind": "struct",
-                                                "name": "AABB",
+                                                "name": "Aabb",
                                                 "fields": [
                                                     {
                                                         "name": "min",
@@ -461,7 +461,7 @@
                                                 "name": "clip",
                                                 "type": {
                                                     "kind": "struct",
-                                                    "name": "AABB",
+                                                    "name": "Aabb",
                                                     "fields": [
                                                         {
                                                             "name": "min",
