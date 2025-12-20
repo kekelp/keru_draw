@@ -184,11 +184,11 @@ impl State {
             color: [1.0, 0.0, 0.0],
             _padding1: 0.0,
             corner_radius: 60.0,
-            border_width: 2.0,
+            border_width: 10.0,
             border_color: [0.0, 0.0, 1.0],
             _padding2: 0.0,
             clip: Aabb {
-                min: [0.0, 0.0],
+                min: [0.0, 30.0],
                 max: [4000.0, 8000.0],
             },
         });
