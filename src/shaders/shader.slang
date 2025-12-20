@@ -16,18 +16,11 @@ struct Globals {
 }
 
 
-// Packed vertex output struct. Must be at least as big as the biggest vertex output struct for all primitives.
-// If the size is not sufficient, Slang should be able to give an error or warning on the reinterpret<T> calls.
-struct Union {
-    float4 data0;
-    float4 data1;
-}
-
 struct VertexOutput {
     float4 position: SV_Position;
     uint primitiveType: PRIMTYPE;
     uint primitiveIndex: PRIMINDEX;
-    Union bytes: TEXCOORD0;
+    float2 uv: TEXCOORD0;
 }
 
 struct VertexInput {
@@ -46,12 +39,10 @@ VertexOutput vertexMain(
     output.primitiveIndex = input.primitiveIndex;
 
     if (input.primitiveType == PrimitiveType::Quad) {
-        RectangleVertexOutput rectData = rectangle_vertex(input.primitiveIndex, vertexIndex, globals.resolution, output.position);
-        output.bytes = reinterpret<Union>(rectData);
+        output.uv = rectangle_vertex(input.primitiveIndex, vertexIndex, globals.resolution, output.position);
     }
     else if (input.primitiveType == PrimitiveType::Ellipse) {
-        EllipseVertexOutput ellipseData = ellipse_vertex(input.primitiveIndex, vertexIndex, globals.resolution, output.position);
-        output.bytes = reinterpret<Union>(ellipseData);
+        output.uv = ellipse_vertex(input.primitiveIndex, vertexIndex, globals.resolution, output.position);
     }
 
     return output;
@@ -61,12 +52,10 @@ VertexOutput vertexMain(
 float4 fragmentMain(VertexOutput input): SV_Target {
 
     if (input.primitiveType == PrimitiveType::Quad) {
-        RectangleVertexOutput rectData = reinterpret<RectangleVertexOutput>(input.bytes);
-        return rectangle_fragment(rectData);
+        return rectangle_fragment(input.primitiveIndex, input.uv);
     }
     else if (input.primitiveType == PrimitiveType::Ellipse) {
-        EllipseVertexOutput ellipseData = reinterpret<EllipseVertexOutput>(input.bytes);
-        return ellipse_fragment(ellipseData);
+        return ellipse_fragment(input.primitiveIndex, input.uv);
     }
 
     return float4(0.0, 1.0, 0.0, 1.0);  // Greenscreen for error

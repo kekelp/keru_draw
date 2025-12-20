@@ -4,19 +4,13 @@ struct EllipseData {
     float3 color;
 }
 
-struct EllipseVertexOutput {
-    float2 uv;
-    float3 color;
-    float2 _padding;
-}
-
 struct EllipseResources {
     StructuredBuffer<EllipseData> buffer;
 }
 
 ParameterBlock<EllipseResources> ellipseResources;
 
-EllipseVertexOutput ellipse_vertex(
+float2 ellipse_vertex(
     uint instanceIndex,
     uint vertexIndex,
     float2 resolution,
@@ -34,22 +28,20 @@ EllipseVertexOutput ellipse_vertex(
 
     position = float4(ndc.x, -ndc.y, 0.0, 1.0); // flip y
 
-    EllipseVertexOutput output;
-    output.uv = uv;
-    output.color = ellipse.color;
-    output._padding = float2(0.0, 0.0);
-    return output;
+    return uv;
 }
 
-float4 ellipse_fragment(EllipseVertexOutput data): SV_Target {
+float4 ellipse_fragment(uint primitiveIndex, float2 uv): SV_Target {
+    var ellipse: EllipseData = ellipseResources.buffer[primitiveIndex];
+
     // UV is in range [0,1], center is at (0.5, 0.5)
     // Map to [-1, 1] range
-    float2 p = (data.uv - 0.5) * 2.0;
+    float2 p = (uv - 0.5) * 2.0;
 
     float dist = length(p);
     if (dist > 1.0) {
         discard;
     }
 
-    return float4(data.color, 1.0);
+    return float4(ellipse.color, 1.0);
 }

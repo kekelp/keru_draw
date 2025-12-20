@@ -438,7 +438,7 @@
             ],
             "result": {
                 "stage": "vertex",
-                "binding": {"kind": "varyingOutput", "index": 0, "count": 4},
+                "binding": {"kind": "varyingOutput", "index": 0, "count": 3},
                 "type": {
                     "kind": "struct",
                     "name": "VertexOutput",
@@ -476,44 +476,17 @@
                             "semanticName": "PRIMINDEX"
                         },
                         {
-                            "name": "bytes",
+                            "name": "uv",
                             "type": {
-                                "kind": "struct",
-                                "name": "Union",
-                                "fields": [
-                                    {
-                                        "name": "data0",
-                                        "type": {
-                                            "kind": "vector",
-                                            "elementCount": 4,
-                                            "elementType": {
-                                                "kind": "scalar",
-                                                "scalarType": "float32"
-                                            }
-                                        },
-                                        "stage": "vertex",
-                                        "binding": {"kind": "varyingOutput", "index": 0},
-                                        "semanticName": "TEXCOORD"
-                                    },
-                                    {
-                                        "name": "data1",
-                                        "type": {
-                                            "kind": "vector",
-                                            "elementCount": 4,
-                                            "elementType": {
-                                                "kind": "scalar",
-                                                "scalarType": "float32"
-                                            }
-                                        },
-                                        "stage": "vertex",
-                                        "binding": {"kind": "varyingOutput", "index": 1},
-                                        "semanticName": "TEXCOORD",
-                                        "semanticIndex": 1
-                                    }
-                                ]
+                                "kind": "vector",
+                                "elementCount": 2,
+                                "elementType": {
+                                    "kind": "scalar",
+                                    "scalarType": "float32"
+                                }
                             },
                             "stage": "vertex",
-                            "binding": {"kind": "varyingOutput", "index": 2, "count": 2},
+                            "binding": {"kind": "varyingOutput", "index": 2},
                             "semanticName": "TEXCOORD"
                         }
                     ]
