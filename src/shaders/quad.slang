@@ -3,7 +3,7 @@ struct Aabb {
     float2 max;
 }
 
-float2 quad_vertex(
+float2 clipped_quad_vertex(
     float2 top_left,
     float2 size,
     Aabb clip,

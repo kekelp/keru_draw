@@ -1,5 +1,3 @@
-// Global uniforms shared across all shaders
-
 #[repr(C)]
 #[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct GlobalsData {
@@ -9,7 +7,7 @@ pub struct GlobalsData {
 }
 
 pub struct Globals {
-    data: GlobalsData,
+    pub data: GlobalsData,
     buffer: wgpu::Buffer,
     pub bind_group: wgpu::BindGroup,
     bind_group_layout: wgpu::BindGroupLayout,
@@ -30,7 +28,7 @@ impl Globals {
             mapped_at_creation: false,
         });
 
-        let bind_group_layout = Self::create_bind_group_layout(device);
+        let bind_group_layout = Self::bind_group_layout(device);
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("Globals Bind Group"),
             layout: &bind_group_layout,
@@ -62,7 +60,7 @@ impl Globals {
         queue.write_buffer(&self.buffer, 0, bytemuck::bytes_of(&self.data));
     }
 
-    pub fn create_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+    pub fn bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
         device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: Some("Globals Bind Group Layout"),
             entries: &[

@@ -31,7 +31,7 @@ impl Rectangles {
             mapped_at_creation: false,
         });
 
-        let bind_group_layout = Self::create_bind_group_layout(device);
+        let bind_group_layout = Self::bind_group_layout(device);
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("RectangleResources Bind Group"),
             layout: &bind_group_layout,
@@ -102,7 +102,7 @@ impl Rectangles {
         queue.write_buffer(&self.buffer, 0, bytemuck::cast_slice(&self.primitives));
     }
 
-    pub fn create_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+    pub fn bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
         device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: Some("RectangleResources Bind Group Layout"),
             entries: &[

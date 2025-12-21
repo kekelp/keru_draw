@@ -8,11 +8,11 @@ struct EllipseData {
     Aabb clip;
 }
 
-struct EllipseResources {
+struct Ellipses {
     StructuredBuffer<EllipseData> buffer;
 }
 
-ParameterBlock<EllipseResources> ellipseResources;
+ParameterBlock<Ellipses> ellipses;
 
 float2 ellipse_vertex(
     uint instanceIndex,
@@ -20,12 +20,12 @@ float2 ellipse_vertex(
     float2 resolution,
     out float4 position
 ) {
-    var ellipse: EllipseData = ellipseResources.buffer[instanceIndex];
-    return quad_vertex(ellipse.top_left, ellipse.size, ellipse.clip, vertexIndex, resolution, position);
+    var ellipse: EllipseData = ellipses.buffer[instanceIndex];
+    return clipped_quad_vertex(ellipse.top_left, ellipse.size, ellipse.clip, vertexIndex, resolution, position);
 }
 
 float4 ellipse_fragment(uint primitiveIndex, float2 uv): SV_Target {
-    var ellipse: EllipseData = ellipseResources.buffer[primitiveIndex];
+    var ellipse: EllipseData = ellipses.buffer[primitiveIndex];
 
     float2 p = (uv - 0.5) * ellipse.size;
 

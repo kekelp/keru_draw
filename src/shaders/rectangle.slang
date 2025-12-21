@@ -21,7 +21,7 @@ float2 rectangle_vertex(
     out float4 position
 ) {
     var rect: RectangleData = rectangleResources.buffer[instanceIndex];
-    return quad_vertex(rect.top_left, rect.size, rect.clip, vertexIndex, resolution, position);
+    return clipped_quad_vertex(rect.top_left, rect.size, rect.clip, vertexIndex, resolution, position);
 }
 
 float sd_rounded_box(float2 p, float2 size, float r) {
@@ -33,7 +33,7 @@ float4 rectangle_fragment(uint primitiveIndex, float2 uv): SV_Target {
     var rect: RectangleData = rectangleResources.buffer[primitiveIndex];
 
     float2 p = (uv - 0.5) * rect.size;
-
+\
     float2 half_size = rect.size * 0.5;
     float dist = sd_rounded_box(p, half_size, rect.corner_radius);
 

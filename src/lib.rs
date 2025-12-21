@@ -54,9 +54,9 @@ impl Renderer {
         });
 
         // Create bind group layouts for each parameter block
-        let globals_layout = Globals::create_bind_group_layout(&device);
-        let rectangle_layout = Rectangles::create_bind_group_layout(&device);
-        let ellipse_layout = Ellipses::create_bind_group_layout(&device);
+        let globals_layout = Globals::bind_group_layout(&device);
+        let rectangle_layout = Rectangles::bind_group_layout(&device);
+        let ellipse_layout = Ellipses::bind_group_layout(&device);
 
         let render_pipeline_layout =
             device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {

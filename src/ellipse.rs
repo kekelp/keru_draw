@@ -1,5 +1,3 @@
-// Ellipse primitive module
-
 use crate::aabb::Aabb;
 
 #[repr(C)]
@@ -13,11 +11,10 @@ pub struct EllipseData {
 }
 
 pub struct Ellipses {
-    primitives: Vec<EllipseData>,
+    ellipses: Vec<EllipseData>,
     buffer: wgpu::Buffer,
     buffer_capacity: usize,
     pub bind_group: wgpu::BindGroup,
-    bind_group_layout: wgpu::BindGroupLayout,
 }
 
 impl Ellipses {
@@ -31,7 +28,7 @@ impl Ellipses {
             mapped_at_creation: false,
         });
 
-        let bind_group_layout = Self::create_bind_group_layout(device);
+        let bind_group_layout = Self::bind_group_layout(device);
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("EllipseResources Bind Group"),
             layout: &bind_group_layout,
@@ -44,40 +41,39 @@ impl Ellipses {
         });
 
         Self {
-            primitives: Vec::new(),
+            ellipses: Vec::new(),
             buffer,
             buffer_capacity: initial_capacity,
             bind_group,
-            bind_group_layout,
         }
     }
 
     pub fn clear(&mut self) {
-        self.primitives.clear();
+        self.ellipses.clear();
     }
 
     pub fn push(&mut self, primitive: EllipseData) -> usize {
-        let index = self.primitives.len();
-        self.primitives.push(primitive);
+        let index = self.ellipses.len();
+        self.ellipses.push(primitive);
         index
     }
 
     pub fn len(&self) -> usize {
-        self.primitives.len()
+        self.ellipses.len()
     }
 
     pub fn is_empty(&self) -> bool {
-        self.primitives.is_empty()
+        self.ellipses.is_empty()
     }
 
     pub fn upload(&mut self, device: &wgpu::Device, queue: &wgpu::Queue) {
-        if self.primitives.is_empty() {
+        if self.ellipses.is_empty() {
             return;
         }
 
         // Grow buffer if needed
-        if self.primitives.len() > self.buffer_capacity {
-            let new_capacity = self.primitives.len().next_power_of_two();
+        if self.ellipses.len() > self.buffer_capacity {
+            let new_capacity = self.ellipses.len().next_power_of_two();
             self.buffer = device.create_buffer(&wgpu::BufferDescriptor {
                 label: Some("Ellipse Buffer"),
                 size: (std::mem::size_of::<EllipseData>() * new_capacity) as u64,
@@ -89,7 +85,7 @@ impl Ellipses {
             // Recreate bind group with new buffer
             self.bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
                 label: Some("EllipseResources Bind Group"),
-                layout: &self.bind_group_layout,
+                layout: &Self::bind_group_layout(device),
                 entries: &[
                     wgpu::BindGroupEntry {
                         binding: 0,
@@ -99,10 +95,10 @@ impl Ellipses {
             });
         }
 
-        queue.write_buffer(&self.buffer, 0, bytemuck::cast_slice(&self.primitives));
+        queue.write_buffer(&self.buffer, 0, bytemuck::cast_slice(&self.ellipses));
     }
 
-    pub fn create_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+    pub fn bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
         device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: Some("EllipseResources Bind Group Layout"),
             entries: &[
