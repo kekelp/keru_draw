@@ -1,5 +1,3 @@
-use crate::aabb::Aabb;
-
 #[repr(C)]
 #[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct EllipseData {
@@ -7,7 +5,8 @@ pub struct EllipseData {
     pub size: [f32; 2],
     pub color: [f32; 3],
     pub _padding: f32,
-    pub clip: Aabb,
+    pub x_clip: [f32; 2],
+    pub y_clip: [f32; 2],
 }
 
 pub struct Ellipses {

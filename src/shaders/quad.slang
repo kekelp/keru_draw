@@ -1,12 +1,8 @@
-struct Aabb {
-    float2 min;
-    float2 max;
-}
-
 void clipped_quad_vertex(
     float2 top_left,
     float2 size,
-    Aabb clip,
+    float2 x_clip,
+    float2 y_clip,
     uint vertexIndex,
     float2 resolution,
     out float4 position,
@@ -21,18 +17,20 @@ void clipped_quad_vertex(
     float2 quad_min = top_left;
     float2 quad_max = top_left + size;
 
-    // Clip the quad to the Aabb
-    float2 clipped_min = max(quad_min, clip.min);
-    float2 clipped_max = min(quad_max, clip.max);
+    // Construct clip min and max from x_clip and y_clip
+    float2 clip_min = float2(x_clip.x, y_clip.x);
+    float2 clip_max = float2(x_clip.y, y_clip.y);
+
+    // Clip the quad
+    float2 clipped_min = max(quad_min, clip_min);
+    float2 clipped_max = min(quad_max, clip_max);
 
     // Calculate the clipped position for this vertex
     float2 p = clipped_min + uv01 * (clipped_max - clipped_min);
 
-    // Calculate UV in the original quad's space [0,1]
-    
     // Convert to NDC
     float2 ndc = (p / resolution) * 2.0 - 1.0;
-    
+
     position = float4(ndc.x, -ndc.y, 0.0, 1.0); // flip y
     uv = (p - quad_min) / size;
 }

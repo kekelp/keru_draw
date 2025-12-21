@@ -1,4 +1,4 @@
-use slang::{Aabb, EllipseData, RectangleData, Renderer};
+use slang::{EllipseData, RectangleData, Renderer};
 use winit::{
     dpi::PhysicalSize, event::WindowEvent, event_loop::EventLoop, window::Window,
 };
@@ -75,10 +75,8 @@ impl State {
             size: [400.0, 400.0],
             color: [1.0, 0.0, 0.0],
             corner_radius: 60.0,
-            clip: Aabb {
-                min: [0.0, 30.0],
-                max: [4000.0, 8000.0],
-            },
+            x_clip: [0.0, 4000.0],
+            y_clip: [30.0, 8000.0],
         });
 
         renderer.draw_ellipse(EllipseData {
@@ -86,10 +84,8 @@ impl State {
             size: [400.0, 400.0],
             color: [0.0, 1.0, 0.0],
             _padding: 0.0,
-            clip: Aabb {
-                min: [0.0, 50.0],
-                max: [750.0, 5000.0],
-            },
+            x_clip: [0.0, 750.0],
+            y_clip: [50.0, 5000.0],
         });
 
         Self {

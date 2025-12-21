@@ -5,7 +5,8 @@ struct EllipseData {
     float2 size;
     float3 color;
     float _padding;
-    Aabb clip;
+    float2 x_clip;
+    float2 y_clip;
 }
 
 struct Ellipses {
@@ -22,7 +23,7 @@ void ellipse_vertex(
     out float2 uv,
 ) {
     var ellipse: EllipseData = ellipses.buffer[instanceIndex];
-    clipped_quad_vertex(ellipse.top_left, ellipse.size, ellipse.clip, vertexIndex, resolution, position, uv);
+    clipped_quad_vertex(ellipse.top_left, ellipse.size, ellipse.x_clip, ellipse.y_clip, vertexIndex, resolution, position, uv);
 }
 
 float4 ellipse_fragment(uint primitiveIndex, float2 uv): SV_Target {

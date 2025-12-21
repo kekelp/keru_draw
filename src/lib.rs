@@ -1,4 +1,3 @@
-mod aabb; pub use aabb::*;
 mod rectangle; pub use rectangle::*;
 mod ellipse; pub use ellipse::*;
 mod globals; pub use globals::*;
@@ -12,10 +11,10 @@ pub struct Renderer {
     device: wgpu::Device,
     queue: wgpu::Queue,
     render_pipeline: wgpu::RenderPipeline,
-    vertex_buffer: wgpu::Buffer,
+    instance_buffer: wgpu::Buffer,
     globals: Globals,
-    rectangle_resources: Rectangles,
-    ellipse_resources: Ellipses,
+    rectangles: Rectangles,
+    ellipses: Ellipses,
     instances: Vec<Instance>,
 }
 
@@ -48,8 +47,15 @@ impl Renderer {
         });
 
         // Create bind group layouts for each parameter block
+        let mut globals = Globals::new(&device);
+        globals.set_resolution(width as f32, height as f32);
+        globals.upload(&queue);
         let globals_layout = Globals::bind_group_layout(&device);
+
+        let rectangles = Rectangles::new(&device);
         let rectangle_layout = Rectangles::bind_group_layout(&device);
+        
+        let ellipses = Ellipses::new(&device);
         let ellipse_layout = Ellipses::bind_group_layout(&device);
 
         let render_pipeline_layout =
@@ -112,16 +118,7 @@ impl Renderer {
             cache: None,
         });
 
-        // Create globals
-        let mut globals = Globals::new(&device);
-        globals.set_resolution(width as f32, height as f32);
-        globals.upload(&queue);
-
-        // Create resource modules
-        let rectangles = Rectangles::new(&device);
-        let ellipses = Ellipses::new(&device);
-
-        let vertex_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+        let instance_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Instance Buffer"),
             size: 1024 * std::mem::size_of::<Instance>() as u64,
             usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
@@ -132,16 +129,16 @@ impl Renderer {
             device,
             queue,
             render_pipeline,
-            vertex_buffer,
+            instance_buffer,
             globals,
-            rectangle_resources: rectangles,
-            ellipse_resources: ellipses,
+            rectangles,
+            ellipses,
             instances: Vec::new(),
         }
     }
 
     pub fn draw_rectangle(&mut self, data: RectangleData) {
-        let index = self.rectangle_resources.push(data);
+        let index = self.rectangles.push(data);
         self.instances.push(Instance {
             p_type: primitive::RECTANGLE,
             p_index: index as u32,
@@ -149,7 +146,7 @@ impl Renderer {
     }
 
     pub fn draw_ellipse(&mut self, data: EllipseData) {
-        let index = self.ellipse_resources.push(data);
+        let index = self.ellipses.push(data);
         self.instances.push(Instance {
             p_type: primitive::ELLIPSE,
             p_index: index as u32,
@@ -157,8 +154,8 @@ impl Renderer {
     }
 
     pub fn clear(&mut self) {
-        self.rectangle_resources.clear();
-        self.ellipse_resources.clear();
+        self.rectangles.clear();
+        self.ellipses.clear();
         self.instances.clear();
     }
 
@@ -173,13 +170,13 @@ impl Renderer {
 
     pub fn render(&mut self, view: &wgpu::TextureView) {
         // Upload resources to GPU
-        self.rectangle_resources.upload(&self.device, &self.queue);
-        self.ellipse_resources.upload(&self.device, &self.queue);
+        self.rectangles.upload(&self.device, &self.queue);
+        self.ellipses.upload(&self.device, &self.queue);
 
         // Update instance buffer
         if !self.instances.is_empty() {
             self.queue.write_buffer(
-                &self.vertex_buffer,
+                &self.instance_buffer,
                 0,
                 bytemuck::cast_slice(&self.instances),
             );
@@ -216,9 +213,9 @@ impl Renderer {
             // The binding indices has to match the order in which the parameter blocks appear in the shader!
             // If there are issues, compile the shaders with the -reflection-json flag and see the parameterBlock fields.
             render_pass.set_bind_group(0, &self.globals.bind_group, &[]);
-            render_pass.set_bind_group(1, &self.ellipse_resources.bind_group, &[]);
-            render_pass.set_bind_group(2, &self.rectangle_resources.bind_group, &[]);
-            render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
+            render_pass.set_bind_group(1, &self.ellipses.bind_group, &[]);
+            render_pass.set_bind_group(2, &self.rectangles.bind_group, &[]);
+            render_pass.set_vertex_buffer(0, self.instance_buffer.slice(..));
 
             // Draw instanced quads: 4 vertices per quad, n instances
             render_pass.draw(0..4, 0..self.instances.len() as u32);

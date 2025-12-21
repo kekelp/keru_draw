@@ -3,7 +3,8 @@ import quad;
 struct RectangleData {
     float2 top_left;
     float2 size;
-    Aabb clip;
+    float2 x_clip;
+    float2 y_clip;
     float3 color;
     float corner_radius;
 }
@@ -22,7 +23,7 @@ void rectangle_vertex(
     out float2 uv,
 ) {
     var rect: RectangleData = rectangles.buffer[instanceIndex];
-    clipped_quad_vertex(rect.top_left, rect.size, rect.clip, vertexIndex, resolution, position, uv);
+    clipped_quad_vertex(rect.top_left, rect.size, rect.x_clip, rect.y_clip, vertexIndex, resolution, position, uv);
 }
 
 float sd_rounded_box(float2 p, float2 size, float r) {

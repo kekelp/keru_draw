@@ -1,13 +1,10 @@
-// Rectangle primitive module
-
-use crate::aabb::Aabb;
-
 #[repr(C)]
 #[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct RectangleData {
     pub top_left: [f32; 2],
     pub size: [f32; 2],
-    pub clip: Aabb,
+    pub x_clip: [f32; 2],
+    pub y_clip: [f32; 2],
     pub color: [f32; 3],
     pub corner_radius: f32,
 }
