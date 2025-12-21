@@ -1,8 +1,8 @@
 mod rectangle; pub use rectangle::*;
 mod ellipse; pub use ellipse::*;
 mod globals; pub use globals::*;
-mod text; pub use text::*;
-mod text_glyphs; pub use text_glyphs::*;
+
+pub use textslabs::{Text, TextRenderer, TextBoxHandle, TextEditHandle, QuadRanges};
 
 pub mod primitive {
     pub const RECTANGLE: u32 = 0;
@@ -166,8 +166,7 @@ impl Renderer {
     }
 
     pub fn draw_text_box(&mut self, text_box: &TextBoxHandle) {
-        let text_box_data = self.text.get_text_box(text_box);
-        let QuadRanges { glyph_range, decorations_range } = text_box_data.quad_range();
+        let QuadRanges { glyph_range, decorations_range } = self.text.get_text_box(text_box).quad_range();
 
         // Push glyph quads - directly reference quad indices from textslabs
         for q in (glyph_range.0)..(glyph_range.1) {
@@ -187,8 +186,7 @@ impl Renderer {
     }
 
     pub fn draw_text_edit(&mut self, text_edit: &TextEditHandle) {
-        let text_edit_data = self.text.get_text_edit(text_edit);
-        let QuadRanges { glyph_range, decorations_range } = text_edit_data.quad_range();
+        let QuadRanges { glyph_range, decorations_range } = self.text.get_text_edit(text_edit).quad_range();
 
         // Push glyph quads - directly reference quad indices from textslabs
         for q in (glyph_range.0)..(glyph_range.1) {
