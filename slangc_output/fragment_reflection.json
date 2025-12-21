@@ -726,7 +726,7 @@
                 {
                     "name": "input",
                     "stage": "fragment",
-                    "binding": {"kind": "varyingInput", "index": 0, "count": 7},
+                    "binding": {"kind": "varyingInput", "index": 0, "count": 3},
                     "type": {
                         "kind": "struct",
                         "name": "VertexOutput",
@@ -776,71 +776,6 @@
                                 "stage": "fragment",
                                 "binding": {"kind": "varyingInput", "index": 2},
                                 "semanticName": "TEXCOORD"
-                            },
-                            {
-                                "name": "text_extra",
-                                "type": {
-                                    "kind": "struct",
-                                    "name": "TextVertexOutput",
-                                    "fields": [
-                                        {
-                                            "name": "uv",
-                                            "type": {
-                                                "kind": "vector",
-                                                "elementCount": 2,
-                                                "elementType": {
-                                                    "kind": "scalar",
-                                                    "scalarType": "float32"
-                                                }
-                                            },
-                                            "stage": "fragment",
-                                            "binding": {"kind": "varyingInput", "index": 0},
-                                            "semanticName": "TEXCOORD",
-                                            "semanticIndex": 1
-                                        },
-                                        {
-                                            "name": "color",
-                                            "type": {
-                                                "kind": "vector",
-                                                "elementCount": 4,
-                                                "elementType": {
-                                                    "kind": "scalar",
-                                                    "scalarType": "float32"
-                                                }
-                                            },
-                                            "stage": "fragment",
-                                            "binding": {"kind": "varyingInput", "index": 1},
-                                            "semanticName": "TEXCOORD",
-                                            "semanticIndex": 2
-                                        },
-                                        {
-                                            "name": "page_index",
-                                            "type": {
-                                                "kind": "scalar",
-                                                "scalarType": "uint32"
-                                            },
-                                            "stage": "fragment",
-                                            "binding": {"kind": "varyingInput", "index": 2},
-                                            "semanticName": "TEXCOORD",
-                                            "semanticIndex": 3
-                                        },
-                                        {
-                                            "name": "content_type",
-                                            "type": {
-                                                "kind": "scalar",
-                                                "scalarType": "uint32"
-                                            },
-                                            "stage": "fragment",
-                                            "binding": {"kind": "varyingInput", "index": 3},
-                                            "semanticName": "TEXCOORD",
-                                            "semanticIndex": 4
-                                        }
-                                    ]
-                                },
-                                "stage": "fragment",
-                                "binding": {"kind": "varyingInput", "index": 3, "count": 4},
-                                "semanticName": "TEXCOORD",
-                                "semanticIndex": 1
                             }
                         ]
                     }

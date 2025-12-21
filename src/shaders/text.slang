@@ -90,22 +90,14 @@ ClipResult apply_clipping(
     return result;
 }
 
-struct TextVertexOutput {
-    float2 uv;
-    float4 color;
-    uint page_index;
-    uint content_type;
-}
-
 void text_vertex(
-    uint quadIndex,
+    uint instanceIndex,
     uint vertexIndex,
     float2 resolution,
     out float4 position,
     out float2 uv,
-    out TextVertexOutput extra
 ) {
-    TextQuad quad = textslabs.quads[quadIndex];
+    TextQuad quad = textslabs.quads[instanceIndex];
 
     float2 uv01 = float2(
         vertexIndex & 1u,
@@ -132,35 +124,32 @@ void text_vertex(
     textslabs.mask_atlas_texture.GetDimensions(atlas_width, atlas_height, atlas_elements);
     float2 atlas_size = float2(float(atlas_width), float(atlas_height));
     uv = (uv_origin + clip_result.uv_offset + clip_result.dimensions * uv01) / atlas_size;
-
-    extra.uv = uv;
-    extra.color = unpack_color_u32(quad.color);
-    extra.page_index = unpack_page_index(quad.flags_and_page);
-    extra.content_type = get_content_type(quad.flags_and_page);
 }
 
-float4 text_fragment(
-    uint quadIndex,
-    float2 uv_in,
-    TextVertexOutput extra
-): SV_Target {
-    if (extra.content_type == 1) {
+float4 text_fragment(uint primitiveIndex, float2 uv): SV_Target {
+    TextQuad quad = textslabs.quads[primitiveIndex];
+
+    float4 color = unpack_color_u32(quad.color);
+    uint page_index = unpack_page_index(quad.flags_and_page);
+    uint content_type = get_content_type(quad.flags_and_page);
+
+    if (content_type == 1) {
         // Color bitmap text
         float4 tex_color = textslabs.color_atlas_texture.SampleLevel(
             textslabs.atlas_sampler,
-            float3(extra.uv, float(extra.page_index)),
+            float3(uv, float(page_index)),
             0.0
         );
-        return float4(extra.color.rgb * tex_color.rgb, extra.color.a * tex_color.a);
-    } else if (extra.content_type == 0) {
+        return float4(color.rgb * tex_color.rgb, color.a * tex_color.a);
+    } else if (content_type == 0) {
         // Mask text
         float glyph_alpha = textslabs.mask_atlas_texture.SampleLevel(
             textslabs.atlas_sampler,
-            float3(extra.uv, float(extra.page_index)),
+            float3(uv, float(page_index)),
             0.0
         ).r;
-        return float4(extra.color.rgb, extra.color.a * glyph_alpha);
+        return float4(color.rgb, color.a * glyph_alpha);
     } else {
-        return extra.color;
+        return color;
     }
 }

@@ -24,7 +24,6 @@ struct VertexOutput {
     uint primitiveType: PRIMTYPE;
     uint primitiveIndex: PRIMINDEX;
     float2 uv: TEXCOORD0;
-    TextVertexOutput text_extra: TEXCOORD1;
 }
 
 struct VertexInput {
@@ -49,7 +48,7 @@ VertexOutput vertexMain(
         ellipse_vertex(input.primitiveIndex, vertexIndex, globals.resolution, output.position, output.uv);
     }
     else if (input.primitiveType == PrimitiveType::Text) {
-        text_vertex(input.primitiveIndex, vertexIndex, globals.resolution, output.position, output.uv, output.text_extra);
+        text_vertex(input.primitiveIndex, vertexIndex, globals.resolution, output.position, output.uv);
     }
 
     return output;
@@ -65,7 +64,7 @@ float4 fragmentMain(VertexOutput input): SV_Target {
         return ellipse_fragment(input.primitiveIndex, input.uv);
     }
     else if (input.primitiveType == PrimitiveType::Text) {
-        return text_fragment(input.primitiveIndex, input.uv, input.text_extra);
+        return text_fragment(input.primitiveIndex, input.uv);
     }
 
     return float4(0.0, 1.0, 0.0, 1.0);  // Greenscreen for error
