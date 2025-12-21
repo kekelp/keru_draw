@@ -4,10 +4,12 @@ ParameterBlock<Globals> globals;
 import quad;
 import ellipse;
 import rectangle;
+import text;
 
 enum PrimitiveType: uint {
     Rectangle = 0,
     Ellipse = 1,
+    Text = 2,
 }
 
 struct Globals {
@@ -22,6 +24,7 @@ struct VertexOutput {
     uint primitiveType: PRIMTYPE;
     uint primitiveIndex: PRIMINDEX;
     float2 uv: TEXCOORD0;
+    TextVertexOutput text_extra: TEXCOORD1;
 }
 
 struct VertexInput {
@@ -45,6 +48,9 @@ VertexOutput vertexMain(
     else if (input.primitiveType == PrimitiveType::Ellipse) {
         ellipse_vertex(input.primitiveIndex, vertexIndex, globals.resolution, output.position, output.uv);
     }
+    else if (input.primitiveType == PrimitiveType::Text) {
+        text_vertex(input.primitiveIndex, vertexIndex, globals.resolution, output.position, output.uv, output.text_extra);
+    }
 
     return output;
 }
@@ -57,6 +63,9 @@ float4 fragmentMain(VertexOutput input): SV_Target {
     }
     else if (input.primitiveType == PrimitiveType::Ellipse) {
         return ellipse_fragment(input.primitiveIndex, input.uv);
+    }
+    else if (input.primitiveType == PrimitiveType::Text) {
+        return text_fragment(input.primitiveIndex, input.uv, input.text_extra);
     }
 
     return float4(0.0, 1.0, 0.0, 1.0);  // Greenscreen for error

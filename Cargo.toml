@@ -1,11 +1,12 @@
 [package]
-name = "slang"
+name = "keru_draw"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-wgpu = { version = "23", features = ["spirv"] }
+wgpu = { version = "27", features = ["spirv"] }
 bytemuck = { version = "1.14", features = ["derive"] }
+textslabs = { path = "../textslabs" }
 
 [dev-dependencies]
 winit = "0.30"

@@ -1,10 +1,13 @@
 mod rectangle; pub use rectangle::*;
 mod ellipse; pub use ellipse::*;
 mod globals; pub use globals::*;
+mod text; pub use text::*;
+mod text_glyphs; pub use text_glyphs::*;
 
 pub mod primitive {
     pub const RECTANGLE: u32 = 0;
     pub const ELLIPSE: u32 = 1;
+    pub const TEXT: u32 = 2;
 }
 
 pub struct Renderer {
@@ -15,6 +18,8 @@ pub struct Renderer {
     globals: Globals,
     rectangles: Rectangles,
     ellipses: Ellipses,
+    pub text: Text,
+    text_renderer: TextRenderer,
     instances: Vec<Instance>,
 }
 
@@ -54,14 +59,19 @@ impl Renderer {
 
         let rectangles = Rectangles::new(&device);
         let rectangle_layout = Rectangles::bind_group_layout(&device);
-        
+
         let ellipses = Ellipses::new(&device);
         let ellipse_layout = Ellipses::bind_group_layout(&device);
+
+        // Initialize text rendering
+        let text_renderer = TextRenderer::new(&device, &queue, surface_format);
+        let text = Text::new();
+        let text_renderer_layout = text_renderer.bind_group_layout();
 
         let render_pipeline_layout =
             device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                 label: Some("Render Pipeline Layout"),
-                bind_group_layouts: &[&globals_layout, &rectangle_layout, &ellipse_layout],
+                bind_group_layouts: &[&globals_layout, &ellipse_layout, &rectangle_layout, &text_renderer_layout],
                 push_constant_ranges: &[],
             });
 
@@ -133,6 +143,8 @@ impl Renderer {
             globals,
             rectangles,
             ellipses,
+            text,
+            text_renderer,
             instances: Vec::new(),
         }
     }
@@ -153,15 +165,76 @@ impl Renderer {
         });
     }
 
+    pub fn draw_text_box(&mut self, text_box: &TextBoxHandle) {
+        let text_box_data = self.text.get_text_box(text_box);
+        let QuadRanges { glyph_range, decorations_range } = text_box_data.quad_range();
+
+        // Push glyph quads - directly reference quad indices from textslabs
+        for q in (glyph_range.0)..(glyph_range.1) {
+            self.instances.push(Instance {
+                p_type: primitive::TEXT,
+                p_index: q as u32,
+            });
+        }
+
+        // Push decoration quads
+        for q in (decorations_range.0)..(decorations_range.1) {
+            self.instances.push(Instance {
+                p_type: primitive::TEXT,
+                p_index: q as u32,
+            });
+        }
+    }
+
+    pub fn draw_text_edit(&mut self, text_edit: &TextEditHandle) {
+        let text_edit_data = self.text.get_text_edit(text_edit);
+        let QuadRanges { glyph_range, decorations_range } = text_edit_data.quad_range();
+
+        // Push glyph quads - directly reference quad indices from textslabs
+        for q in (glyph_range.0)..(glyph_range.1) {
+            self.instances.push(Instance {
+                p_type: primitive::TEXT,
+                p_index: q as u32,
+            });
+        }
+
+        // Push decoration quads
+        for q in (decorations_range.0)..(decorations_range.1) {
+            self.instances.push(Instance {
+                p_type: primitive::TEXT,
+                p_index: q as u32,
+            });
+        }
+    }
+
     pub fn clear(&mut self) {
         self.rectangles.clear();
         self.ellipses.clear();
         self.instances.clear();
     }
 
+    pub fn begin_frame(&mut self, width: f32, height: f32) {
+        // Update text renderer resolution
+        self.text_renderer.update_resolution(width, height);
+        // Prepare text layouts (must be done before drawing text)
+        // Note: This requires at least one window event to have been processed
+        self.text.prepare_all(&mut self.text_renderer);
+        // Clear all buffers
+        self.clear();
+    }
+
+    pub fn text_mut(&mut self) -> &mut Text {
+        &mut self.text
+    }
+
+    pub fn text_renderer_mut(&mut self) -> &mut TextRenderer {
+        &mut self.text_renderer
+    }
+
     pub fn resize(&mut self, width: u32, height: u32) {
         self.globals.set_resolution(width as f32, height as f32);
         self.globals.upload(&self.queue);
+        self.text_renderer.update_resolution(width as f32, height as f32);
     }
 
     pub fn device(&self) -> &wgpu::Device {
@@ -172,6 +245,7 @@ impl Renderer {
         // Upload resources to GPU
         self.rectangles.upload(&self.device, &self.queue);
         self.ellipses.upload(&self.device, &self.queue);
+        self.text_renderer.load_to_gpu(&self.device, &self.queue);
 
         // Update instance buffer
         if !self.instances.is_empty() {
@@ -203,6 +277,7 @@ impl Renderer {
                         }),
                         store: wgpu::StoreOp::Store,
                     },
+                    depth_slice: None,
                 })],
                 depth_stencil_attachment: None,
                 occlusion_query_set: None,
@@ -215,6 +290,7 @@ impl Renderer {
             render_pass.set_bind_group(0, &self.globals.bind_group, &[]);
             render_pass.set_bind_group(1, &self.ellipses.bind_group, &[]);
             render_pass.set_bind_group(2, &self.rectangles.bind_group, &[]);
+            render_pass.set_bind_group(3, &self.text_renderer.bind_group(), &[]);
             render_pass.set_vertex_buffer(0, self.instance_buffer.slice(..));
 
             // Draw instanced quads: 4 vertices per quad, n instances

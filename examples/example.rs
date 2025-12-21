@@ -1,4 +1,4 @@
-use slang::{EllipseData, RectangleData, Renderer};
+use keru_draw::{EllipseData, RectangleData, Renderer, TextBoxHandle};
 use winit::{
     dpi::PhysicalSize, event::WindowEvent, event_loop::EventLoop, window::Window,
 };
@@ -13,13 +13,14 @@ struct State {
     config: wgpu::SurfaceConfiguration,
     size: PhysicalSize<u32>,
     renderer: Renderer,
+    text_box: TextBoxHandle,
 }
 
 impl State {
     async fn new(window: std::sync::Arc<Window>) -> Self {
         let size = window.inner_size();
 
-        let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
+        let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
             backends: wgpu::Backends::all(),
             ..Default::default()
         });
@@ -36,15 +37,14 @@ impl State {
             .unwrap();
 
         let (device, queue) = adapter
-            .request_device(
-                &wgpu::DeviceDescriptor {
-                    label: None,
-                    required_features: wgpu::Features::empty(),
-                    required_limits: wgpu::Limits::default(),
-                    memory_hints: wgpu::MemoryHints::default(),
-                },
-                None,
-            )
+            .request_device(&wgpu::DeviceDescriptor {
+                label: None,
+                required_features: wgpu::Features::empty(),
+                required_limits: wgpu::Limits::default(),
+                memory_hints: wgpu::MemoryHints::default(),
+                experimental_features: wgpu::ExperimentalFeatures::disabled(),
+                trace: wgpu::Trace::Off,
+            })
             .await
             .unwrap();
 
@@ -70,29 +70,20 @@ impl State {
 
         let mut renderer = Renderer::new(device, queue, surface_format, size.width, size.height);
 
-        renderer.draw_rectangle(RectangleData {
-            top_left: [0.0, 0.0],
-            size: [400.0, 400.0],
-            color: [1.0, 0.0, 0.0],
-            corner_radius: 60.0,
-            x_clip: [0.0, 4000.0],
-            y_clip: [30.0, 8000.0],
-        });
-
-        renderer.draw_ellipse(EllipseData {
-            top_left: [400.0, 400.0],
-            size: [400.0, 400.0],
-            color: [0.0, 1.0, 0.0],
-            _padding: 0.0,
-            x_clip: [0.0, 750.0],
-            y_clip: [50.0, 5000.0],
-        });
+        // Create a retained text box
+        let text_box = renderer.text.add_text_box(
+            "Hello from keru_renderer!\nText rendering with clipped quads.",
+            (100.0, 100.0), // pos
+            (300.0, 200.0), // size
+            0.0,            // depth
+        );
 
         Self {
             surface,
             config,
             size,
             renderer,
+            text_box,
         }
     }
 
@@ -107,6 +98,31 @@ impl State {
     }
 
     fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
+        // Begin frame: prepare text and clear buffers
+        self.renderer.begin_frame(self.size.width as f32, self.size.height as f32);
+
+        // Draw shapes for this frame
+        self.renderer.draw_rectangle(RectangleData {
+            top_left: [0.0, 0.0],
+            size: [400.0, 400.0],
+            color: [1.0, 0.0, 0.0],
+            corner_radius: 60.0,
+            x_clip: [0.0, 4000.0],
+            y_clip: [30.0, 8000.0],
+        });
+
+        self.renderer.draw_ellipse(EllipseData {
+            top_left: [400.0, 400.0],
+            size: [400.0, 400.0],
+            color: [0.0, 1.0, 0.0],
+            _padding: 0.0,
+            x_clip: [0.0, 750.0],
+            y_clip: [50.0, 5000.0],
+        });
+
+        // Draw retained text box
+        self.renderer.draw_text_box(&self.text_box);
+
         let output = self.surface.get_current_texture()?;
         let view = output
             .texture
@@ -142,6 +158,9 @@ impl winit::application::ApplicationHandler for App {
         event: WindowEvent,
     ) {
         if let (Some(window), Some(state)) = (&self.window, &mut self.state) {
+            // Register window with text system
+            state.renderer.text_mut().handle_event(&event, window);
+
             match event {
                 WindowEvent::CloseRequested => event_loop.exit(),
                 WindowEvent::Resized(physical_size) => {

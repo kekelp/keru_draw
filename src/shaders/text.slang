@@ -1,0 +1,166 @@
+// TextQuad structure matching textslabs' Quad format
+struct TextQuad {
+    uint2 clip_rect_packed;
+    uint pos_packed;
+    uint dim_packed;
+    uint uv_origin_packed;
+    uint color;
+    float depth;
+    uint flags_and_page;
+}
+
+// TextSlabs bind group resources
+struct TextSlabs {
+    Texture2DArray<float4> mask_atlas_texture;
+    Texture2DArray<float4> color_atlas_texture;
+    SamplerState atlas_sampler;
+    StructuredBuffer<TextQuad> quads;
+    // Note: params buffer (binding 4) is not used in basic text rendering
+}
+
+ParameterBlock<TextSlabs> textslabs;
+
+// Unpacking functions (matching the old WGSL implementation)
+float2 split_i16(uint u) {
+    int a = int(u & 0x0000ffffu);
+    int b = int((u & 0xffff0000u) >> 16u);
+    // Convert from u16 bit pattern to i16 values
+    int a_i16 = (a >= 32768) ? (a - 65536) : a;
+    int b_i16 = (b >= 32768) ? (b - 65536) : b;
+    return float2(float(a_i16), float(b_i16));
+}
+
+float2 split(uint u) {
+    return float2(
+        float(u & 0x0000ffffu),
+        float((u & 0xffff0000u) >> 16u)
+    );
+}
+
+float4 unpack_color_u32(uint color) {
+    return float4(
+        float((color & 0xff000000u) >> 24u) / 255.0,
+        float((color & 0x00ff0000u) >> 16u) / 255.0,
+        float((color & 0x0000ff00u) >> 8u) / 255.0,
+        float((color & 0x000000ffu)) / 255.0
+    );
+}
+
+uint unpack_page_index(uint flags_and_page) {
+    return (flags_and_page >> 24u) & 0xFFu;
+}
+
+uint get_content_type(uint flags_and_page) {
+    return flags_and_page & 0x0Fu;
+}
+
+struct ClipResult {
+    float2 position;
+    float2 uv_offset;
+    float2 dimensions;
+}
+
+ClipResult apply_clipping(
+    float2 quad_pos,
+    float2 quad_dim,
+    float4 clip_rect,
+    float2 coords
+) {
+    float4 quad_bounds = float4(
+        quad_pos.x,
+        quad_pos.y,
+        quad_pos.x + quad_dim.x,
+        quad_pos.y + quad_dim.y
+    );
+
+    float4 clipped_bounds = float4(
+        max(quad_bounds.x, clip_rect.x),
+        max(quad_bounds.y, clip_rect.y),
+        max(max(quad_bounds.x, clip_rect.x), min(quad_bounds.z, clip_rect.z)),
+        max(max(quad_bounds.y, clip_rect.y), min(quad_bounds.w, clip_rect.w))
+    );
+
+    float2 uv_offset = clipped_bounds.xy - quad_bounds.xy;
+    float2 clipped_dim = clipped_bounds.zw - clipped_bounds.xy;
+
+    ClipResult result;
+    result.position = clipped_bounds.xy + clipped_dim * coords;
+    result.uv_offset = uv_offset;
+    result.dimensions = clipped_dim;
+    return result;
+}
+
+struct TextVertexOutput {
+    float2 uv;
+    float4 color;
+    uint page_index;
+    uint content_type;
+}
+
+void text_vertex(
+    uint quadIndex,
+    uint vertexIndex,
+    float2 resolution,
+    out float4 position,
+    out float2 uv,
+    out TextVertexOutput extra
+) {
+    TextQuad quad = textslabs.quads[quadIndex];
+
+    float2 uv01 = float2(
+        vertexIndex & 1u,
+        vertexIndex >> 1u & 1u
+    );
+
+    float2 quad_pos = split_i16(quad.pos_packed);
+    float2 dim = split(quad.dim_packed);
+
+    // Apply clipping
+    float2 clip_xy = split_i16(quad.clip_rect_packed.x);
+    float2 clip_wh = split_i16(quad.clip_rect_packed.y);
+    float4 clip_rect = float4(clip_xy.x, clip_xy.y, clip_wh.x, clip_wh.y);
+
+    ClipResult clip_result = apply_clipping(quad_pos, dim, clip_rect, uv01);
+
+    // Convert to NDC
+    float2 ndc = (clip_result.position / resolution) * 2.0 - 1.0;
+    position = float4(ndc.x, -ndc.y, 0.0, 1.0);
+
+    // Calculate UV coordinates for texture atlas
+    float2 uv_origin = split(quad.uv_origin_packed);
+    uint atlas_width, atlas_height, atlas_elements;
+    textslabs.mask_atlas_texture.GetDimensions(atlas_width, atlas_height, atlas_elements);
+    float2 atlas_size = float2(float(atlas_width), float(atlas_height));
+    uv = (uv_origin + clip_result.uv_offset + clip_result.dimensions * uv01) / atlas_size;
+
+    extra.uv = uv;
+    extra.color = unpack_color_u32(quad.color);
+    extra.page_index = unpack_page_index(quad.flags_and_page);
+    extra.content_type = get_content_type(quad.flags_and_page);
+}
+
+float4 text_fragment(
+    uint quadIndex,
+    float2 uv_in,
+    TextVertexOutput extra
+): SV_Target {
+    if (extra.content_type == 1) {
+        // Color bitmap text
+        float4 tex_color = textslabs.color_atlas_texture.SampleLevel(
+            textslabs.atlas_sampler,
+            float3(extra.uv, float(extra.page_index)),
+            0.0
+        );
+        return float4(extra.color.rgb * tex_color.rgb, extra.color.a * tex_color.a);
+    } else if (extra.content_type == 0) {
+        // Mask text
+        float glyph_alpha = textslabs.mask_atlas_texture.SampleLevel(
+            textslabs.atlas_sampler,
+            float3(extra.uv, float(extra.page_index)),
+            0.0
+        ).r;
+        return float4(extra.color.rgb, extra.color.a * glyph_alpha);
+    } else {
+        return extra.color;
+    }
+}
