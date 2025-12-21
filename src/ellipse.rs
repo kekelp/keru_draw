@@ -56,8 +56,10 @@ impl Ellipses {
         self.primitives.clear();
     }
 
-    pub fn push(&mut self, primitive: EllipseData) {
+    pub fn push(&mut self, primitive: EllipseData) -> usize {
+        let index = self.primitives.len();
         self.primitives.push(primitive);
+        index
     }
 
     pub fn len(&self) -> usize {

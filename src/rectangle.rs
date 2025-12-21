@@ -56,8 +56,10 @@ impl Rectangles {
         self.primitives.clear();
     }
 
-    pub fn push(&mut self, primitive: RectangleData) {
+    pub fn push(&mut self, primitive: RectangleData) -> usize {
+        let index = self.primitives.len();
         self.primitives.push(primitive);
+        index
     }
 
     pub fn len(&self) -> usize {
