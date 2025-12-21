@@ -1,13 +1,7 @@
-mod aabb;
-mod rectangle;
-mod ellipse;
-mod globals;
-
-pub use aabb::*;
-pub use rectangle::*;
-pub use ellipse::*;
-
-use globals::*;
+mod aabb; pub use aabb::*;
+mod rectangle; pub use rectangle::*;
+mod ellipse; pub use ellipse::*;
+mod globals; pub use globals::*;
 
 pub mod primitive {
     pub const RECTANGLE: u32 = 0;

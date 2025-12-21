@@ -10,7 +10,6 @@ pub struct Globals {
     pub data: GlobalsData,
     buffer: wgpu::Buffer,
     pub bind_group: wgpu::BindGroup,
-    bind_group_layout: wgpu::BindGroupLayout,
 }
 
 impl Globals {
@@ -44,7 +43,6 @@ impl Globals {
             data,
             buffer,
             bind_group,
-            bind_group_layout,
         }
     }
 
