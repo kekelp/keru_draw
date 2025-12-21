@@ -13,11 +13,10 @@ pub struct RectangleData {
 }
 
 pub struct Rectangles {
-    pub primitives: Vec<RectangleData>,
+    pub rectangles: Vec<RectangleData>,
     buffer: wgpu::Buffer,
     buffer_capacity: usize,
     pub bind_group: wgpu::BindGroup,
-    bind_group_layout: wgpu::BindGroupLayout,
 }
 
 impl Rectangles {
@@ -33,7 +32,7 @@ impl Rectangles {
 
         let bind_group_layout = Self::bind_group_layout(device);
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("RectangleResources Bind Group"),
+            label: Some("Rectangles Bind Group"),
             layout: &bind_group_layout,
             entries: &[
                 wgpu::BindGroupEntry {
@@ -44,40 +43,39 @@ impl Rectangles {
         });
 
         Self {
-            primitives: Vec::new(),
+            rectangles: Vec::new(),
             buffer,
             buffer_capacity: initial_capacity,
             bind_group,
-            bind_group_layout,
         }
     }
 
     pub fn clear(&mut self) {
-        self.primitives.clear();
+        self.rectangles.clear();
     }
 
     pub fn push(&mut self, primitive: RectangleData) -> usize {
-        let index = self.primitives.len();
-        self.primitives.push(primitive);
+        let index = self.rectangles.len();
+        self.rectangles.push(primitive);
         index
     }
 
     pub fn len(&self) -> usize {
-        self.primitives.len()
+        self.rectangles.len()
     }
 
     pub fn is_empty(&self) -> bool {
-        self.primitives.is_empty()
+        self.rectangles.is_empty()
     }
 
     pub fn upload(&mut self, device: &wgpu::Device, queue: &wgpu::Queue) {
-        if self.primitives.is_empty() {
+        if self.rectangles.is_empty() {
             return;
         }
 
         // Grow buffer if needed
-        if self.primitives.len() > self.buffer_capacity {
-            let new_capacity = self.primitives.len().next_power_of_two();
+        if self.rectangles.len() > self.buffer_capacity {
+            let new_capacity = self.rectangles.len().next_power_of_two();
             self.buffer = device.create_buffer(&wgpu::BufferDescriptor {
                 label: Some("Quad Buffer"),
                 size: (std::mem::size_of::<RectangleData>() * new_capacity) as u64,
@@ -88,8 +86,8 @@ impl Rectangles {
 
             // Recreate bind group with new buffer
             self.bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-                label: Some("RectangleResources Bind Group"),
-                layout: &self.bind_group_layout,
+                label: Some("Rectangles Bind Group"),
+                layout: &Self::bind_group_layout(device),
                 entries: &[
                     wgpu::BindGroupEntry {
                         binding: 0,
@@ -99,12 +97,12 @@ impl Rectangles {
             });
         }
 
-        queue.write_buffer(&self.buffer, 0, bytemuck::cast_slice(&self.primitives));
+        queue.write_buffer(&self.buffer, 0, bytemuck::cast_slice(&self.rectangles));
     }
 
     pub fn bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
         device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: Some("RectangleResources Bind Group Layout"),
+            label: Some("Rectangles Bind Group Layout"),
             entries: &[
                 wgpu::BindGroupLayoutEntry {
                     binding: 0,

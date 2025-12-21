@@ -8,11 +8,11 @@ struct RectangleData {
     float corner_radius;
 }
 
-struct RectangleResources {
+struct Rectangles {
     StructuredBuffer<RectangleData> buffer;
 }
 
-ParameterBlock<RectangleResources> rectangleResources;
+ParameterBlock<Rectangles> rectangles;
 
 float2 rectangle_vertex(
     uint instanceIndex,
@@ -20,7 +20,7 @@ float2 rectangle_vertex(
     float2 resolution,
     out float4 position
 ) {
-    var rect: RectangleData = rectangleResources.buffer[instanceIndex];
+    var rect: RectangleData = rectangles.buffer[instanceIndex];
     return clipped_quad_vertex(rect.top_left, rect.size, rect.clip, vertexIndex, resolution, position);
 }
 
@@ -30,7 +30,7 @@ float sd_rounded_box(float2 p, float2 size, float r) {
 }
 
 float4 rectangle_fragment(uint primitiveIndex, float2 uv): SV_Target {
-    var rect: RectangleData = rectangleResources.buffer[primitiveIndex];
+    var rect: RectangleData = rectangles.buffer[primitiveIndex];
 
     float2 p = (uv - 0.5) * rect.size;
 \

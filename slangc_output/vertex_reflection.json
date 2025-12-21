@@ -294,13 +294,13 @@
             }
         },
         {
-            "name": "rectangleResources",
+            "name": "rectangles",
             "binding": {"kind": "subElementRegisterSpace", "index": 2},
             "type": {
                 "kind": "parameterBlock",
                 "elementType": {
                     "kind": "struct",
-                    "name": "RectangleResources",
+                    "name": "Rectangles",
                     "fields": [
                         {
                             "name": "buffer",
@@ -402,7 +402,7 @@
                 "elementVarLayout": {
                     "type": {
                         "kind": "struct",
-                        "name": "RectangleResources",
+                        "name": "Rectangles",
                         "fields": [
                             {
                                 "name": "buffer",
@@ -614,7 +614,7 @@
                     "binding": {"kind": "subElementRegisterSpace", "index": 1, "used": 0}
                 },
                 {
-                    "name": "rectangleResources",
+                    "name": "rectangles",
                     "binding": {"kind": "subElementRegisterSpace", "index": 2, "used": 0}
                 }
             ]
