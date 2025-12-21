@@ -40,10 +40,10 @@ VertexOutput vertexMain(
     output.primitiveIndex = input.primitiveIndex;
 
     if (input.primitiveType == PrimitiveType::Rectangle) {
-        output.uv = rectangle_vertex(input.primitiveIndex, vertexIndex, globals.resolution, output.position);
+        rectangle_vertex(input.primitiveIndex, vertexIndex, globals.resolution, output.position, output.uv);
     }
     else if (input.primitiveType == PrimitiveType::Ellipse) {
-        output.uv = ellipse_vertex(input.primitiveIndex, vertexIndex, globals.resolution, output.position);
+        ellipse_vertex(input.primitiveIndex, vertexIndex, globals.resolution, output.position, output.uv);
     }
 
     return output;

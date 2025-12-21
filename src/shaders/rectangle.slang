@@ -14,14 +14,15 @@ struct Rectangles {
 
 ParameterBlock<Rectangles> rectangles;
 
-float2 rectangle_vertex(
+void rectangle_vertex(
     uint instanceIndex,
     uint vertexIndex,
     float2 resolution,
-    out float4 position
+    out float4 position,
+    out float2 uv,
 ) {
     var rect: RectangleData = rectangles.buffer[instanceIndex];
-    return clipped_quad_vertex(rect.top_left, rect.size, rect.clip, vertexIndex, resolution, position);
+    clipped_quad_vertex(rect.top_left, rect.size, rect.clip, vertexIndex, resolution, position, uv);
 }
 
 float sd_rounded_box(float2 p, float2 size, float r) {

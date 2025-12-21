@@ -14,14 +14,15 @@ struct Ellipses {
 
 ParameterBlock<Ellipses> ellipses;
 
-float2 ellipse_vertex(
+void ellipse_vertex(
     uint instanceIndex,
     uint vertexIndex,
     float2 resolution,
-    out float4 position
+    out float4 position,
+    out float2 uv,
 ) {
     var ellipse: EllipseData = ellipses.buffer[instanceIndex];
-    return clipped_quad_vertex(ellipse.top_left, ellipse.size, ellipse.clip, vertexIndex, resolution, position);
+    clipped_quad_vertex(ellipse.top_left, ellipse.size, ellipse.clip, vertexIndex, resolution, position, uv);
 }
 
 float4 ellipse_fragment(uint primitiveIndex, float2 uv): SV_Target {
