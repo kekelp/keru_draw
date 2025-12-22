@@ -585,6 +585,87 @@
                                 }
                             },
                             "binding": {"kind": "descriptorTableSlot", "index": 3}
+                        },
+                        {
+                            "name": "params",
+                            "type": {
+                                "kind": "constantBuffer",
+                                "elementType": {
+                                    "kind": "struct",
+                                    "name": "Params",
+                                    "fields": [
+                                        {
+                                            "name": "resolution",
+                                            "type": {
+                                                "kind": "vector",
+                                                "elementCount": 2,
+                                                "elementType": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                }
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 0, "size": 8, "elementStride": 4}
+                                        },
+                                        {
+                                            "name": "srgb",
+                                            "type": {
+                                                "kind": "scalar",
+                                                "scalarType": "uint32"
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 8, "size": 4, "elementStride": 0}
+                                        },
+                                        {
+                                            "name": "_padding",
+                                            "type": {
+                                                "kind": "scalar",
+                                                "scalarType": "uint32"
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 12, "size": 4, "elementStride": 0}
+                                        }
+                                    ]
+                                },
+                                "containerVarLayout": {
+                                    "binding": {"kind": "descriptorTableSlot", "index": 0}
+                                },
+                                "elementVarLayout": {
+                                    "type": {
+                                        "kind": "struct",
+                                        "name": "Params",
+                                        "fields": [
+                                            {
+                                                "name": "resolution",
+                                                "type": {
+                                                    "kind": "vector",
+                                                    "elementCount": 2,
+                                                    "elementType": {
+                                                        "kind": "scalar",
+                                                        "scalarType": "float32"
+                                                    }
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 0, "size": 8, "elementStride": 4}
+                                            },
+                                            {
+                                                "name": "srgb",
+                                                "type": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "uint32"
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 8, "size": 4, "elementStride": 0}
+                                            },
+                                            {
+                                                "name": "_padding",
+                                                "type": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "uint32"
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 12, "size": 4, "elementStride": 0}
+                                            }
+                                        ]
+                                    },
+                                    "binding": {"kind": "uniform", "offset": 0, "size": 16, "elementStride": 0}
+                                }
+                            },
+                            "binding": {"kind": "descriptorTableSlot", "index": 4}
                         }
                     ]
                 },
@@ -710,10 +791,91 @@
                                     }
                                 },
                                 "binding": {"kind": "descriptorTableSlot", "index": 3}
+                            },
+                            {
+                                "name": "params",
+                                "type": {
+                                    "kind": "constantBuffer",
+                                    "elementType": {
+                                        "kind": "struct",
+                                        "name": "Params",
+                                        "fields": [
+                                            {
+                                                "name": "resolution",
+                                                "type": {
+                                                    "kind": "vector",
+                                                    "elementCount": 2,
+                                                    "elementType": {
+                                                        "kind": "scalar",
+                                                        "scalarType": "float32"
+                                                    }
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 0, "size": 8, "elementStride": 4}
+                                            },
+                                            {
+                                                "name": "srgb",
+                                                "type": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "uint32"
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 8, "size": 4, "elementStride": 0}
+                                            },
+                                            {
+                                                "name": "_padding",
+                                                "type": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "uint32"
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 12, "size": 4, "elementStride": 0}
+                                            }
+                                        ]
+                                    },
+                                    "containerVarLayout": {
+                                        "binding": {"kind": "descriptorTableSlot", "index": 0}
+                                    },
+                                    "elementVarLayout": {
+                                        "type": {
+                                            "kind": "struct",
+                                            "name": "Params",
+                                            "fields": [
+                                                {
+                                                    "name": "resolution",
+                                                    "type": {
+                                                        "kind": "vector",
+                                                        "elementCount": 2,
+                                                        "elementType": {
+                                                            "kind": "scalar",
+                                                            "scalarType": "float32"
+                                                        }
+                                                    },
+                                                    "binding": {"kind": "uniform", "offset": 0, "size": 8, "elementStride": 4}
+                                                },
+                                                {
+                                                    "name": "srgb",
+                                                    "type": {
+                                                        "kind": "scalar",
+                                                        "scalarType": "uint32"
+                                                    },
+                                                    "binding": {"kind": "uniform", "offset": 8, "size": 4, "elementStride": 0}
+                                                },
+                                                {
+                                                    "name": "_padding",
+                                                    "type": {
+                                                        "kind": "scalar",
+                                                        "scalarType": "uint32"
+                                                    },
+                                                    "binding": {"kind": "uniform", "offset": 12, "size": 4, "elementStride": 0}
+                                                }
+                                            ]
+                                        },
+                                        "binding": {"kind": "uniform", "offset": 0, "size": 16, "elementStride": 0}
+                                    }
+                                },
+                                "binding": {"kind": "descriptorTableSlot", "index": 4}
                             }
                         ]
                     },
-                    "binding": {"kind": "descriptorTableSlot", "index": 0, "count": 4}
+                    "binding": {"kind": "descriptorTableSlot", "index": 0, "count": 5}
                 }
             }
         }

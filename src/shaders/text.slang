@@ -8,12 +8,18 @@ struct GlyphQuad {
     uint flags_and_page;
 }
 
+struct Params {
+    float2 resolution;
+    uint srgb;
+    uint _padding;
+}
+
 struct TextSlabs {
     Texture2DArray<float4> mask_atlas_texture;
     Texture2DArray<float4> color_atlas_texture;
     SamplerState atlas_sampler;
     StructuredBuffer<GlyphQuad> quads;
-    // Note: params buffer (binding 4) is not used in basic text rendering
+    ConstantBuffer<Params> params;
 }
 
 ParameterBlock<TextSlabs> textslabs;
@@ -123,9 +129,8 @@ void text_vertex(
     uv = (uv_origin + clip_result.uv_offset + clip_result.dimensions * uv01) / atlas_size;
 }
 
-float4 text_fragment(uint primitiveIndex, float2 uv): SV_Target {
-    GlyphQuad quad = textslabs.quads[primitiveIndex];
-
+float4 text_fragment_pure(GlyphQuad quad, float2 uv): SV_Target {
+    
     float4 color = unpack_color_u32(quad.color);
     uint page_index = unpack_page_index(quad.flags_and_page);
     uint content_type = get_content_type(quad.flags_and_page);
@@ -150,4 +155,9 @@ float4 text_fragment(uint primitiveIndex, float2 uv): SV_Target {
         // Solid rectangles for selection and cursor
         return color;
     }
+}
+
+float4 text_fragment(uint primitiveIndex, float2 uv): SV_Target {
+    GlyphQuad quad = textslabs.quads[primitiveIndex];
+    return text_fragment_pure(quad, uv);
 }
