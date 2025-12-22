@@ -519,7 +519,7 @@
                                 "baseShape": "structuredBuffer",
                                 "resultType": {
                                     "kind": "struct",
-                                    "name": "TextQuad",
+                                    "name": "GlyphQuad",
                                     "fields": [
                                         {
                                             "name": "clip_rect_packed",
@@ -644,7 +644,7 @@
                                     "baseShape": "structuredBuffer",
                                     "resultType": {
                                         "kind": "struct",
-                                        "name": "TextQuad",
+                                        "name": "GlyphQuad",
                                         "fields": [
                                             {
                                                 "name": "clip_rect_packed",

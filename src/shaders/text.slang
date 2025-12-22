@@ -1,5 +1,4 @@
-// TextQuad structure matching textslabs' Quad format
-struct TextQuad {
+struct GlyphQuad {
     uint2 clip_rect_packed;
     uint pos_packed;
     uint dim_packed;
@@ -9,18 +8,16 @@ struct TextQuad {
     uint flags_and_page;
 }
 
-// TextSlabs bind group resources
 struct TextSlabs {
     Texture2DArray<float4> mask_atlas_texture;
     Texture2DArray<float4> color_atlas_texture;
     SamplerState atlas_sampler;
-    StructuredBuffer<TextQuad> quads;
+    StructuredBuffer<GlyphQuad> quads;
     // Note: params buffer (binding 4) is not used in basic text rendering
 }
 
 ParameterBlock<TextSlabs> textslabs;
 
-// Unpacking functions (matching the old WGSL implementation)
 float2 split_i16(uint u) {
     int a = int(u & 0x0000ffffu);
     int b = int((u & 0xffff0000u) >> 16u);
@@ -97,7 +94,7 @@ void text_vertex(
     out float4 position,
     out float2 uv,
 ) {
-    TextQuad quad = textslabs.quads[instanceIndex];
+    GlyphQuad quad = textslabs.quads[instanceIndex];
 
     float2 uv01 = float2(
         vertexIndex & 1u,
@@ -127,7 +124,7 @@ void text_vertex(
 }
 
 float4 text_fragment(uint primitiveIndex, float2 uv): SV_Target {
-    TextQuad quad = textslabs.quads[primitiveIndex];
+    GlyphQuad quad = textslabs.quads[primitiveIndex];
 
     float4 color = unpack_color_u32(quad.color);
     uint page_index = unpack_page_index(quad.flags_and_page);
@@ -150,6 +147,7 @@ float4 text_fragment(uint primitiveIndex, float2 uv): SV_Target {
         ).r;
         return float4(color.rgb, color.a * glyph_alpha);
     } else {
+        // Solid rectangles for selection and cursor
         return color;
     }
 }
