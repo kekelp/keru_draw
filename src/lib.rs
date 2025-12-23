@@ -299,3 +299,12 @@ impl Renderer {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn imported_shader_matches() {
+        let imported_shader = include_str!("shaders/text.slang");
+        let original_shader = textslabs::TextRenderer::composable_shader_source();
+        assert!(imported_shader == original_shader);
+    }
+}
