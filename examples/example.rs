@@ -1,4 +1,4 @@
-use keru_draw::{EllipseData, RectangleData, Renderer, TextBoxHandle};
+use keru_draw::*;
 use winit::{
     dpi::PhysicalSize, event::WindowEvent, event_loop::EventLoop, window::Window,
 };
@@ -13,7 +13,7 @@ struct State {
     config: wgpu::SurfaceConfiguration,
     size: PhysicalSize<u32>,
     renderer: Renderer,
-    text_box: TextBoxHandle,
+    text_edit: TextEditHandle,
 }
 
 impl State {
@@ -71,8 +71,8 @@ impl State {
         let mut renderer = Renderer::new(device, queue, surface_format, size.width, size.height);
 
         // Create a retained text box
-        let text_box = renderer.text.add_text_box(
-            "Hello from keru_renderer!\nText rendering with clipped quads.",
+        let text_edit = renderer.text.add_text_edit(
+            "Hello from keru_renderer!\nText rendering with clipped quads.".to_owned(),
             (100.0, 100.0), // pos
             (300.0, 200.0), // size
             0.0,            // depth
@@ -83,7 +83,7 @@ impl State {
             config,
             size,
             renderer,
-            text_box,
+            text_edit,
         }
     }
 
@@ -121,7 +121,7 @@ impl State {
         });
 
         // Draw retained text box
-        self.renderer.draw_text_box(&self.text_box);
+        self.renderer.draw_text_edit(&self.text_edit);
 
         let output = self.surface.get_current_texture()?;
         let view = output
