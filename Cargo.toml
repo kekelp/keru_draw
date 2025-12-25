@@ -16,7 +16,3 @@ pollster = "0.4"
 [[example]]
 name = "example"
 path = "examples/example.rs"
-
-[[example]]
-name = "svg_example"
-path = "examples/svg_example.rs"

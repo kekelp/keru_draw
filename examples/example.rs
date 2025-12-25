@@ -3,6 +3,8 @@ use winit::{
     dpi::PhysicalSize, event::WindowEvent, event_loop::EventLoop, window::Window,
 };
 
+const TIGER_SVG: &[u8] = include_bytes!("tiger.svg");
+
 struct App {
     window: Option<std::sync::Arc<Window>>,
     state: Option<State>,
@@ -14,6 +16,7 @@ struct State {
     size: PhysicalSize<u32>,
     renderer: Renderer,
     text_edit: TextEditHandle,
+    svg_handle: SvgHandle,
 }
 
 impl State {
@@ -70,13 +73,14 @@ impl State {
 
         let mut renderer = Renderer::new(device, queue, surface_format);
 
-        // Create a retained text box
         let text_edit = renderer.text.add_text_edit(
             "Hello from keru_renderer!\nText rendering with clipped quads.".to_owned(),
-            (100.0, 100.0), // pos
-            (300.0, 200.0), // size
-            0.0,            // depth
+            (100.0, 100.0),
+            (300.0, 200.0),
+            0.0,
         );
+
+        let svg_handle = renderer.svg_renderer.load_svg(TIGER_SVG, 200, 200).unwrap();
 
         Self {
             surface,
@@ -84,6 +88,7 @@ impl State {
             size,
             renderer,
             text_edit,
+            svg_handle,
         }
     }
 
@@ -122,6 +127,9 @@ impl State {
 
         // Draw retained text box
         self.renderer.draw_text_edit(&self.text_edit);
+
+        // Draw tiger SVG
+        self.renderer.draw_svg(&self.svg_handle, 450.0, 350.0, 200.0, 200.0, 0.5);
 
         let output = self.surface.get_current_texture()?;
         let view = output
@@ -165,6 +173,7 @@ impl winit::application::ApplicationHandler for App {
                 WindowEvent::CloseRequested => event_loop.exit(),
                 WindowEvent::Resized(physical_size) => {
                     state.resize(physical_size);
+                    window.request_redraw();
                 }
                 WindowEvent::RedrawRequested => {
                     match state.render() {
