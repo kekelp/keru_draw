@@ -1,23 +1,17 @@
-ParameterBlock<Globals> globals;
 // The order of the imports has to match the binding indices in the Rust code!
 // If there are issues, compile the shaders with the -reflection-json flag and see the parameterBlock fields.
 import quad;
 import ellipse;
 import rectangle;
 import text;
+import svg;
 
 enum PrimitiveType: uint {
     Rectangle = 0,
     Ellipse = 1,
     Text = 2,
+    Svg = 3,
 }
-
-struct Globals {
-    float2 resolution;
-    float time;
-    float _padding;
-}
-
 
 struct VertexOutput {
     float4 position: SV_Position;
@@ -41,14 +35,20 @@ VertexOutput vertexMain(
     output.primitiveType = input.primitiveType;
     output.primitiveIndex = input.primitiveIndex;
 
+    // grab the screen resolution from textslabs
+    float2 resolution = textslabs.params.resolution;
+
     if (input.primitiveType == PrimitiveType::Rectangle) {
-        rectangle_vertex(input.primitiveIndex, vertexIndex, globals.resolution, output.position, output.uv);
+        rectangle_vertex(input.primitiveIndex, vertexIndex, resolution, output.position, output.uv);
     }
     else if (input.primitiveType == PrimitiveType::Ellipse) {
-        ellipse_vertex(input.primitiveIndex, vertexIndex, globals.resolution, output.position, output.uv);
+        ellipse_vertex(input.primitiveIndex, vertexIndex, resolution, output.position, output.uv);
     }
     else if (input.primitiveType == PrimitiveType::Text) {
-        text_vertex(input.primitiveIndex, vertexIndex, globals.resolution, output.position, output.uv);
+        text_vertex(input.primitiveIndex, vertexIndex, resolution, output.position, output.uv);
+    }
+    else if (input.primitiveType == PrimitiveType::Svg) {
+        svg_vertex(input.primitiveIndex, vertexIndex, resolution, output.position, output.uv);
     }
 
     return output;
@@ -65,6 +65,9 @@ float4 fragmentMain(VertexOutput input): SV_Target {
     }
     else if (input.primitiveType == PrimitiveType::Text) {
         return text_fragment(input.primitiveIndex, input.uv);
+    }
+    else if (input.primitiveType == PrimitiveType::Svg) {
+        return svg_fragment(input.primitiveIndex, input.uv);
     }
 
     return float4(0.0, 1.0, 0.0, 1.0);  // Greenscreen for error

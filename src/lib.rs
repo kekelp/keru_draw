@@ -3,11 +3,13 @@ mod ellipse; pub use ellipse::*;
 mod globals; pub use globals::*;
 
 pub use textslabs::{Text, TextRenderer, TextBoxHandle, TextEditHandle, QuadRanges};
+pub use keru_svg::{SvgRenderer, SvgHandle};
 
 pub mod primitive {
     pub const RECTANGLE: u32 = 0;
     pub const ELLIPSE: u32 = 1;
     pub const TEXT: u32 = 2;
+    pub const SVG: u32 = 3;
 }
 
 pub struct Renderer {
@@ -20,6 +22,7 @@ pub struct Renderer {
     ellipses: Ellipses,
     pub text: Text,
     text_renderer: TextRenderer,
+    pub svg_renderer: SvgRenderer,
     instances: Vec<Instance>,
 }
 
@@ -39,13 +42,12 @@ impl Renderer {
         height: u32,
     ) -> Self {
         let vs_spirv = include_bytes!("../slangc_output/shader.vert.spv");
-        let fs_spirv = include_bytes!("../slangc_output/shader.frag.spv");
-
         let vs_module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("Vertex Shader"),
             source: wgpu::util::make_spirv(vs_spirv),
         });
-
+        
+        let fs_spirv = include_bytes!("../slangc_output/shader.frag.spv");
         let fs_module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("Fragment Shader"),
             source: wgpu::util::make_spirv(fs_spirv),
@@ -68,10 +70,14 @@ impl Renderer {
         let text = Text::new();
         let text_renderer_layout = text_renderer.bind_group_layout();
 
+        // Initialize SVG rendering
+        let svg_renderer = SvgRenderer::new(&device, &queue, surface_format);
+        let svg_renderer_layout = svg_renderer.bind_group_layout();
+
         let render_pipeline_layout =
             device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                 label: Some("Render Pipeline Layout"),
-                bind_group_layouts: &[&globals_layout, &ellipse_layout, &rectangle_layout, &text_renderer_layout],
+                bind_group_layouts: &[&globals_layout, &ellipse_layout, &rectangle_layout, &text_renderer_layout, svg_renderer_layout],
                 push_constant_ranges: &[],
             });
 
@@ -145,6 +151,7 @@ impl Renderer {
             ellipses,
             text,
             text_renderer,
+            svg_renderer,
             instances: Vec::new(),
         }
     }
@@ -205,15 +212,38 @@ impl Renderer {
         }
     }
 
+    pub fn draw_svg(
+        &mut self,
+        handle: &SvgHandle,
+        x: f32,
+        y: f32,
+        width: f32,
+        height: f32,
+        depth: f32,
+    ) {
+        let start_idx = self.svg_renderer.quads().len();
+        self.svg_renderer.draw_svg(handle, x, y, width, height, depth);
+        let end_idx = self.svg_renderer.quads().len();
+        for q in start_idx..end_idx {
+            self.instances.push(Instance {
+                p_type: primitive::SVG,
+                p_index: q as u32,
+            });
+        }
+    }
+
     pub fn clear(&mut self) {
         self.rectangles.clear();
         self.ellipses.clear();
+        self.svg_renderer.clear();
         self.instances.clear();
     }
 
     pub fn begin_frame(&mut self, width: f32, height: f32) {
         // Update text renderer resolution
         self.text_renderer.update_resolution(width, height);
+        // Update SVG renderer resolution
+        self.svg_renderer.update_resolution(width, height);
         // Prepare text layouts (must be done before drawing text)
         // Note: This requires at least one window event to have been processed
         self.text.prepare_all(&mut self.text_renderer);
@@ -233,6 +263,7 @@ impl Renderer {
         self.globals.set_resolution(width as f32, height as f32);
         self.globals.upload(&self.queue);
         self.text_renderer.update_resolution(width as f32, height as f32);
+        self.svg_renderer.update_resolution(width as f32, height as f32);
     }
 
     pub fn device(&self) -> &wgpu::Device {
@@ -244,6 +275,7 @@ impl Renderer {
         self.rectangles.upload(&self.device, &self.queue);
         self.ellipses.upload(&self.device, &self.queue);
         self.text_renderer.load_to_gpu(&self.device, &self.queue);
+        self.svg_renderer.load_to_gpu(&self.device, &self.queue);
 
         // Update instance buffer
         if !self.instances.is_empty() {
@@ -285,10 +317,10 @@ impl Renderer {
             render_pass.set_pipeline(&self.render_pipeline);
             // The binding indices has to match the order in which the parameter blocks appear in the shader!
             // If there are issues, compile the shaders with the -reflection-json flag and see the parameterBlock fields.
-            render_pass.set_bind_group(0, &self.globals.bind_group, &[]);
-            render_pass.set_bind_group(1, &self.ellipses.bind_group, &[]);
-            render_pass.set_bind_group(2, &self.rectangles.bind_group, &[]);
-            render_pass.set_bind_group(3, &self.text_renderer.bind_group(), &[]);
+            render_pass.set_bind_group(0, &self.ellipses.bind_group, &[]);
+            render_pass.set_bind_group(1, &self.rectangles.bind_group, &[]);
+            render_pass.set_bind_group(2, &self.text_renderer.bind_group(), &[]);
+            render_pass.set_bind_group(3, self.svg_renderer.bind_group(), &[]);
             render_pass.set_vertex_buffer(0, self.instance_buffer.slice(..));
 
             // Draw instanced quads: 4 vertices per quad, n instances
@@ -302,9 +334,16 @@ impl Renderer {
 #[cfg(test)]
 mod tests {
     #[test]
-    fn imported_shader_matches() {
+    fn imported_textslabs_shader_matches() {
         let imported_shader = include_str!("shaders/text.slang");
         let original_shader = textslabs::TextRenderer::composable_shader_source();
+        assert!(imported_shader == original_shader);
+    }
+
+    #[test]
+    fn imported_svg_shader_matches() {
+        let imported_shader = include_str!("shaders/svg.slang");
+        let original_shader = keru_svg::SvgRenderer::composable_shader_source();
         assert!(imported_shader == original_shader);
     }
 }

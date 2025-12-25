@@ -7,6 +7,7 @@ edition = "2024"
 wgpu = { version = "27", features = ["spirv"] }
 bytemuck = { version = "1.14", features = ["derive"] }
 textslabs = { path = "../textslabs" }
+keru_svg = { path = "../keru_svg" }
 
 [dev-dependencies]
 winit = "0.30"
@@ -15,3 +16,7 @@ pollster = "0.4"
 [[example]]
 name = "example"
 path = "examples/example.rs"
+
+[[example]]
+name = "svg_example"
+path = "examples/svg_example.rs"
