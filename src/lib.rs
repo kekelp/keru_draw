@@ -1,6 +1,5 @@
 mod rectangle; pub use rectangle::*;
 mod ellipse; pub use ellipse::*;
-mod globals; pub use globals::*;
 
 pub use textslabs::{Text, TextRenderer, TextBoxHandle, TextEditHandle, QuadRanges};
 pub use keru_svg::{SvgRenderer, SvgHandle};
@@ -17,7 +16,6 @@ pub struct Renderer {
     queue: wgpu::Queue,
     render_pipeline: wgpu::RenderPipeline,
     instance_buffer: wgpu::Buffer,
-    globals: Globals,
     rectangles: Rectangles,
     ellipses: Ellipses,
     pub text: Text,
@@ -38,8 +36,6 @@ impl Renderer {
         device: wgpu::Device,
         queue: wgpu::Queue,
         surface_format: wgpu::TextureFormat,
-        width: u32,
-        height: u32,
     ) -> Self {
         let vs_spirv = include_bytes!("../slangc_output/shader.vert.spv");
         let vs_module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
@@ -53,31 +49,25 @@ impl Renderer {
             source: wgpu::util::make_spirv(fs_spirv),
         });
 
-        // Create bind group layouts for each parameter block
-        let mut globals = Globals::new(&device);
-        globals.set_resolution(width as f32, height as f32);
-        globals.upload(&queue);
-        let globals_layout = Globals::bind_group_layout(&device);
-
         let rectangles = Rectangles::new(&device);
-        let rectangle_layout = Rectangles::bind_group_layout(&device);
-
         let ellipses = Ellipses::new(&device);
-        let ellipse_layout = Ellipses::bind_group_layout(&device);
 
-        // Initialize text rendering
         let text_renderer = TextRenderer::new(&device, &queue, surface_format);
         let text = Text::new();
-        let text_renderer_layout = text_renderer.bind_group_layout();
 
-        // Initialize SVG rendering
         let svg_renderer = SvgRenderer::new(&device, &queue, surface_format);
-        let svg_renderer_layout = svg_renderer.bind_group_layout();
 
         let render_pipeline_layout =
             device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                 label: Some("Render Pipeline Layout"),
-                bind_group_layouts: &[&globals_layout, &ellipse_layout, &rectangle_layout, &text_renderer_layout, svg_renderer_layout],
+                // The binding indices has to match the order in which the parameter blocks appear in the shader!
+                // If there are issues, compile the shaders with the -reflection-json flag and see the parameterBlock fields.
+                bind_group_layouts: &[
+                    &Ellipses::bind_group_layout(&device),
+                    &Rectangles::bind_group_layout(&device),
+                    &text_renderer.bind_group_layout(),
+                    svg_renderer.bind_group_layout()
+                ],
                 push_constant_ranges: &[],
             });
 
@@ -146,7 +136,6 @@ impl Renderer {
             queue,
             render_pipeline,
             instance_buffer,
-            globals,
             rectangles,
             ellipses,
             text,
@@ -260,8 +249,6 @@ impl Renderer {
     }
 
     pub fn resize(&mut self, width: u32, height: u32) {
-        self.globals.set_resolution(width as f32, height as f32);
-        self.globals.upload(&self.queue);
         self.text_renderer.update_resolution(width as f32, height as f32);
         self.svg_renderer.update_resolution(width as f32, height as f32);
     }
@@ -323,7 +310,6 @@ impl Renderer {
             render_pass.set_bind_group(3, self.svg_renderer.bind_group(), &[]);
             render_pass.set_vertex_buffer(0, self.instance_buffer.slice(..));
 
-            // Draw instanced quads: 4 vertices per quad, n instances
             render_pass.draw(0..4, 0..self.instances.len() as u32);
         }
 

@@ -1,92 +1,8 @@
 {
     "parameters": [
         {
-            "name": "globals",
-            "binding": {"kind": "subElementRegisterSpace", "index": 0},
-            "type": {
-                "kind": "parameterBlock",
-                "elementType": {
-                    "kind": "struct",
-                    "name": "Globals",
-                    "fields": [
-                        {
-                            "name": "resolution",
-                            "type": {
-                                "kind": "vector",
-                                "elementCount": 2,
-                                "elementType": {
-                                    "kind": "scalar",
-                                    "scalarType": "float32"
-                                }
-                            },
-                            "binding": {"kind": "uniform", "offset": 0, "size": 8, "elementStride": 4}
-                        },
-                        {
-                            "name": "time",
-                            "type": {
-                                "kind": "scalar",
-                                "scalarType": "float32"
-                            },
-                            "binding": {"kind": "uniform", "offset": 8, "size": 4, "elementStride": 0}
-                        },
-                        {
-                            "name": "_padding",
-                            "type": {
-                                "kind": "scalar",
-                                "scalarType": "float32"
-                            },
-                            "binding": {"kind": "uniform", "offset": 12, "size": 4, "elementStride": 0}
-                        }
-                    ]
-                },
-                "containerVarLayout": {
-                    "bindings": [
-                        {"kind": "descriptorTableSlot", "index": 0},
-                        {"kind": "subElementRegisterSpace", "index": 0}
-                    ]
-                },
-                "elementVarLayout": {
-                    "type": {
-                        "kind": "struct",
-                        "name": "Globals",
-                        "fields": [
-                            {
-                                "name": "resolution",
-                                "type": {
-                                    "kind": "vector",
-                                    "elementCount": 2,
-                                    "elementType": {
-                                        "kind": "scalar",
-                                        "scalarType": "float32"
-                                    }
-                                },
-                                "binding": {"kind": "uniform", "offset": 0, "size": 8, "elementStride": 4}
-                            },
-                            {
-                                "name": "time",
-                                "type": {
-                                    "kind": "scalar",
-                                    "scalarType": "float32"
-                                },
-                                "binding": {"kind": "uniform", "offset": 8, "size": 4, "elementStride": 0}
-                            },
-                            {
-                                "name": "_padding",
-                                "type": {
-                                    "kind": "scalar",
-                                    "scalarType": "float32"
-                                },
-                                "binding": {"kind": "uniform", "offset": 12, "size": 4, "elementStride": 0}
-                            }
-                        ]
-                    },
-                    "binding": {"kind": "uniform", "offset": 0, "size": 16, "elementStride": 0}
-                }
-            }
-        },
-        {
             "name": "ellipses",
-            "binding": {"kind": "subElementRegisterSpace", "index": 1},
+            "binding": {"kind": "subElementRegisterSpace", "index": 0},
             "type": {
                 "kind": "parameterBlock",
                 "elementType": {
@@ -275,7 +191,7 @@
         },
         {
             "name": "rectangles",
-            "binding": {"kind": "subElementRegisterSpace", "index": 2},
+            "binding": {"kind": "subElementRegisterSpace", "index": 1},
             "type": {
                 "kind": "parameterBlock",
                 "elementType": {
@@ -464,7 +380,7 @@
         },
         {
             "name": "textslabs",
-            "binding": {"kind": "subElementRegisterSpace", "index": 3},
+            "binding": {"kind": "subElementRegisterSpace", "index": 2},
             "type": {
                 "kind": "parameterBlock",
                 "elementType": {
@@ -881,7 +797,7 @@
         },
         {
             "name": "svgslabs",
-            "binding": {"kind": "subElementRegisterSpace", "index": 4},
+            "binding": {"kind": "subElementRegisterSpace", "index": 3},
             "type": {
                 "kind": "parameterBlock",
                 "elementType": {
@@ -1413,24 +1329,20 @@
             },
             "bindings": [
                 {
-                    "name": "globals",
+                    "name": "ellipses",
                     "binding": {"kind": "subElementRegisterSpace", "index": 0, "used": 0}
                 },
                 {
-                    "name": "ellipses",
+                    "name": "rectangles",
                     "binding": {"kind": "subElementRegisterSpace", "index": 1, "used": 0}
                 },
                 {
-                    "name": "rectangles",
+                    "name": "textslabs",
                     "binding": {"kind": "subElementRegisterSpace", "index": 2, "used": 0}
                 },
                 {
-                    "name": "textslabs",
-                    "binding": {"kind": "subElementRegisterSpace", "index": 3, "used": 0}
-                },
-                {
                     "name": "svgslabs",
-                    "binding": {"kind": "subElementRegisterSpace", "index": 4, "used": 0}
+                    "binding": {"kind": "subElementRegisterSpace", "index": 3, "used": 0}
                 }
             ]
         }

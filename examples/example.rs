@@ -68,7 +68,7 @@ impl State {
         };
         surface.configure(&device, &config);
 
-        let mut renderer = Renderer::new(device, queue, surface_format, size.width, size.height);
+        let mut renderer = Renderer::new(device, queue, surface_format);
 
         // Create a retained text box
         let text_edit = renderer.text.add_text_edit(

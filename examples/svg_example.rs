@@ -87,7 +87,7 @@ impl State {
         };
         surface.configure(&device, &config);
 
-        let mut renderer = Renderer::new(device, queue, surface_format, size.width, size.height);
+        let mut renderer = Renderer::new(device, queue, surface_format);
 
         // Load SVGs once at initialization
         let circle_handle = renderer.svg_renderer.load_svg(SVG_CIRCLE, 100, 100)
