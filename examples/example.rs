@@ -16,7 +16,7 @@ struct State {
     size: PhysicalSize<u32>,
     renderer: Renderer,
     text_edit: TextEditHandle,
-    svg_handle: SvgHandle,
+    svg_handle: LoadedImage,
 }
 
 impl State {

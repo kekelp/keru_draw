@@ -2,7 +2,7 @@ mod rectangle; pub use rectangle::*;
 mod ellipse; pub use ellipse::*;
 
 pub use textslabs::{Text, TextRenderer, TextBoxHandle, TextEditHandle, QuadRanges};
-pub use keru_svg::{SvgRenderer, SvgHandle};
+pub use keru_images::{ImageRenderer, LoadedImage};
 
 pub mod primitive {
     pub const RECTANGLE: u32 = 0;
@@ -20,7 +20,7 @@ pub struct Renderer {
     ellipses: Ellipses,
     pub text: Text,
     text_renderer: TextRenderer,
-    pub svg_renderer: SvgRenderer,
+    pub svg_renderer: ImageRenderer,
     instances: Vec<Instance>,
 }
 
@@ -55,7 +55,7 @@ impl Renderer {
         let text_renderer = TextRenderer::new(&device, &queue, surface_format);
         let text = Text::new();
 
-        let svg_renderer = SvgRenderer::new(&device, &queue, surface_format);
+        let svg_renderer = ImageRenderer::new(&device, &queue, surface_format);
 
         let render_pipeline_layout =
             device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
@@ -203,7 +203,7 @@ impl Renderer {
 
     pub fn draw_svg(
         &mut self,
-        handle: &SvgHandle,
+        handle: &LoadedImage,
         x: f32,
         y: f32,
         width: f32,
@@ -327,9 +327,9 @@ mod tests {
     }
 
     #[test]
-    fn imported_svg_shader_matches() {
+    fn imported_image_shader_matches() {
         let imported_shader = include_str!("shaders/svg.slang");
-        let original_shader = keru_svg::SvgRenderer::composable_shader_source();
+        let original_shader = keru_images::ImageRenderer::composable_shader_source();
         assert!(imported_shader == original_shader);
     }
 }

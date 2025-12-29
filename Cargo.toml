@@ -7,7 +7,7 @@ edition = "2024"
 wgpu = { version = "27", features = ["spirv"] }
 bytemuck = { version = "1.14", features = ["derive"] }
 textslabs = { path = "../textslabs" }
-keru_svg = { path = "../keru_svg" }
+keru_images = { path = "../keru_images" }
 
 [dev-dependencies]
 winit = "0.30"

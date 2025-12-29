@@ -1182,7 +1182,7 @@ name = "keru_draw"
 version = "0.1.0"
 dependencies = [
  "bytemuck",
- "keru_svg",
+ "keru_images",
  "pollster",
  "textslabs",
  "wgpu",
@@ -1190,7 +1190,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "keru_svg"
+name = "keru_images"
 version = "0.1.0"
 dependencies = [
  "bytemuck",
