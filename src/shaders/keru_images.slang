@@ -1,4 +1,4 @@
-struct SvgQuad {
+struct ImageQuad {
     float pos_x;
     float pos_y;
     float width;
@@ -19,23 +19,23 @@ struct Params {
     uint _pad2;
 }
 
-struct SvgSlabs {
+struct ImageAtlas {
     Texture2DArray<float4> atlas_texture;
     SamplerState atlas_sampler;
     ConstantBuffer<Params> params;
-    StructuredBuffer<SvgQuad> quads;
+    StructuredBuffer<ImageQuad> quads;
 }
 
-ParameterBlock<SvgSlabs> svgslabs;
+ParameterBlock<ImageAtlas> imageatlas;
 
-void svg_vertex(
+void image_vertex(
     uint instanceIndex,
     uint vertexIndex,
     float2 resolution,
     out float4 position,
     out float2 uv,
 ) {
-    SvgQuad quad = svgslabs.quads[instanceIndex];
+    ImageQuad quad = imageatlas.quads[instanceIndex];
 
     // Calculate vertex position in quad (0,0) to (1,1)
     float2 uv01 = float2(
@@ -52,7 +52,7 @@ void svg_vertex(
 
     // Calculate UV coordinates for texture atlas
     uint atlas_width, atlas_height, atlas_elements;
-    svgslabs.atlas_texture.GetDimensions(atlas_width, atlas_height, atlas_elements);
+    imageatlas.atlas_texture.GetDimensions(atlas_width, atlas_height, atlas_elements);
     float2 atlas_size = float2(float(atlas_width), float(atlas_height));
 
     float2 uv_origin = float2(quad.uv_x, quad.uv_y);
@@ -61,10 +61,10 @@ void svg_vertex(
     uv = (uv_origin + uv_size * uv01) / atlas_size;
 }
 
-float4 svg_fragment_pure(SvgQuad quad, float2 uv): SV_Target {
+float4 image_fragment_pure(ImageQuad quad, float2 uv): SV_Target {
     // Sample from texture array
-    float4 tex_color = svgslabs.atlas_texture.SampleLevel(
-        svgslabs.atlas_sampler,
+    float4 tex_color = imageatlas.atlas_texture.SampleLevel(
+        imageatlas.atlas_sampler,
         float3(uv, float(quad.page)),
         0.0
     );
@@ -72,7 +72,7 @@ float4 svg_fragment_pure(SvgQuad quad, float2 uv): SV_Target {
     return tex_color;
 }
 
-float4 svg_fragment(uint primitiveIndex, float2 uv): SV_Target {
-    SvgQuad quad = svgslabs.quads[primitiveIndex];
-    return svg_fragment_pure(quad, uv);
+float4 image_fragment(uint primitiveIndex, float2 uv): SV_Target {
+    ImageQuad quad = imageatlas.quads[primitiveIndex];
+    return image_fragment_pure(quad, uv);
 }

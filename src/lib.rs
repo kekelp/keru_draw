@@ -8,7 +8,7 @@ pub mod primitive {
     pub const RECTANGLE: u32 = 0;
     pub const ELLIPSE: u32 = 1;
     pub const TEXT: u32 = 2;
-    pub const SVG: u32 = 3;
+    pub const IMAGE: u32 = 3;
 }
 
 pub struct Renderer {
@@ -20,7 +20,7 @@ pub struct Renderer {
     ellipses: Ellipses,
     pub text: Text,
     text_renderer: TextRenderer,
-    pub svg_renderer: ImageRenderer,
+    pub image_renderer: ImageRenderer,
     instances: Vec<Instance>,
 }
 
@@ -140,7 +140,7 @@ impl Renderer {
             ellipses,
             text,
             text_renderer,
-            svg_renderer,
+            image_renderer: svg_renderer,
             instances: Vec::new(),
         }
     }
@@ -201,7 +201,7 @@ impl Renderer {
         }
     }
 
-    pub fn draw_svg(
+    pub fn draw_image(
         &mut self,
         handle: &LoadedImage,
         x: f32,
@@ -210,12 +210,12 @@ impl Renderer {
         height: f32,
         depth: f32,
     ) {
-        let start_idx = self.svg_renderer.quads().len();
-        self.svg_renderer.draw_svg(handle, x, y, width, height, depth);
-        let end_idx = self.svg_renderer.quads().len();
+        let start_idx = self.image_renderer.quads().len();
+        self.image_renderer.draw_svg(handle, x, y, width, height, depth);
+        let end_idx = self.image_renderer.quads().len();
         for q in start_idx..end_idx {
             self.instances.push(Instance {
-                p_type: primitive::SVG,
+                p_type: primitive::IMAGE,
                 p_index: q as u32,
             });
         }
@@ -224,7 +224,7 @@ impl Renderer {
     pub fn clear(&mut self) {
         self.rectangles.clear();
         self.ellipses.clear();
-        self.svg_renderer.clear();
+        self.image_renderer.clear();
         self.instances.clear();
     }
 
@@ -232,7 +232,7 @@ impl Renderer {
         // Update text renderer resolution
         self.text_renderer.update_resolution(width, height);
         // Update SVG renderer resolution
-        self.svg_renderer.update_resolution(width, height);
+        self.image_renderer.update_resolution(width, height);
         // Prepare text layouts (must be done before drawing text)
         // Note: This requires at least one window event to have been processed
         self.text.prepare_all(&mut self.text_renderer);
@@ -250,7 +250,7 @@ impl Renderer {
 
     pub fn resize(&mut self, width: u32, height: u32) {
         self.text_renderer.update_resolution(width as f32, height as f32);
-        self.svg_renderer.update_resolution(width as f32, height as f32);
+        self.image_renderer.update_resolution(width as f32, height as f32);
     }
 
     pub fn device(&self) -> &wgpu::Device {
@@ -262,7 +262,7 @@ impl Renderer {
         self.rectangles.upload(&self.device, &self.queue);
         self.ellipses.upload(&self.device, &self.queue);
         self.text_renderer.load_to_gpu(&self.device, &self.queue);
-        self.svg_renderer.load_to_gpu(&self.device, &self.queue);
+        self.image_renderer.load_to_gpu(&self.device, &self.queue);
 
         // Update instance buffer
         if !self.instances.is_empty() {
@@ -307,7 +307,7 @@ impl Renderer {
             render_pass.set_bind_group(0, &self.ellipses.bind_group, &[]);
             render_pass.set_bind_group(1, &self.rectangles.bind_group, &[]);
             render_pass.set_bind_group(2, &self.text_renderer.bind_group(), &[]);
-            render_pass.set_bind_group(3, self.svg_renderer.bind_group(), &[]);
+            render_pass.set_bind_group(3, self.image_renderer.bind_group(), &[]);
             render_pass.set_vertex_buffer(0, self.instance_buffer.slice(..));
 
             render_pass.draw(0..4, 0..self.instances.len() as u32);
@@ -328,7 +328,7 @@ mod tests {
 
     #[test]
     fn imported_image_shader_matches() {
-        let imported_shader = include_str!("shaders/svg.slang");
+        let imported_shader = include_str!("shaders/keru_images.slang");
         let original_shader = keru_images::ImageRenderer::composable_shader_source();
         assert!(imported_shader == original_shader);
     }

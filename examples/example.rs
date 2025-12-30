@@ -80,7 +80,7 @@ impl State {
             0.0,
         );
 
-        let svg_handle = renderer.svg_renderer.load_svg(TIGER_SVG, 200, 200).unwrap();
+        let svg_handle = renderer.image_renderer.load_svg(TIGER_SVG, 200, 200).unwrap();
 
         Self {
             surface,
@@ -129,7 +129,7 @@ impl State {
         self.renderer.draw_text_edit(&self.text_edit);
 
         // Draw tiger SVG
-        self.renderer.draw_svg(&self.svg_handle, 450.0, 350.0, 200.0, 200.0, 0.5);
+        self.renderer.draw_image(&self.svg_handle, 450.0, 350.0, 200.0, 200.0, 0.5);
 
         let output = self.surface.get_current_texture()?;
         let view = output

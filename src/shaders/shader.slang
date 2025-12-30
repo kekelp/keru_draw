@@ -4,13 +4,13 @@ import quad;
 import ellipse;
 import rectangle;
 import text;
-import svg;
+import keru_images;
 
 enum PrimitiveType: uint {
     Rectangle = 0,
     Ellipse = 1,
     Text = 2,
-    Svg = 3,
+    Image = 3,
 }
 
 struct VertexOutput {
@@ -47,8 +47,8 @@ VertexOutput vertexMain(
     else if (input.primitiveType == PrimitiveType::Text) {
         text_vertex(input.primitiveIndex, vertexIndex, resolution, output.position, output.uv);
     }
-    else if (input.primitiveType == PrimitiveType::Svg) {
-        svg_vertex(input.primitiveIndex, vertexIndex, resolution, output.position, output.uv);
+    else if (input.primitiveType == PrimitiveType::Image) {
+        image_vertex(input.primitiveIndex, vertexIndex, resolution, output.position, output.uv);
     }
 
     return output;
@@ -66,8 +66,8 @@ float4 fragmentMain(VertexOutput input): SV_Target {
     else if (input.primitiveType == PrimitiveType::Text) {
         return text_fragment(input.primitiveIndex, input.uv);
     }
-    else if (input.primitiveType == PrimitiveType::Svg) {
-        return svg_fragment(input.primitiveIndex, input.uv);
+    else if (input.primitiveType == PrimitiveType::Image) {
+        return image_fragment(input.primitiveIndex, input.uv);
     }
 
     return float4(0.0, 1.0, 0.0, 1.0);  // Greenscreen for error

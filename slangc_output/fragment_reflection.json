@@ -796,13 +796,13 @@
             }
         },
         {
-            "name": "svgslabs",
+            "name": "imageatlas",
             "binding": {"kind": "subElementRegisterSpace", "index": 3},
             "type": {
                 "kind": "parameterBlock",
                 "elementType": {
                     "kind": "struct",
-                    "name": "SvgSlabs",
+                    "name": "ImageAtlas",
                     "fields": [
                         {
                             "name": "atlas_texture",
@@ -916,7 +916,7 @@
                                 "baseShape": "structuredBuffer",
                                 "resultType": {
                                     "kind": "struct",
-                                    "name": "SvgQuad",
+                                    "name": "ImageQuad",
                                     "fields": [
                                         {
                                             "name": "pos_x",
@@ -1027,7 +1027,7 @@
                 "elementVarLayout": {
                     "type": {
                         "kind": "struct",
-                        "name": "SvgSlabs",
+                        "name": "ImageAtlas",
                         "fields": [
                             {
                                 "name": "atlas_texture",
@@ -1141,7 +1141,7 @@
                                     "baseShape": "structuredBuffer",
                                     "resultType": {
                                         "kind": "struct",
-                                        "name": "SvgQuad",
+                                        "name": "ImageQuad",
                                         "fields": [
                                             {
                                                 "name": "pos_x",
@@ -1341,7 +1341,7 @@
                     "binding": {"kind": "subElementRegisterSpace", "index": 2, "used": 0}
                 },
                 {
-                    "name": "svgslabs",
+                    "name": "imageatlas",
                     "binding": {"kind": "subElementRegisterSpace", "index": 3, "used": 0}
                 }
             ]
