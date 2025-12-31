@@ -3,12 +3,11 @@
 pub struct SegmentData {
     pub start: [f32; 2],
     pub end: [f32; 2],
-    pub thickness: f32,
-    pub _padding: f32,
     pub x_clip: [f32; 2],
     pub y_clip: [f32; 2],
-    pub color: [f32; 3],
-    pub _padding2: f32,
+    pub color: [f32; 4],
+    pub thickness_dash: [f32; 4],
+    // pub dash: f32,
 }
 
 pub struct Segments {

@@ -230,7 +230,7 @@ impl Renderer {
         start: [f32; 2],
         end: [f32; 2],
         thickness: f32,
-        color: [f32; 3],
+        color: [f32; 4],
         x_clip: [f32; 2],
         y_clip: [f32; 2],
     ) {

@@ -165,19 +165,17 @@ impl Shapes {
         start: [f32; 2],
         end: [f32; 2],
         thickness: f32,
-        color: [f32; 3],
+        color: [f32; 4],
         x_clip: [f32; 2],
         y_clip: [f32; 2],
     ) -> usize {
         self.segments.push(SegmentData {
             start,
             end,
-            thickness,
-            _padding: 0.0,
             x_clip,
             y_clip,
             color,
-            _padding2: 0.0,
+            thickness_dash: [thickness, 1.0, 1.0, 1.0],
         })
     }
 

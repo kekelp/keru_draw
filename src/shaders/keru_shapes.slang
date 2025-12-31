@@ -30,12 +30,11 @@ struct CircleData {
 struct SegmentData {
     float2 start;
     float2 end;
-    float thickness;
-    float _padding;
     float2 x_clip;
     float2 y_clip;
-    float3 color;
-    float _padding2;
+    float4 color;
+    float4 thickness_dash;
+    // float dash;
 }
 
 struct ShapesData {
@@ -209,7 +208,7 @@ void segment_vertex(
     var seg: SegmentData = shapes.segments[instanceIndex];
 
     // Create bounding box for the segment
-    float half_thickness = seg.thickness * 0.5;
+    float half_thickness = seg.thickness_dash[0] * 0.5;
     float2 min_point = min(seg.start, seg.end) - float2(half_thickness, half_thickness);
     float2 max_point = max(seg.start, seg.end) + float2(half_thickness, half_thickness);
 
@@ -231,7 +230,7 @@ float4 segment_fragment(uint primitiveIndex, float2 uv): SV_Target {
     var seg: SegmentData = shapes.segments[primitiveIndex];
 
     // Convert UV to world position
-    float half_thickness = seg.thickness * 0.5;
+    float half_thickness = seg.thickness_dash[0] * 0.5;
     float2 min_point = min(seg.start, seg.end) - float2(half_thickness, half_thickness);
     float2 max_point = max(seg.start, seg.end) + float2(half_thickness, half_thickness);
 
@@ -249,5 +248,5 @@ float4 segment_fragment(uint primitiveIndex, float2 uv): SV_Target {
         discard;
     }
 
-    return float4(seg.color, alpha);
+    return float4(seg.color.rgb, alpha * seg.color.a);
 }
