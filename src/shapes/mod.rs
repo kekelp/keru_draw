@@ -78,7 +78,7 @@ impl Shapes {
         &mut self,
         center: [f32; 2],
         radius: f32,
-        color: [f32; 3],
+        color: [f32; 4],
         x_clip: [f32; 2],
         y_clip: [f32; 2],
     ) -> usize {
@@ -88,8 +88,8 @@ impl Shapes {
             angles: [0.0, std::f32::consts::TAU],
             x_clip,
             y_clip,
+            _padding: [0.0, 0.0],
             color,
-            _padding: 0.0,
         })
     }
 
@@ -99,7 +99,7 @@ impl Shapes {
         center: [f32; 2],
         inner_radius: f32,
         outer_radius: f32,
-        color: [f32; 3],
+        color: [f32; 4],
         x_clip: [f32; 2],
         y_clip: [f32; 2],
     ) -> usize {
@@ -109,8 +109,8 @@ impl Shapes {
             angles: [0.0, std::f32::consts::TAU],
             x_clip,
             y_clip,
+            _padding: [0.0, 0.0],
             color,
-            _padding: 0.0,
         })
     }
 
@@ -122,7 +122,7 @@ impl Shapes {
         start_angle: f32,
         end_angle: f32,
         thickness: f32,
-        color: [f32; 3],
+        color: [f32; 4],
         x_clip: [f32; 2],
         y_clip: [f32; 2],
     ) -> usize {
@@ -132,8 +132,8 @@ impl Shapes {
             angles: [start_angle, end_angle],
             x_clip,
             y_clip,
+            _padding: [0.0, 0.0],
             color,
-            _padding: 0.0,
         })
     }
 
@@ -144,7 +144,7 @@ impl Shapes {
         radius: f32,
         start_angle: f32,
         end_angle: f32,
-        color: [f32; 3],
+        color: [f32; 4],
         x_clip: [f32; 2],
         y_clip: [f32; 2],
     ) -> usize {
@@ -154,8 +154,8 @@ impl Shapes {
             angles: [start_angle, end_angle],
             x_clip,
             y_clip,
+            _padding: [0.0, 0.0],
             color,
-            _padding: 0.0,
         })
     }
 

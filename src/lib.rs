@@ -163,7 +163,7 @@ impl Renderer {
         &mut self,
         center: [f32; 2],
         radius: f32,
-        color: [f32; 3],
+        color: [f32; 4],
         x_clip: [f32; 2],
         y_clip: [f32; 2],
     ) {
@@ -179,7 +179,7 @@ impl Renderer {
         center: [f32; 2],
         inner_radius: f32,
         outer_radius: f32,
-        color: [f32; 3],
+        color: [f32; 4],
         x_clip: [f32; 2],
         y_clip: [f32; 2],
     ) {
@@ -197,7 +197,7 @@ impl Renderer {
         start_angle: f32,
         end_angle: f32,
         thickness: f32,
-        color: [f32; 3],
+        color: [f32; 4],
         x_clip: [f32; 2],
         y_clip: [f32; 2],
     ) {
@@ -214,7 +214,7 @@ impl Renderer {
         radius: f32,
         start_angle: f32,
         end_angle: f32,
-        color: [f32; 3],
+        color: [f32; 4],
         x_clip: [f32; 2],
         y_clip: [f32; 2],
     ) {

@@ -23,8 +23,8 @@ struct CircleData {
     float2 angles;      // [start_angle, end_angle] in radians
     float2 x_clip;
     float2 y_clip;
-    float3 color;
-    float _padding;
+    float2 _padding;
+    float4 color;
 }
 
 struct SegmentData {
@@ -191,7 +191,7 @@ float4 circle_fragment(uint primitiveIndex, float2 uv): SV_Target {
         discard;
     }
 
-    return float4(circle.color, alpha);
+    return float4(circle.color.rgb, alpha * circle.color.a);
 }
 
 // ============================================================================
