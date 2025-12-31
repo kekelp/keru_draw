@@ -103,33 +103,83 @@ impl State {
     }
 
     fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
+        let width = self.size.width as f32;
+        let height = self.size.height as f32;
+        let clip_x = [0.0, width];
+        let clip_y = [0.0, height];
+
         // Begin frame: prepare text and clear buffers
-        self.renderer.begin_frame(self.size.width as f32, self.size.height as f32);
+        self.renderer.begin_frame(width, height);
 
-        // Draw shapes for this frame
-        self.renderer.draw_rectangle(RectangleData {
-            top_left: [0.0, 0.0],
-            size: [400.0, 400.0],
-            color: [1.0, 0.0, 0.0],
-            corner_radius: 60.0,
-            x_clip: [0.0, 4000.0],
-            y_clip: [30.0, 8000.0],
-        });
+        // Draw various shapes to demonstrate the new shapes API
 
-        self.renderer.draw_ellipse(EllipseData {
-            top_left: [400.0, 400.0],
-            size: [400.0, 400.0],
-            color: [0.0, 1.0, 0.0],
-            _padding: 0.0,
-            x_clip: [0.0, 750.0],
-            y_clip: [50.0, 5000.0],
-        });
+        // Box with rounded corners
+        self.renderer.draw_box(
+            [50.0, 50.0],
+            [150.0, 100.0],
+            15.0,
+            [1.0, 0.3, 0.3],
+            clip_x,
+            clip_y,
+        );
+
+        // Filled circle
+        self.renderer.draw_circle(
+            [300.0, 100.0],
+            50.0,
+            [0.3, 0.3, 1.0],
+            clip_x,
+            clip_y,
+        );
+
+        // Ring (donut)
+        self.renderer.draw_ring(
+            [450.0, 100.0],
+            30.0,
+            50.0,
+            [1.0, 1.0, 0.3],
+            clip_x,
+            clip_y,
+        );
+
+        // Arc
+        self.renderer.draw_arc(
+            [150.0, 250.0],
+            50.0,
+            0.0,
+            std::f32::consts::PI * 1.5,
+            10.0,
+            [1.0, 0.3, 1.0],
+            clip_x,
+            clip_y,
+        );
+
+        // Pie slice
+        self.renderer.draw_pie(
+            [300.0, 250.0],
+            60.0,
+            0.0,
+            std::f32::consts::PI * 0.75,
+            [0.3, 1.0, 1.0],
+            clip_x,
+            clip_y,
+        );
+
+        // Line segment
+        self.renderer.draw_segment(
+            [400.0, 200.0],
+            [500.0, 300.0],
+            8.0,
+            [1.0, 0.5, 0.0],
+            clip_x,
+            clip_y,
+        );
 
         // Draw retained text box
         self.renderer.draw_text_edit(&self.text_edit);
 
         // Draw tiger SVG
-        self.renderer.draw_image(&self.svg_handle, 450.0, 350.0, 200.0, 200.0, 0.5);
+        self.renderer.draw_image(&self.svg_handle, 550.0, 50.0, 200.0, 200.0, 0.5);
 
         let output = self.surface.get_current_texture()?;
         let view = output

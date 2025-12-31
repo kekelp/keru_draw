@@ -1,14 +1,15 @@
-mod rectangle; pub use rectangle::*;
-mod ellipse; pub use ellipse::*;
+pub mod shapes;
+pub use shapes::*;
 
 pub use textslabs::{Text, TextRenderer, TextBoxHandle, TextEditHandle, QuadRanges};
 pub use keru_images::{ImageRenderer, LoadedImage};
 
 pub mod primitive {
-    pub const RECTANGLE: u32 = 0;
-    pub const ELLIPSE: u32 = 1;
-    pub const TEXT: u32 = 2;
-    pub const IMAGE: u32 = 3;
+    pub const BOX: u32 = 0;
+    pub const CIRCLE: u32 = 1;
+    pub const SEGMENT: u32 = 2;
+    pub const TEXT: u32 = 3;
+    pub const IMAGE: u32 = 4;
 }
 
 pub struct Renderer {
@@ -16,8 +17,7 @@ pub struct Renderer {
     queue: wgpu::Queue,
     render_pipeline: wgpu::RenderPipeline,
     instance_buffer: wgpu::Buffer,
-    rectangles: Rectangles,
-    ellipses: Ellipses,
+    pub shapes: Shapes,
     pub text: Text,
     text_renderer: TextRenderer,
     pub image_renderer: ImageRenderer,
@@ -49,8 +49,7 @@ impl Renderer {
             source: wgpu::util::make_spirv(fs_spirv),
         });
 
-        let rectangles = Rectangles::new(&device);
-        let ellipses = Ellipses::new(&device);
+        let shapes = Shapes::new(&device);
 
         let text_renderer = TextRenderer::new(&device, &queue, surface_format);
         let text = Text::new();
@@ -63,8 +62,7 @@ impl Renderer {
                 // The binding indices has to match the order in which the parameter blocks appear in the shader!
                 // If there are issues, compile the shaders with the -reflection-json flag and see the parameterBlock fields.
                 bind_group_layouts: &[
-                    &Ellipses::bind_group_layout(&device),
-                    &Rectangles::bind_group_layout(&device),
+                    &Shapes::bind_group_layout(&device),
                     &text_renderer.bind_group_layout(),
                     svg_renderer.bind_group_layout()
                 ],
@@ -136,8 +134,7 @@ impl Renderer {
             queue,
             render_pipeline,
             instance_buffer,
-            rectangles,
-            ellipses,
+            shapes,
             text,
             text_renderer,
             image_renderer: svg_renderer,
@@ -145,18 +142,101 @@ impl Renderer {
         }
     }
 
-    pub fn draw_rectangle(&mut self, data: RectangleData) {
-        let index = self.rectangles.push(data);
+    // Shape drawing methods
+    pub fn draw_box(
+        &mut self,
+        top_left: [f32; 2],
+        size: [f32; 2],
+        corner_radius: f32,
+        color: [f32; 3],
+        x_clip: [f32; 2],
+        y_clip: [f32; 2],
+    ) {
+        let index = self.shapes.push_box(top_left, size, corner_radius, color, x_clip, y_clip);
         self.instances.push(Instance {
-            p_type: primitive::RECTANGLE,
+            p_type: primitive::BOX,
             p_index: index as u32,
         });
     }
 
-    pub fn draw_ellipse(&mut self, data: EllipseData) {
-        let index = self.ellipses.push(data);
+    pub fn draw_circle(
+        &mut self,
+        center: [f32; 2],
+        radius: f32,
+        color: [f32; 3],
+        x_clip: [f32; 2],
+        y_clip: [f32; 2],
+    ) {
+        let index = self.shapes.push_circle(center, radius, color, x_clip, y_clip);
         self.instances.push(Instance {
-            p_type: primitive::ELLIPSE,
+            p_type: primitive::CIRCLE,
+            p_index: index as u32,
+        });
+    }
+
+    pub fn draw_ring(
+        &mut self,
+        center: [f32; 2],
+        inner_radius: f32,
+        outer_radius: f32,
+        color: [f32; 3],
+        x_clip: [f32; 2],
+        y_clip: [f32; 2],
+    ) {
+        let index = self.shapes.push_ring(center, inner_radius, outer_radius, color, x_clip, y_clip);
+        self.instances.push(Instance {
+            p_type: primitive::CIRCLE,
+            p_index: index as u32,
+        });
+    }
+
+    pub fn draw_arc(
+        &mut self,
+        center: [f32; 2],
+        radius: f32,
+        start_angle: f32,
+        end_angle: f32,
+        thickness: f32,
+        color: [f32; 3],
+        x_clip: [f32; 2],
+        y_clip: [f32; 2],
+    ) {
+        let index = self.shapes.push_arc(center, radius, start_angle, end_angle, thickness, color, x_clip, y_clip);
+        self.instances.push(Instance {
+            p_type: primitive::CIRCLE,
+            p_index: index as u32,
+        });
+    }
+
+    pub fn draw_pie(
+        &mut self,
+        center: [f32; 2],
+        radius: f32,
+        start_angle: f32,
+        end_angle: f32,
+        color: [f32; 3],
+        x_clip: [f32; 2],
+        y_clip: [f32; 2],
+    ) {
+        let index = self.shapes.push_pie(center, radius, start_angle, end_angle, color, x_clip, y_clip);
+        self.instances.push(Instance {
+            p_type: primitive::CIRCLE,
+            p_index: index as u32,
+        });
+    }
+
+    pub fn draw_segment(
+        &mut self,
+        start: [f32; 2],
+        end: [f32; 2],
+        thickness: f32,
+        color: [f32; 3],
+        x_clip: [f32; 2],
+        y_clip: [f32; 2],
+    ) {
+        let index = self.shapes.push_segment(start, end, thickness, color, x_clip, y_clip);
+        self.instances.push(Instance {
+            p_type: primitive::SEGMENT,
             p_index: index as u32,
         });
     }
@@ -222,8 +302,7 @@ impl Renderer {
     }
 
     pub fn clear(&mut self) {
-        self.rectangles.clear();
-        self.ellipses.clear();
+        self.shapes.clear();
         self.image_renderer.clear();
         self.instances.clear();
     }
@@ -259,8 +338,7 @@ impl Renderer {
 
     pub fn render(&mut self, view: &wgpu::TextureView) {
         // Upload resources to GPU
-        self.rectangles.upload(&self.device, &self.queue);
-        self.ellipses.upload(&self.device, &self.queue);
+        self.shapes.upload(&self.device, &self.queue);
         self.text_renderer.load_to_gpu(&self.device, &self.queue);
         self.image_renderer.load_to_gpu(&self.device, &self.queue);
 
@@ -304,10 +382,9 @@ impl Renderer {
             render_pass.set_pipeline(&self.render_pipeline);
             // The binding indices has to match the order in which the parameter blocks appear in the shader!
             // If there are issues, compile the shaders with the -reflection-json flag and see the parameterBlock fields.
-            render_pass.set_bind_group(0, &self.ellipses.bind_group, &[]);
-            render_pass.set_bind_group(1, &self.rectangles.bind_group, &[]);
-            render_pass.set_bind_group(2, &self.text_renderer.bind_group(), &[]);
-            render_pass.set_bind_group(3, self.image_renderer.bind_group(), &[]);
+            render_pass.set_bind_group(0, &self.shapes.bind_group, &[]);
+            render_pass.set_bind_group(1, &self.text_renderer.bind_group(), &[]);
+            render_pass.set_bind_group(2, self.image_renderer.bind_group(), &[]);
             render_pass.set_vertex_buffer(0, self.instance_buffer.slice(..));
 
             render_pass.draw(0..4, 0..self.instances.len() as u32);

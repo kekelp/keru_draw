@@ -1,16 +1,15 @@
 // The order of the imports has to match the binding indices in the Rust code!
 // If there are issues, compile the shaders with the -reflection-json flag and see the parameterBlock fields.
-import quad;
-import ellipse;
-import rectangle;
+import keru_shapes;
 import text;
 import keru_images;
 
 enum PrimitiveType: uint {
-    Rectangle = 0,
-    Ellipse = 1,
-    Text = 2,
-    Image = 3,
+    Box = 0,
+    Circle = 1,
+    Segment = 2,
+    Text = 3,
+    Image = 4,
 }
 
 struct VertexOutput {
@@ -38,11 +37,14 @@ VertexOutput vertexMain(
     // grab the screen resolution from textslabs
     float2 resolution = textslabs.params.resolution;
 
-    if (input.primitiveType == PrimitiveType::Rectangle) {
-        rectangle_vertex(input.primitiveIndex, vertexIndex, resolution, output.position, output.uv);
+    if (input.primitiveType == PrimitiveType::Box) {
+        box_vertex(input.primitiveIndex, vertexIndex, resolution, output.position, output.uv);
     }
-    else if (input.primitiveType == PrimitiveType::Ellipse) {
-        ellipse_vertex(input.primitiveIndex, vertexIndex, resolution, output.position, output.uv);
+    else if (input.primitiveType == PrimitiveType::Circle) {
+        circle_vertex(input.primitiveIndex, vertexIndex, resolution, output.position, output.uv);
+    }
+    else if (input.primitiveType == PrimitiveType::Segment) {
+        segment_vertex(input.primitiveIndex, vertexIndex, resolution, output.position, output.uv);
     }
     else if (input.primitiveType == PrimitiveType::Text) {
         text_vertex(input.primitiveIndex, vertexIndex, resolution, output.position, output.uv);
@@ -57,11 +59,14 @@ VertexOutput vertexMain(
 [shader("fragment")]
 float4 fragmentMain(VertexOutput input): SV_Target {
 
-    if (input.primitiveType == PrimitiveType::Rectangle) {
-        return rectangle_fragment(input.primitiveIndex, input.uv);
+    if (input.primitiveType == PrimitiveType::Box) {
+        return box_fragment(input.primitiveIndex, input.uv);
     }
-    else if (input.primitiveType == PrimitiveType::Ellipse) {
-        return ellipse_fragment(input.primitiveIndex, input.uv);
+    else if (input.primitiveType == PrimitiveType::Circle) {
+        return circle_fragment(input.primitiveIndex, input.uv);
+    }
+    else if (input.primitiveType == PrimitiveType::Segment) {
+        return segment_fragment(input.primitiveIndex, input.uv);
     }
     else if (input.primitiveType == PrimitiveType::Text) {
         return text_fragment(input.primitiveIndex, input.uv);
