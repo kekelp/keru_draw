@@ -74,9 +74,9 @@ impl State {
         let mut renderer = Renderer::new(device, queue, surface_format);
 
         let text_edit = renderer.text.add_text_edit(
-            "Hello from keru_renderer!\nText rendering with clipped quads.".to_owned(),
-            (100.0, 100.0),
-            (300.0, 200.0),
+            "keru_draw shapes showcase!\nBoxes • Circles • Rings • Arcs • Pies • Segments".to_owned(),
+            (500.0, 400.0),
+            (280.0, 150.0),
             0.0,
         );
 
@@ -113,64 +113,252 @@ impl State {
 
         // Draw various shapes to demonstrate the new shapes API
 
-        // Box with rounded corners
-        self.renderer.draw_box(
-            [50.0, 50.0],
-            [150.0, 100.0],
-            15.0,
-            [1.0, 0.3, 0.3],
-            clip_x,
-            clip_y,
-        );
+        // === ROW 1: Boxes with different corner radii ===
+        // Sharp corners
+        // self.renderer.draw_box(
+        //     [20.0, 20.0],
+        //     [80.0, 60.0],
+        //     0.0,
+        //     [1.0, 0.3, 0.3],
+        //     clip_x,
+        //     clip_y,
+        // );
 
-        // Filled circle
-        self.renderer.draw_circle(
-            [300.0, 100.0],
-            50.0,
-            [0.3, 0.3, 1.0],
-            clip_x,
-            clip_y,
-        );
+        // // Small rounded corners
+        // self.renderer.draw_box(
+        //     [120.0, 20.0],
+        //     [80.0, 60.0],
+        //     5.0,
+        //     [1.0, 0.5, 0.3],
+        //     clip_x,
+        //     clip_y,
+        // );
 
-        // Ring (donut)
-        self.renderer.draw_ring(
-            [450.0, 100.0],
-            30.0,
-            50.0,
-            [1.0, 1.0, 0.3],
-            clip_x,
-            clip_y,
-        );
+        // // Medium rounded corners
+        // self.renderer.draw_box(
+        //     [220.0, 20.0],
+        //     [80.0, 60.0],
+        //     15.0,
+        //     [1.0, 0.8, 0.3],
+        //     clip_x,
+        //     clip_y,
+        // );
 
-        // Arc
-        self.renderer.draw_arc(
-            [150.0, 250.0],
-            50.0,
-            0.0,
-            std::f32::consts::PI * 1.5,
-            10.0,
-            [1.0, 0.3, 1.0],
-            clip_x,
-            clip_y,
-        );
+        // // Very rounded (pill shape)
+        // self.renderer.draw_box(
+        //     [320.0, 20.0],
+        //     [80.0, 60.0],
+        //     30.0,
+        //     [0.8, 1.0, 0.3],
+        //     clip_x,
+        //     clip_y,
+        // );
 
-        // Pie slice
-        self.renderer.draw_pie(
-            [300.0, 250.0],
-            60.0,
-            0.0,
-            std::f32::consts::PI * 0.75,
-            [0.3, 1.0, 1.0],
-            clip_x,
-            clip_y,
-        );
+        // === ROW 2: Circles of different sizes ===
+        // self.renderer.draw_circle(
+        //     [50.0, 150.0],
+        //     20.0,
+        //     [0.3, 0.5, 1.0],
+        //     clip_x,
+        //     clip_y,
+        // );
 
-        // Line segment
+        // self.renderer.draw_circle(
+        //     [140.0, 150.0],
+        //     30.0,
+        //     [0.3, 0.7, 1.0],
+        //     clip_x,
+        //     clip_y,
+        // );
+
+        // self.renderer.draw_circle(
+        //     [250.0, 150.0],
+        //     40.0,
+        //     [0.3, 0.9, 1.0],
+        //     clip_x,
+        //     clip_y,
+        // );
+
+        // // === ROW 2 continued: Rings with different thicknesses ===
+        // // Thin ring
+        // self.renderer.draw_ring(
+        //     [360.0, 150.0],
+        //     35.0,
+        //     40.0,
+        //     [1.0, 1.0, 0.3],
+        //     clip_x,
+        //     clip_y,
+        // );
+
+        // // Medium ring
+        // self.renderer.draw_ring(
+        //     [460.0, 150.0],
+        //     30.0,
+        //     45.0,
+        //     [1.0, 0.8, 0.3],
+        //     clip_x,
+        //     clip_y,
+        // );
+
+        // // Thick ring
+        // self.renderer.draw_ring(
+        //     [560.0, 150.0],
+        //     25.0,
+        //     50.0,
+        //     [1.0, 0.6, 0.3],
+        //     clip_x,
+        //     clip_y,
+        // );
+
+        // // === ROW 3: Arcs at different angles ===
+        // // Quarter arc (90 degrees)
+        // self.renderer.draw_arc(
+        //     [60.0, 280.0],
+        //     40.0,
+        //     0.0,
+        //     std::f32::consts::PI * 0.5,
+        //     8.0,
+        //     [1.0, 0.3, 1.0],
+        //     clip_x,
+        //     clip_y,
+        // );
+
+        // // Half arc (180 degrees)
+        // self.renderer.draw_arc(
+        //     [170.0, 280.0],
+        //     40.0,
+        //     0.0,
+        //     std::f32::consts::PI,
+        //     8.0,
+        //     [0.8, 0.3, 1.0],
+        //     clip_x,
+        //     clip_y,
+        // );
+
+        // // Three-quarter arc (270 degrees)
+        // self.renderer.draw_arc(
+        //     [280.0, 280.0],
+        //     40.0,
+        //     0.0,
+        //     std::f32::consts::PI * 1.5,
+        //     8.0,
+        //     [0.6, 0.3, 1.0],
+        //     clip_x,
+        //     clip_y,
+        // );
+
+        // // Rotated arc
+        // self.renderer.draw_arc(
+        //     [390.0, 280.0],
+        //     40.0,
+        //     std::f32::consts::PI * 0.25,
+        //     std::f32::consts::PI * 1.25,
+        //     8.0,
+        //     [0.4, 0.3, 1.0],
+        //     clip_x,
+        //     clip_y,
+        // );
+
+        // // === ROW 4: Pie slices at different angles ===
+        // // Small pie (45 degrees)
+        // self.renderer.draw_pie(
+        //     [60.0, 400.0],
+        //     45.0,
+        //     0.0,
+        //     std::f32::consts::PI * 0.25,
+        //     [0.3, 1.0, 1.0],
+        //     clip_x,
+        //     clip_y,
+        // );
+
+        // // Quarter pie (90 degrees)
+        // self.renderer.draw_pie(
+        //     [170.0, 400.0],
+        //     45.0,
+        //     0.0,
+        //     std::f32::consts::PI * 0.5,
+        //     [0.3, 1.0, 0.8],
+        //     clip_x,
+        //     clip_y,
+        // );
+
+        // // Half pie (180 degrees)
+        // self.renderer.draw_pie(
+        //     [280.0, 400.0],
+        //     45.0,
+        //     0.0,
+        //     std::f32::consts::PI,
+        //     [0.3, 1.0, 0.6],
+        //     clip_x,
+        //     clip_y,
+        // );
+
+        // // Large pie (270 degrees) - rotated
+        // self.renderer.draw_pie(
+        //     [390.0, 400.0],
+        //     45.0,
+        //     std::f32::consts::PI * 0.5,
+        //     std::f32::consts::PI * 2.0,
+        //     [0.3, 1.0, 0.4],
+        //     clip_x,
+        //     clip_y,
+        // );
+
+        // // === ROW 5: Line segments at various angles and thicknesses ===
+        // // Horizontal thin line
         self.renderer.draw_segment(
-            [400.0, 200.0],
-            [500.0, 300.0],
-            8.0,
+            [20.0, 520.0],
+            [100.0, 520.0],
+            3.0,
             [1.0, 0.5, 0.0],
+            clip_x,
+            clip_y,
+        );
+
+        // Diagonal medium line
+        self.renderer.draw_segment(
+            [120.0, 500.0],
+            [200.0, 540.0],
+            6.0,
+            [1.0, 0.6, 0.0],
+            clip_x,
+            clip_y,
+        );
+
+        // Vertical thick line
+        self.renderer.draw_segment(
+            [230.0, 500.0],
+            [230.0, 540.0],
+            10.0,
+            [1.0, 0.7, 0.0],
+            clip_x,
+            clip_y,
+        );
+
+        // Diagonal line (other direction)
+        self.renderer.draw_segment(
+            [260.0, 540.0],
+            [340.0, 500.0],
+            8.0,
+            [1.0, 0.8, 0.0],
+            clip_x,
+            clip_y,
+        );
+
+        // Cross pattern
+        self.renderer.draw_segment(
+            [370.0, 500.0],
+            [430.0, 540.0],
+            5.0,
+            [1.0, 0.9, 0.2],
+            clip_x,
+            clip_y,
+        );
+        self.renderer.draw_segment(
+            [370.0, 540.0],
+            [430.0, 500.0],
+            5.0,
+            [1.0, 0.9, 0.2],
             clip_x,
             clip_y,
         );
@@ -179,7 +367,7 @@ impl State {
         self.renderer.draw_text_edit(&self.text_edit);
 
         // Draw tiger SVG
-        self.renderer.draw_image(&self.svg_handle, 550.0, 50.0, 200.0, 200.0, 0.5);
+        self.renderer.draw_image(&self.svg_handle, 520.0, 150.0, 180.0, 180.0, 0.5);
 
         let output = self.surface.get_current_texture()?;
         let view = output
@@ -199,7 +387,9 @@ impl winit::application::ApplicationHandler for App {
             let window = std::sync::Arc::new(
                 event_loop
                     .create_window(
-                        Window::default_attributes().with_inner_size(PhysicalSize::new(800, 800)),
+                        Window::default_attributes()
+                            .with_inner_size(PhysicalSize::new(800, 600))
+                            .with_title("keru_draw - Shapes Showcase"),
                     )
                     .unwrap(),
             );
