@@ -139,10 +139,10 @@ impl State {
         // Medium rounded corners (border only)
         self.renderer.draw_box(
             [220.0, 20.0],
-            [80.0, 60.0],
-            15.0,
-            3.0,
-            [1.0, 0.8, 0.3, 1.0],
+            [500.0, 500.0],
+            40.0,
+            5.0,
+            [0.001214, 0.401978, 0.152590, 1.0],
             clip_x,
             clip_y,
         );

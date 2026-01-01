@@ -50,7 +50,9 @@ void box_vertex(
     clipped_quad_vertex(box.top_left, box.size, box.x_clip, box.y_clip, vertexIndex, resolution, position, uv);
 }
 
-// SDF for rounded box from Inigo Quilez
+float linear(float a, float b, float x) { return (x-a)/(b-a); }
+float linearstep(float a, float b, float x) { return clamp(linear(a,b,x), 0.0, 1.0); }
+
 float sd_rounded_box(float2 p, float2 size, float r) {
     float2 q = abs(p) - size + r;
     return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - r;
@@ -66,10 +68,10 @@ float4 box_fragment(uint primitiveIndex, float2 uv): SV_Target {
 
     // Handle border-only rendering when border_thickness > 0
     if (box.border_thickness > 0.001) {
-        dist = abs(dist + box.border_thickness) - box.border_thickness;
+        dist = abs(dist + box.border_thickness * 0.5) - box.border_thickness * 0.5;
     }
 
-    float alpha = 1.0 - smoothstep(-1.0, 1.0, dist);
+    float alpha = 1.0 - linearstep(-0.5, 0.5, dist);
 
     if (alpha < 0.001) {
         discard;
@@ -173,7 +175,7 @@ float4 circle_fragment(uint primitiveIndex, float2 uv): SV_Target {
 
     float dist = sd_circle_variant(p, circle);
 
-    float alpha = 1.0 - smoothstep(-1.0, 1.0, dist);
+    float alpha = 1.0 - linearstep(-0.5, 0.5, dist);
 
     if (alpha < 0.001) {
         discard;
@@ -226,7 +228,7 @@ float4 segment_fragment(uint primitiveIndex, float2 uv): SV_Target {
     // Calculate distance to segment
     float dist = sd_segment(p, seg.start, seg.end) - half_thickness;
 
-    float alpha = 1.0 - smoothstep(-1.0, 1.0, dist);
+    float alpha = 1.0 - linearstep(-0.5, 0.5, dist);
 
     if (alpha < 0.001) {
         discard;
