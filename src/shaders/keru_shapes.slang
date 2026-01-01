@@ -1,26 +1,20 @@
-// keru_shapes - Reusable SDF shape rendering module
-// This module provides box, circle, and segment shape rendering functionality
-// that can be imported and used by other shaders.
-
 import quad;
-
-// ============================================================================
-// Data Structures
-// ============================================================================
 
 struct BoxData {
     float2 top_left;
     float2 size;
     float2 x_clip;
     float2 y_clip;
-    float3 color;
     float corner_radius;
+    float border_thickness;
+    float2 pad;
+    float4 color;
 }
 
 struct CircleData {
     float2 center;
-    float2 radii;       // [inner_radius, outer_radius]
-    float2 angles;      // [start_angle, end_angle] in radians
+    float2 radii;
+    float2 angles;
     float2 x_clip;
     float2 y_clip;
     float2 _padding;
@@ -44,10 +38,6 @@ struct ShapesData {
 }
 
 ParameterBlock<ShapesData> shapes;
-
-// ============================================================================
-// Box Shapes
-// ============================================================================
 
 void box_vertex(
     uint instanceIndex,
@@ -74,18 +64,19 @@ float4 box_fragment(uint primitiveIndex, float2 uv): SV_Target {
     float2 half_size = box.size * 0.5;
     float dist = sd_rounded_box(p, half_size, box.corner_radius);
 
+    // Handle border-only rendering when border_thickness > 0
+    if (box.border_thickness > 0.001) {
+        dist = abs(dist + box.border_thickness) - box.border_thickness;
+    }
+
     float alpha = 1.0 - smoothstep(-1.0, 1.0, dist);
 
     if (alpha < 0.001) {
         discard;
     }
 
-    return float4(box.color, alpha);
+    return float4(box.color.rgb, box.color.a * alpha);
 }
-
-// ============================================================================
-// Circle Shapes (circles, rings, arcs, pies)
-// ============================================================================
 
 void circle_vertex(
     uint instanceIndex,
@@ -104,7 +95,6 @@ void circle_vertex(
     clipped_quad_vertex(top_left, size, circle.x_clip, circle.y_clip, vertexIndex, resolution, position, uv);
 }
 
-// Helper function to normalize angle to [0, 2π]
 float normalize_angle(float angle) {
     const float TAU = 6.28318530718;
     float result = fmod(angle, TAU);
@@ -112,7 +102,6 @@ float normalize_angle(float angle) {
     return result;
 }
 
-// Check if angle is within arc range
 bool is_in_arc(float angle, float start, float end) {
     const float TAU = 6.28318530718;
 
@@ -129,7 +118,6 @@ bool is_in_arc(float angle, float start, float end) {
     }
 }
 
-// SDF for circle/ring/arc/pie
 float sd_circle_variant(float2 p, CircleData circle) {
     const float TAU = 6.28318530718;
 
@@ -193,10 +181,6 @@ float4 circle_fragment(uint primitiveIndex, float2 uv): SV_Target {
 
     return float4(circle.color.rgb, alpha * circle.color.a);
 }
-
-// ============================================================================
-// Segment Shapes (line segments)
-// ============================================================================
 
 void segment_vertex(
     uint instanceIndex,

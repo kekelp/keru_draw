@@ -148,11 +148,12 @@ impl Renderer {
         top_left: [f32; 2],
         size: [f32; 2],
         corner_radius: f32,
-        color: [f32; 3],
+        border_thickness: f32,
+        color: [f32; 4],
         x_clip: [f32; 2],
         y_clip: [f32; 2],
     ) {
-        let index = self.shapes.push_box(top_left, size, corner_radius, color, x_clip, y_clip);
+        let index = self.shapes.push_box(top_left, size, corner_radius, border_thickness, color, x_clip, y_clip);
         self.instances.push(Instance {
             p_type: primitive::BOX,
             p_index: index as u32,

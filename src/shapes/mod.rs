@@ -59,7 +59,8 @@ impl Shapes {
         top_left: [f32; 2],
         size: [f32; 2],
         corner_radius: f32,
-        color: [f32; 3],
+        border_thickness: f32,
+        color: [f32; 4],
         x_clip: [f32; 2],
         y_clip: [f32; 2],
     ) -> usize {
@@ -68,8 +69,10 @@ impl Shapes {
             size,
             x_clip,
             y_clip,
-            color,
             corner_radius,
+            border_thickness,
+            pad: [0.0, 0.0],
+            color,
         })
     }
 

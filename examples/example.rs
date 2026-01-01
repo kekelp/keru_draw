@@ -114,42 +114,46 @@ impl State {
         // Draw various shapes to demonstrate the new shapes API
 
         // === ROW 1: Boxes with different corner radii ===
-        // Sharp corners
+        // Sharp corners (filled)
         self.renderer.draw_box(
             [20.0, 20.0],
             [80.0, 60.0],
             0.0,
-            [1.0, 0.3, 0.3],
+            0.0,
+            [1.0, 0.3, 0.3, 1.0],
             clip_x,
             clip_y,
         );
 
-        // Small rounded corners
+        // Small rounded corners (filled)
         self.renderer.draw_box(
             [120.0, 20.0],
             [80.0, 60.0],
             5.0,
-            [1.0, 0.5, 0.3],
+            0.0,
+            [1.0, 0.5, 0.3, 1.0],
             clip_x,
             clip_y,
         );
 
-        // Medium rounded corners
+        // Medium rounded corners (border only)
         self.renderer.draw_box(
             [220.0, 20.0],
             [80.0, 60.0],
             15.0,
-            [1.0, 0.8, 0.3],
+            3.0,
+            [1.0, 0.8, 0.3, 1.0],
             clip_x,
             clip_y,
         );
 
-        // Very rounded (pill shape)
+        // Very rounded (pill shape, border only)
         self.renderer.draw_box(
             [320.0, 20.0],
             [80.0, 60.0],
             30.0,
-            [0.8, 1.0, 0.3],
+            5.0,
+            [0.8, 1.0, 0.3, 1.0],
             clip_x,
             clip_y,
         );
@@ -389,10 +393,11 @@ impl winit::application::ApplicationHandler for App {
                     .create_window(
                         Window::default_attributes()
                             .with_inner_size(PhysicalSize::new(800, 600))
-                            .with_title("keru_draw - Shapes Showcase"),
+                            .with_title("example"),
                     )
                     .unwrap(),
             );
+            window.set_ime_allowed(true);
             let state = pollster::block_on(State::new(window.clone()));
             self.window = Some(window);
             self.state = Some(state);

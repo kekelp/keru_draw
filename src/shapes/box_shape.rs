@@ -5,8 +5,10 @@ pub struct BoxData {
     pub size: [f32; 2],
     pub x_clip: [f32; 2],
     pub y_clip: [f32; 2],
-    pub color: [f32; 3],
     pub corner_radius: f32,
+    pub border_thickness: f32,
+    pub pad: [f32; 2],
+    pub color: [f32; 4],
 }
 
 pub struct Boxes {
