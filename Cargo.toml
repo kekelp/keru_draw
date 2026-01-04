@@ -9,6 +9,10 @@ bytemuck = { version = "1.14", features = ["derive"] }
 textslabs = { path = "../textslabs" }
 keru_images = { path = "../keru_images" }
 
+[build-dependencies]
+textslabs = { path = "../textslabs" }
+keru_images = { path = "../keru_images" }
+
 [dev-dependencies]
 winit = "0.30"
 pollster = "0.4"
