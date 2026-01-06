@@ -1,4 +1,7 @@
+use std::borrow::Cow;
+
 use keru_draw::*;
+use textslabs::{ColorBrush, parley::FontStack, TextStyle2, parley::FontFamily};
 use winit::{
     dpi::PhysicalSize, event::WindowEvent, event_loop::EventLoop, window::Window,
 };
@@ -55,7 +58,7 @@ impl State {
         let surface_format = surface_caps
             .formats
             .iter()
-            .find(|f| f.is_srgb())
+            .find(|f| ! f.is_srgb())
             .copied()
             .unwrap_or(surface_caps.formats[0]);
 
@@ -73,12 +76,21 @@ impl State {
 
         let mut renderer = Renderer::new(device, queue, surface_format);
 
+        let style = renderer.text.add_style(
+            TextStyle2 {
+                brush: ColorBrush([0, 0, 0, 255]),
+                font_stack: FontStack::Single(FontFamily::Named(Cow::Borrowed("sans-serif"))),
+                ..Default::default()
+            },
+            None,
+        );
         let text_edit = renderer.text.add_text_edit(
-            "Bottom text o algo".to_owned(),
+            "Bottom text o algo 🌈".to_owned(),
             (500.0, 400.0),
             (280.0, 150.0),
             0.0,
         );
+        renderer.text.get_text_edit_mut(&text_edit).set_style(&style);
 
         let svg_handle = renderer.image_renderer.load_svg(TIGER_SVG, 200, 200).unwrap();
 
