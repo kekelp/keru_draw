@@ -81,6 +81,49 @@ float4 srgb_to_linear(float4 srgba) {
     return float4(srgb_to_linear(srgba.rgb), srgba.a);
 }
 
+// Oklab color space functions for perceptually uniform gradients
+float3 linear_srgb_to_oklab(float3 c) {
+    float l = 0.4122214708 * c.r + 0.5363325363 * c.g + 0.0514459929 * c.b;
+    float m = 0.2119034982 * c.r + 0.6806995451 * c.g + 0.1073969566 * c.b;
+    float s = 0.0883024619 * c.r + 0.2817188376 * c.g + 0.6299787005 * c.b;
+
+    float l_ = pow(l, 1.0/3.0);
+    float m_ = pow(m, 1.0/3.0);
+    float s_ = pow(s, 1.0/3.0);
+
+    return float3(
+        0.2104542553 * l_ + 0.7936177850 * m_ - 0.0040720468 * s_,
+        1.9779984951 * l_ - 2.4285922050 * m_ + 0.4505937099 * s_,
+        0.0259040371 * l_ + 0.7827717662 * m_ - 0.8086757660 * s_
+    );
+}
+
+float3 oklab_to_linear_srgb(float3 c) {
+    float l_ = c.x + 0.3963377774 * c.y + 0.2158037573 * c.z;
+    float m_ = c.x - 0.1055613458 * c.y - 0.0638541728 * c.z;
+    float s_ = c.x - 0.0894841775 * c.y - 1.2914855480 * c.z;
+
+    float l = l_ * l_ * l_;
+    float m = m_ * m_ * m_;
+    float s = s_ * s_ * s_;
+
+    return float3(
+        +4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s,
+        -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s,
+        -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s
+    );
+}
+
+// Interpolate between two colors in Oklab space
+float4 gradient_oklab(float4 color_start, float4 color_end, float t) {
+    float3 lab_start = linear_srgb_to_oklab(color_start.rgb);
+    float3 lab_end = linear_srgb_to_oklab(color_end.rgb);
+    float3 lab_mixed = lerp(lab_start, lab_end, t);
+    float3 rgb = oklab_to_linear_srgb(lab_mixed);
+    float alpha = lerp(color_start.a, color_end.a, t);
+    return float4(rgb, alpha);
+}
+
 float sd_rounded_box(float2 p, float2 size, float r) {
     float2 q = abs(p) - size + r;
     return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - r;
@@ -112,7 +155,7 @@ float4 box_fragment(uint primitiveIndex, float2 uv, bool surface_is_srgb): SV_Ta
         float2 pos = (uv - 0.5) * box.size;
         float t = dot(pos, box.gradient_direction) / length(box.size * 0.5);
         t = t * 0.5 + 0.5; // Remap from [-1,1] to [0,1]
-        color = lerp(box.color_start, box.color_end, clamp(t, 0.0, 1.0));
+        color = gradient_oklab(box.color_start, box.color_end, clamp(t, 0.0, 1.0));
     } else {
         // Solid color (gradient_type == 0)
         color = box.color_start;
@@ -232,11 +275,11 @@ float4 circle_fragment(uint primitiveIndex, float2 uv, bool srgb): SV_Target {
         // Linear gradient
         float t = dot(p, circle.gradient_direction) / outer_radius;
         t = t * 0.5 + 0.5; // Remap from [-1,1] to [0,1]
-        color = lerp(circle.color_start, circle.color_end, clamp(t, 0.0, 1.0));
+        color = gradient_oklab(circle.color_start, circle.color_end, clamp(t, 0.0, 1.0));
     } else if (circle.gradient_type == 2) {
         // Radial gradient
         float t = length(p) / outer_radius;
-        color = lerp(circle.color_start, circle.color_end, clamp(t, 0.0, 1.0));
+        color = gradient_oklab(circle.color_start, circle.color_end, clamp(t, 0.0, 1.0));
     } else {
         // Solid color (gradient_type == 0)
         color = circle.color_start;
@@ -305,7 +348,7 @@ float4 segment_fragment(uint primitiveIndex, float2 uv, bool srgb): SV_Target {
         if (seg_len > 0.001) {
             t = dot(p - seg.start, seg_vec) / (seg_len * seg_len);
         }
-        color = lerp(seg.color_start, seg.color_end, clamp(t, 0.0, 1.0));
+        color = gradient_oklab(seg.color_start, seg.color_end, clamp(t, 0.0, 1.0));
     } else {
         // Solid color (gradient_type == 0)
         color = seg.color_start;
