@@ -5,9 +5,11 @@ pub struct SegmentData {
     pub end: [f32; 2],
     pub x_clip: [f32; 2],
     pub y_clip: [f32; 2],
-    pub color: [f32; 4],
+    pub color_start: [f32; 4],
+    pub color_end: [f32; 4],
     pub thickness_dash: [f32; 4],
-    // pub dash: f32,
+    pub gradient_type: u32, // 0=solid, 1=linear along segment
+    pub pad: [f32; 3],
 }
 
 pub struct Segments {

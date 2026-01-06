@@ -6,8 +6,11 @@ pub struct CircleData {
     pub angles: [f32; 2],     // [start_angle, end_angle] in radians
     pub x_clip: [f32; 2],
     pub y_clip: [f32; 2],
-    pub _padding: [f32; 2],
-    pub color: [f32; 4],
+    pub gradient_direction: [f32; 2],
+    pub color_start: [f32; 4],
+    pub color_end: [f32; 4],
+    pub gradient_type: u32, // 0=solid, 1=linear, 2=radial
+    pub _padding: [f32; 3],
 }
 
 pub struct Circles {

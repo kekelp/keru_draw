@@ -120,35 +120,34 @@ impl State {
         let clip_x = [0.0, width];
         let clip_y = [0.0, height];
 
-        // Begin frame: prepare text and clear buffers
         self.renderer.begin_frame(width, height);
 
-        // Draw various shapes to demonstrate the new shapes API
-
-        // === ROW 1: Boxes with different corner radii ===
-        // Sharp corners (filled)
-        self.renderer.draw_box(
+        // Gradient box - horizontal
+        self.renderer.draw_box_gradient(
             [20.0, 20.0],
             [80.0, 60.0],
             0.0,
             0.0,
             [1.0, 0.3, 0.3, 1.0],
+            [0.3, 0.3, 1.0, 1.0],
+            0.0, // horizontal gradient
             clip_x,
             clip_y,
         );
 
-        // Small rounded corners (filled)
-        self.renderer.draw_box(
+        // Gradient box - diagonal
+        self.renderer.draw_box_gradient(
             [120.0, 20.0],
             [80.0, 60.0],
             5.0,
             0.0,
             [1.0, 0.5, 0.3, 1.0],
+            [0.3, 1.0, 0.5, 1.0],
+            std::f32::consts::PI * 0.25, // 45 degrees
             clip_x,
             clip_y,
         );
 
-        // Medium rounded corners (border only)
         self.renderer.draw_box(
             [220.0, 20.0],
             [500.0, 500.0],
@@ -159,7 +158,6 @@ impl State {
             clip_y,
         );
 
-        // Very rounded (pill shape, border only)
         self.renderer.draw_box(
             [320.0, 20.0],
             [80.0, 60.0],
@@ -170,19 +168,26 @@ impl State {
             clip_y,
         );
 
-        // === ROW 2: Circles of different sizes ===
-        self.renderer.draw_circle(
+        // Radial gradient circle
+        self.renderer.draw_circle_gradient(
             [50.0, 150.0],
             20.0,
-            [0.3, 0.5, 1.0, 1.0],
+            [1.0, 1.0, 0.3, 1.0],
+            [1.0, 0.3, 0.3, 1.0],
+            2, // radial
+            0.0,
             clip_x,
             clip_y,
         );
 
-        self.renderer.draw_circle(
+        // Linear gradient circle
+        self.renderer.draw_circle_gradient(
             [140.0, 150.0],
             30.0,
             [0.3, 0.7, 1.0, 1.0],
+            [1.0, 0.3, 0.7, 1.0],
+            1, // linear
+            std::f32::consts::PI * 0.5, // vertical
             clip_x,
             clip_y,
         );
@@ -195,8 +200,6 @@ impl State {
             clip_y,
         );
 
-        // === ROW 2 continued: Rings with different thicknesses ===
-        // Thin ring
         self.renderer.draw_ring(
             [360.0, 150.0],
             35.0,
@@ -206,7 +209,6 @@ impl State {
             clip_y,
         );
 
-        // Medium ring
         self.renderer.draw_ring(
             [460.0, 150.0],
             30.0,
@@ -216,7 +218,6 @@ impl State {
             clip_y,
         );
 
-        // Thick ring
         self.renderer.draw_ring(
             [560.0, 150.0],
             25.0,
@@ -226,8 +227,6 @@ impl State {
             clip_y,
         );
 
-        // === ROW 3: Arcs at different angles ===
-        // Quarter arc (90 degrees)
         self.renderer.draw_arc(
             [60.0, 280.0],
             40.0,
@@ -239,7 +238,6 @@ impl State {
             clip_y,
         );
 
-        // Half arc (180 degrees)
         self.renderer.draw_arc(
             [170.0, 280.0],
             40.0,
@@ -251,7 +249,6 @@ impl State {
             clip_y,
         );
 
-        // Three-quarter arc (270 degrees)
         self.renderer.draw_arc(
             [280.0, 280.0],
             40.0,
@@ -263,7 +260,6 @@ impl State {
             clip_y,
         );
 
-        // Rotated arc
         self.renderer.draw_arc(
             [390.0, 280.0],
             40.0,
@@ -275,8 +271,6 @@ impl State {
             clip_y,
         );
 
-        // === ROW 4: Pie slices at different angles ===
-        // Small pie (45 degrees)
         self.renderer.draw_pie(
             [60.0, 400.0],
             45.0,
@@ -287,7 +281,6 @@ impl State {
             clip_y,
         );
 
-        // Quarter pie (90 degrees)
         self.renderer.draw_pie(
             [170.0, 400.0],
             45.0,
@@ -298,7 +291,6 @@ impl State {
             clip_y,
         );
 
-        // Half pie (180 degrees)
         self.renderer.draw_pie(
             [280.0, 400.0],
             45.0,
@@ -309,7 +301,6 @@ impl State {
             clip_y,
         );
 
-        // Large pie (270 degrees) - rotated
         self.renderer.draw_pie(
             [390.0, 400.0],
             45.0,
@@ -320,8 +311,6 @@ impl State {
             clip_y,
         );
 
-        // // === ROW 5: Line segments at various angles and thicknesses ===
-        // // Horizontal thin line
         self.renderer.draw_segment(
             [20.0, 520.0],
             [100.0, 520.0],
@@ -331,7 +320,6 @@ impl State {
             clip_y,
         );
 
-        // Diagonal medium line
         self.renderer.draw_segment(
             [120.0, 500.0],
             [200.0, 540.0],
@@ -341,7 +329,6 @@ impl State {
             clip_y,
         );
 
-        // Vertical thick line
         self.renderer.draw_segment(
             [230.0, 500.0],
             [230.0, 540.0],
@@ -351,7 +338,6 @@ impl State {
             clip_y,
         );
 
-        // Diagonal line (other direction)
         self.renderer.draw_segment(
             [260.0, 540.0],
             [340.0, 500.0],
@@ -361,28 +347,28 @@ impl State {
             clip_y,
         );
 
-        // Cross pattern
-        self.renderer.draw_segment(
+        // Gradient segments forming an X
+        self.renderer.draw_segment_gradient(
             [370.0, 500.0],
             [430.0, 540.0],
             5.0,
             [1.0, 0.9, 0.2, 0.7],
+            [0.2, 0.9, 1.0, 0.7],
             clip_x,
             clip_y,
         );
-        self.renderer.draw_segment(
+        self.renderer.draw_segment_gradient(
             [370.0, 540.0],
             [430.0, 500.0],
             5.0,
-            [1.0, 0.9, 0.2, 0.8],
+            [1.0, 0.2, 0.9, 0.8],
+            [0.2, 1.0, 0.9, 0.8],
             clip_x,
             clip_y,
         );
 
-        // Draw retained text box
         self.renderer.draw_text_edit(&self.text_edit);
 
-        // Draw tiger SVG
         self.renderer.draw_image(&self.svg_handle, 520.0, 150.0, 180.0, 180.0, 0.5);
 
         let output = self.surface.get_current_texture()?;

@@ -71,8 +71,39 @@ impl Shapes {
             y_clip,
             corner_radius,
             border_thickness,
-            pad: [0.0, 0.0],
-            color,
+            gradient_direction: [1.0, 0.0],
+            color_start: color,
+            color_end: color,
+            gradient_type: 0, // solid
+            pad: [0.0, 0.0, 0.0],
+        })
+    }
+
+    pub fn push_box_gradient(
+        &mut self,
+        top_left: [f32; 2],
+        size: [f32; 2],
+        corner_radius: f32,
+        border_thickness: f32,
+        color_start: [f32; 4],
+        color_end: [f32; 4],
+        gradient_angle: f32, // angle in radians
+        x_clip: [f32; 2],
+        y_clip: [f32; 2],
+    ) -> usize {
+        let gradient_direction = [gradient_angle.cos(), gradient_angle.sin()];
+        self.boxes.push(BoxData {
+            top_left,
+            size,
+            x_clip,
+            y_clip,
+            corner_radius,
+            border_thickness,
+            gradient_direction,
+            color_start,
+            color_end,
+            gradient_type: 1, // linear
+            pad: [0.0, 0.0, 0.0],
         })
     }
 
@@ -91,8 +122,37 @@ impl Shapes {
             angles: [0.0, std::f32::consts::TAU],
             x_clip,
             y_clip,
-            _padding: [0.0, 0.0],
-            color,
+            gradient_direction: [1.0, 0.0],
+            color_start: color,
+            color_end: color,
+            gradient_type: 0, // solid
+            _padding: [0.0, 0.0, 0.0],
+        })
+    }
+
+    pub fn push_circle_gradient(
+        &mut self,
+        center: [f32; 2],
+        radius: f32,
+        color_start: [f32; 4],
+        color_end: [f32; 4],
+        gradient_type: u32, // 1=linear, 2=radial
+        gradient_angle: f32, // angle in radians (for linear)
+        x_clip: [f32; 2],
+        y_clip: [f32; 2],
+    ) -> usize {
+        let gradient_direction = [gradient_angle.cos(), gradient_angle.sin()];
+        self.circles.push(CircleData {
+            center,
+            radii: [0.0, radius],
+            angles: [0.0, std::f32::consts::TAU],
+            x_clip,
+            y_clip,
+            gradient_direction,
+            color_start,
+            color_end,
+            gradient_type,
+            _padding: [0.0, 0.0, 0.0],
         })
     }
 
@@ -112,8 +172,38 @@ impl Shapes {
             angles: [0.0, std::f32::consts::TAU],
             x_clip,
             y_clip,
-            _padding: [0.0, 0.0],
-            color,
+            gradient_direction: [1.0, 0.0],
+            color_start: color,
+            color_end: color,
+            gradient_type: 0, // solid
+            _padding: [0.0, 0.0, 0.0],
+        })
+    }
+
+    pub fn push_ring_gradient(
+        &mut self,
+        center: [f32; 2],
+        inner_radius: f32,
+        outer_radius: f32,
+        color_start: [f32; 4],
+        color_end: [f32; 4],
+        gradient_type: u32, // 1=linear, 2=radial
+        gradient_angle: f32, // angle in radians (for linear)
+        x_clip: [f32; 2],
+        y_clip: [f32; 2],
+    ) -> usize {
+        let gradient_direction = [gradient_angle.cos(), gradient_angle.sin()];
+        self.circles.push(CircleData {
+            center,
+            radii: [inner_radius, outer_radius],
+            angles: [0.0, std::f32::consts::TAU],
+            x_clip,
+            y_clip,
+            gradient_direction,
+            color_start,
+            color_end,
+            gradient_type,
+            _padding: [0.0, 0.0, 0.0],
         })
     }
 
@@ -135,8 +225,11 @@ impl Shapes {
             angles: [start_angle, end_angle],
             x_clip,
             y_clip,
-            _padding: [0.0, 0.0],
-            color,
+            gradient_direction: [1.0, 0.0],
+            color_start: color,
+            color_end: color,
+            gradient_type: 0, // solid
+            _padding: [0.0, 0.0, 0.0],
         })
     }
 
@@ -157,8 +250,11 @@ impl Shapes {
             angles: [start_angle, end_angle],
             x_clip,
             y_clip,
-            _padding: [0.0, 0.0],
-            color,
+            gradient_direction: [1.0, 0.0],
+            color_start: color,
+            color_end: color,
+            gradient_type: 0, // solid
+            _padding: [0.0, 0.0, 0.0],
         })
     }
 
@@ -177,8 +273,34 @@ impl Shapes {
             end,
             x_clip,
             y_clip,
-            color,
+            color_start: color,
+            color_end: color,
             thickness_dash: [thickness, 1.0, 1.0, 1.0],
+            gradient_type: 0, // solid
+            pad: [0.0, 0.0, 0.0],
+        })
+    }
+
+    pub fn push_segment_gradient(
+        &mut self,
+        start: [f32; 2],
+        end: [f32; 2],
+        thickness: f32,
+        color_start: [f32; 4],
+        color_end: [f32; 4],
+        x_clip: [f32; 2],
+        y_clip: [f32; 2],
+    ) -> usize {
+        self.segments.push(SegmentData {
+            start,
+            end,
+            x_clip,
+            y_clip,
+            color_start,
+            color_end,
+            thickness_dash: [thickness, 1.0, 1.0, 1.0],
+            gradient_type: 1, // linear along segment
+            pad: [0.0, 0.0, 0.0],
         })
     }
 

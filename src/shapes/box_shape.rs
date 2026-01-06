@@ -7,8 +7,11 @@ pub struct BoxData {
     pub y_clip: [f32; 2],
     pub corner_radius: f32,
     pub border_thickness: f32,
-    pub pad: [f32; 2],
-    pub color: [f32; 4],
+    pub gradient_direction: [f32; 2],
+    pub color_start: [f32; 4],
+    pub color_end: [f32; 4],
+    pub gradient_type: u32, // 0=solid, 1=linear
+    pub pad: [f32; 3],
 }
 
 pub struct Boxes {

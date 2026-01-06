@@ -160,6 +160,25 @@ impl Renderer {
         });
     }
 
+    pub fn draw_box_gradient(
+        &mut self,
+        top_left: [f32; 2],
+        size: [f32; 2],
+        corner_radius: f32,
+        border_thickness: f32,
+        color_start: [f32; 4],
+        color_end: [f32; 4],
+        gradient_angle: f32,
+        x_clip: [f32; 2],
+        y_clip: [f32; 2],
+    ) {
+        let index = self.shapes.push_box_gradient(top_left, size, corner_radius, border_thickness, color_start, color_end, gradient_angle, x_clip, y_clip);
+        self.instances.push(Instance {
+            p_type: primitive::BOX,
+            p_index: index as u32,
+        });
+    }
+
     pub fn draw_circle(
         &mut self,
         center: [f32; 2],
@@ -169,6 +188,24 @@ impl Renderer {
         y_clip: [f32; 2],
     ) {
         let index = self.shapes.push_circle(center, radius, color, x_clip, y_clip);
+        self.instances.push(Instance {
+            p_type: primitive::CIRCLE,
+            p_index: index as u32,
+        });
+    }
+
+    pub fn draw_circle_gradient(
+        &mut self,
+        center: [f32; 2],
+        radius: f32,
+        color_start: [f32; 4],
+        color_end: [f32; 4],
+        gradient_type: u32, // 1=linear, 2=radial
+        gradient_angle: f32,
+        x_clip: [f32; 2],
+        y_clip: [f32; 2],
+    ) {
+        let index = self.shapes.push_circle_gradient(center, radius, color_start, color_end, gradient_type, gradient_angle, x_clip, y_clip);
         self.instances.push(Instance {
             p_type: primitive::CIRCLE,
             p_index: index as u32,
@@ -185,6 +222,25 @@ impl Renderer {
         y_clip: [f32; 2],
     ) {
         let index = self.shapes.push_ring(center, inner_radius, outer_radius, color, x_clip, y_clip);
+        self.instances.push(Instance {
+            p_type: primitive::CIRCLE,
+            p_index: index as u32,
+        });
+    }
+
+    pub fn draw_ring_gradient(
+        &mut self,
+        center: [f32; 2],
+        inner_radius: f32,
+        outer_radius: f32,
+        color_start: [f32; 4],
+        color_end: [f32; 4],
+        gradient_type: u32, // 1=linear, 2=radial
+        gradient_angle: f32,
+        x_clip: [f32; 2],
+        y_clip: [f32; 2],
+    ) {
+        let index = self.shapes.push_ring_gradient(center, inner_radius, outer_radius, color_start, color_end, gradient_type, gradient_angle, x_clip, y_clip);
         self.instances.push(Instance {
             p_type: primitive::CIRCLE,
             p_index: index as u32,
@@ -236,6 +292,23 @@ impl Renderer {
         y_clip: [f32; 2],
     ) {
         let index = self.shapes.push_segment(start, end, thickness, color, x_clip, y_clip);
+        self.instances.push(Instance {
+            p_type: primitive::SEGMENT,
+            p_index: index as u32,
+        });
+    }
+
+    pub fn draw_segment_gradient(
+        &mut self,
+        start: [f32; 2],
+        end: [f32; 2],
+        thickness: f32,
+        color_start: [f32; 4],
+        color_end: [f32; 4],
+        x_clip: [f32; 2],
+        y_clip: [f32; 2],
+    ) {
+        let index = self.shapes.push_segment_gradient(start, end, thickness, color_start, color_end, x_clip, y_clip);
         self.instances.push(Instance {
             p_type: primitive::SEGMENT,
             p_index: index as u32,

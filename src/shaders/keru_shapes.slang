@@ -7,8 +7,13 @@ struct BoxData {
     float2 y_clip;
     float corner_radius;
     float border_thickness;
-    float2 pad;
-    float4 color;
+    float2 gradient_direction; // normalized direction for linear gradient
+    float4 color_start;
+    float4 color_end;
+    uint gradient_type; // 0=solid, 1=linear
+    float pad0;
+    float pad1;
+    float pad2;
 }
 
 struct CircleData {
@@ -17,8 +22,13 @@ struct CircleData {
     float2 angles;
     float2 x_clip;
     float2 y_clip;
-    float2 _padding;
-    float4 color;
+    float2 gradient_direction; // normalized direction for linear gradient
+    float4 color_start;
+    float4 color_end;
+    uint gradient_type; // 0=solid, 1=linear, 2=radial
+    float _pad0;
+    float _pad1;
+    float _pad2;
 }
 
 struct SegmentData {
@@ -26,9 +36,13 @@ struct SegmentData {
     float2 end;
     float2 x_clip;
     float2 y_clip;
-    float4 color;
+    float4 color_start;
+    float4 color_end;
     float4 thickness_dash;
-    // float dash;
+    uint gradient_type; // 0=solid, 1=linear along segment
+    float pad0;
+    float pad1;
+    float pad2;
 }
 
 struct ShapesData {
@@ -91,10 +105,23 @@ float4 box_fragment(uint primitiveIndex, float2 uv, bool surface_is_srgb): SV_Ta
         discard;
     }
 
-    if (surface_is_srgb) {
-        return srgb_to_linear(float4(box.color.rgb, box.color.a * alpha));
+    // Calculate gradient color
+    float4 color;
+    if (box.gradient_type == 1) {
+        // Linear gradient
+        float2 pos = (uv - 0.5) * box.size;
+        float t = dot(pos, box.gradient_direction) / length(box.size * 0.5);
+        t = t * 0.5 + 0.5; // Remap from [-1,1] to [0,1]
+        color = lerp(box.color_start, box.color_end, clamp(t, 0.0, 1.0));
     } else {
-        return float4(box.color.rgb, box.color.a * alpha);
+        // Solid color (gradient_type == 0)
+        color = box.color_start;
+    }
+
+    if (surface_is_srgb) {
+        return srgb_to_linear(float4(color.rgb, color.a * alpha));
+    } else {
+        return float4(color.rgb, color.a * alpha);
     }
 }
 
@@ -199,7 +226,23 @@ float4 circle_fragment(uint primitiveIndex, float2 uv, bool srgb): SV_Target {
         discard;
     }
 
-    return float4(circle.color.rgb, alpha * circle.color.a);
+    // Calculate gradient color
+    float4 color;
+    if (circle.gradient_type == 1) {
+        // Linear gradient
+        float t = dot(p, circle.gradient_direction) / outer_radius;
+        t = t * 0.5 + 0.5; // Remap from [-1,1] to [0,1]
+        color = lerp(circle.color_start, circle.color_end, clamp(t, 0.0, 1.0));
+    } else if (circle.gradient_type == 2) {
+        // Radial gradient
+        float t = length(p) / outer_radius;
+        color = lerp(circle.color_start, circle.color_end, clamp(t, 0.0, 1.0));
+    } else {
+        // Solid color (gradient_type == 0)
+        color = circle.color_start;
+    }
+
+    return float4(color.rgb, alpha * color.a);
 }
 
 void segment_vertex(
@@ -252,5 +295,21 @@ float4 segment_fragment(uint primitiveIndex, float2 uv, bool srgb): SV_Target {
         discard;
     }
 
-    return float4(seg.color.rgb, alpha * seg.color.a);
+    // Calculate gradient color
+    float4 color;
+    if (seg.gradient_type == 1) {
+        // Linear gradient along segment
+        float2 seg_vec = seg.end - seg.start;
+        float seg_len = length(seg_vec);
+        float t = 0.5;
+        if (seg_len > 0.001) {
+            t = dot(p - seg.start, seg_vec) / (seg_len * seg_len);
+        }
+        color = lerp(seg.color_start, seg.color_end, clamp(t, 0.0, 1.0));
+    } else {
+        // Solid color (gradient_type == 0)
+        color = seg.color_start;
+    }
+
+    return float4(color.rgb, alpha * color.a);
 }
