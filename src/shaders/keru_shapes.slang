@@ -53,12 +53,26 @@ void box_vertex(
 float linear(float a, float b, float x) { return (x-a)/(b-a); }
 float linearstep(float a, float b, float x) { return clamp(linear(a,b,x), 0.0, 1.0); }
 
+float srgb_to_linear(float x) {
+    return x <= 0.04045 ? x / 12.92 : pow((x + 0.055) / 1.055, 2.4);
+}
+float3 srgb_to_linear(float3 srgb) {
+    return float3(
+        srgb_to_linear(srgb.r),
+        srgb_to_linear(srgb.g),
+        srgb_to_linear(srgb.b)
+    );
+}
+float4 srgb_to_linear(float4 srgba) {
+    return float4(srgb_to_linear(srgba.rgb), srgba.a);
+}
+
 float sd_rounded_box(float2 p, float2 size, float r) {
     float2 q = abs(p) - size + r;
     return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - r;
 }
 
-float4 box_fragment(uint primitiveIndex, float2 uv): SV_Target {
+float4 box_fragment(uint primitiveIndex, float2 uv, bool surface_is_srgb): SV_Target {
     var box: BoxData = shapes.boxes[primitiveIndex];
 
     float2 p = (uv - 0.5) * box.size;
@@ -77,7 +91,11 @@ float4 box_fragment(uint primitiveIndex, float2 uv): SV_Target {
         discard;
     }
 
-    return float4(box.color.rgb, box.color.a * alpha);
+    if (surface_is_srgb) {
+        return srgb_to_linear(float4(box.color.rgb, box.color.a * alpha));
+    } else {
+        return float4(box.color.rgb, box.color.a * alpha);
+    }
 }
 
 void circle_vertex(
@@ -163,7 +181,7 @@ float sd_circle_variant(float2 p, CircleData circle) {
     }
 }
 
-float4 circle_fragment(uint primitiveIndex, float2 uv): SV_Target {
+float4 circle_fragment(uint primitiveIndex, float2 uv, bool srgb): SV_Target {
     var circle: CircleData = shapes.circles[primitiveIndex];
 
     // Convert UV to position relative to circle center
@@ -212,7 +230,7 @@ float sd_segment(float2 p, float2 a, float2 b) {
     return length(pa - ba * h);
 }
 
-float4 segment_fragment(uint primitiveIndex, float2 uv): SV_Target {
+float4 segment_fragment(uint primitiveIndex, float2 uv, bool srgb): SV_Target {
     var seg: SegmentData = shapes.segments[primitiveIndex];
 
     // Convert UV to world position

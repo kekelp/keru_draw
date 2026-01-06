@@ -59,14 +59,17 @@ VertexOutput vertexMain(
 [shader("fragment")]
 float4 fragmentMain(VertexOutput input): SV_Target {
 
+    // grab the srgb flag from textslabs
+    bool srgb = textslabs.params.srgb != 0;
+
     if (input.primitiveType == PrimitiveType::Box) {
-        return box_fragment(input.primitiveIndex, input.uv);
+        return box_fragment(input.primitiveIndex, input.uv, srgb);
     }
     else if (input.primitiveType == PrimitiveType::Circle) {
-        return circle_fragment(input.primitiveIndex, input.uv);
+        return circle_fragment(input.primitiveIndex, input.uv, srgb);
     }
     else if (input.primitiveType == PrimitiveType::Segment) {
-        return segment_fragment(input.primitiveIndex, input.uv);
+        return segment_fragment(input.primitiveIndex, input.uv, srgb);
     }
     else if (input.primitiveType == PrimitiveType::Text) {
         return text_fragment(input.primitiveIndex, input.uv);
