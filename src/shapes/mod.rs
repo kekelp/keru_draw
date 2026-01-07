@@ -309,7 +309,6 @@ impl Shapes {
         let circles_changed = self.circles.upload(device, queue);
         let segments_changed = self.segments.upload(device, queue);
 
-    
         if boxes_changed || circles_changed || segments_changed {
             let bind_group_layout = Self::bind_group_layout(device);
             self.bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {

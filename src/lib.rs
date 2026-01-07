@@ -142,7 +142,11 @@ impl Renderer {
             mapped_at_creation: false,
         });
 
-        let gpu_profiler = GpuProfiler::new(&device, GpuProfilerSettings::default()).unwrap();
+        let gpu_profiler = GpuProfiler::new(&device, GpuProfilerSettings {
+            enable_timer_queries: false,
+            enable_debug_groups: false,
+            max_num_pending_frames: 3,
+        }).unwrap();
 
         Self {
             device,
@@ -332,20 +336,12 @@ impl Renderer {
     }
 
     pub fn draw_text_box(&mut self, text_box: &TextBoxHandle) {
-        self.text_renderer.prepare_text_box_layout(self.text.get_text_box_mut(text_box));
+        let text_box_ref = self.text.get_text_box_mut(text_box);
+        self.text_renderer.prepare_text_box_layout(text_box_ref);
 
-        let QuadRanges { glyph_range, decorations_range } = self.text.get_text_box(text_box).quad_range();
+        let QuadRanges { glyph_range, .. } = self.text.get_text_box(text_box).quad_range();
 
-        // Push glyph quads - directly reference quad indices from textslabs
         for q in (glyph_range.0)..(glyph_range.1) {
-            self.instances.push(Instance {
-                p_type: primitive::TEXT,
-                p_index: q as u32,
-            });
-        }
-
-        // Push decoration quads
-        for q in (decorations_range.0)..(decorations_range.1) {
             self.instances.push(Instance {
                 p_type: primitive::TEXT,
                 p_index: q as u32,
@@ -356,18 +352,9 @@ impl Renderer {
     pub fn draw_text_edit(&mut self, text_edit: &TextEditHandle) {
         self.text_renderer.prepare_text_edit_layout(self.text.get_text_edit_mut(text_edit));
 
-        let QuadRanges { glyph_range, decorations_range } = self.text.get_text_edit(text_edit).quad_range();
+        let QuadRanges { glyph_range, .. } = self.text.get_text_edit(text_edit).quad_range();
 
-        // Push glyph quads - directly reference quad indices from textslabs
         for q in (glyph_range.0)..(glyph_range.1) {
-            self.instances.push(Instance {
-                p_type: primitive::TEXT,
-                p_index: q as u32,
-            });
-        }
-
-        // Push decoration quads
-        for q in (decorations_range.0)..(decorations_range.1) {
             self.instances.push(Instance {
                 p_type: primitive::TEXT,
                 p_index: q as u32,
@@ -399,6 +386,7 @@ impl Renderer {
         self.shapes.clear();
         self.image_renderer.clear();
         self.instances.clear();
+        self.text_renderer.clear();
     }
 
     pub fn begin_frame(&mut self, width: f32, height: f32) {
@@ -425,8 +413,16 @@ impl Renderer {
     }
 
     pub fn render(&mut self, view: &wgpu::TextureView) {
+        let decorations_range = self.text.prepare_decorations(&mut self.text_renderer);
+        for q in (decorations_range.0)..(decorations_range.1) {
+            self.instances.push(Instance {
+                p_type: primitive::TEXT,
+                p_index: q as u32,
+            });
+        }
+
         // Upload resources to GPU
-        // todo skip all this if it's not needed
+        // todo skip all this if it's not needed. even doe the functions do their own skipping 
         self.shapes.upload(&self.device, &self.queue);
         self.text_renderer.load_to_gpu(&self.device, &self.queue);
         self.image_renderer.load_to_gpu(&self.device, &self.queue);
@@ -456,10 +452,10 @@ impl Renderer {
                     resolve_target: None,
                     ops: wgpu::Operations {
                         load: wgpu::LoadOp::Clear(wgpu::Color {
-                            r: 1.0,
-                            g: 1.0,
-                            b: 1.0,
-                            a: 1.0,
+                            r: 0.5,
+                            g: 0.5,
+                            b: 0.5,
+                            a: 0.5,
                         }),
                         store: wgpu::StoreOp::Store,
                     },
