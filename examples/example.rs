@@ -2,6 +2,7 @@ use std::borrow::Cow;
 
 use keru_draw::*;
 use textslabs::{ColorBrush, parley::FontStack, TextStyle2, parley::FontFamily};
+use wgpu::Queue;
 use winit::{
     dpi::PhysicalSize, event::WindowEvent, event_loop::EventLoop, window::Window,
 };
@@ -20,6 +21,7 @@ struct State {
     renderer: Renderer,
     text_edit: TextEditHandle,
     svg_handle: LoadedImage,
+    queue: Queue,
 }
 
 impl State {
@@ -45,7 +47,7 @@ impl State {
         let (device, queue) = adapter
             .request_device(&wgpu::DeviceDescriptor {
                 label: None,
-                required_features: wgpu::Features::empty(),
+                required_features: wgpu::Features::TIMESTAMP_QUERY | wgpu::Features::TIMESTAMP_QUERY_INSIDE_ENCODERS,
                 required_limits: wgpu::Limits::default(),
                 memory_hints: wgpu::MemoryHints::default(),
                 experimental_features: wgpu::ExperimentalFeatures::disabled(),
@@ -74,7 +76,7 @@ impl State {
         };
         surface.configure(&device, &config);
 
-        let mut renderer = Renderer::new(device, queue, surface_format);
+        let mut renderer = Renderer::new(device, queue.clone(), surface_format);
 
         let style = renderer.text.add_style(
             TextStyle2 {
@@ -101,6 +103,7 @@ impl State {
             renderer,
             text_edit,
             svg_handle,
+            queue,
         }
     }
 

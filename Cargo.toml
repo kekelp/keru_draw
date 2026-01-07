@@ -8,6 +8,7 @@ wgpu = { version = "27", features = ["spirv"] }
 bytemuck = { version = "1.14", features = ["derive"] }
 textslabs = { path = "../textslabs" }
 keru_images = { path = "../keru_images" }
+wgpu-profiler = "0.25.0"
 
 [build-dependencies]
 textslabs = { path = "../textslabs" }

@@ -1,4 +1,6 @@
 pub mod shapes;
+use std::time::Duration;
+
 pub use shapes::*;
 
 pub use textslabs;
@@ -11,6 +13,7 @@ pub use textslabs::{
 // Re-export font properties from parley
 pub use textslabs::parley::{FontWeight, FontStyle, LineHeight, FontStack};
 pub use keru_images::{ImageRenderer, LoadedImage};
+use wgpu_profiler::{GpuProfiler, GpuProfilerSettings};
 
 pub mod primitive {
     pub const BOX: u32 = 0;
@@ -30,6 +33,7 @@ pub struct Renderer {
     text_renderer: TextRenderer,
     pub image_renderer: ImageRenderer,
     instances: Vec<Instance>,
+    pub gpu_profiler: GpuProfiler,
 }
 
 #[repr(C)]
@@ -138,6 +142,8 @@ impl Renderer {
             mapped_at_creation: false,
         });
 
+        let gpu_profiler = GpuProfiler::new(&device, GpuProfilerSettings::default()).unwrap();
+
         Self {
             device,
             queue,
@@ -148,6 +154,7 @@ impl Renderer {
             text_renderer,
             image_renderer: svg_renderer,
             instances: Vec::new(),
+            gpu_profiler,
         }
     }
 
@@ -439,6 +446,8 @@ impl Renderer {
                 label: Some("Render Encoder"),
             });
 
+        let query = self.gpu_profiler.begin_query("Render", &mut encoder);
+
         {
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("Render Pass"),
@@ -472,7 +481,25 @@ impl Renderer {
             render_pass.draw(0..4, 0..self.instances.len() as u32);
         }
 
+        self.gpu_profiler.end_query(&mut encoder, query);
+        self.gpu_profiler.resolve_queries(&mut encoder);
+
         self.queue.submit(std::iter::once(encoder.finish()));
+
+        self.gpu_profiler.end_frame().unwrap();
+
+        // Process any finished frames - this may return None for several frames
+        // until the GPU has actually completed the timestamp queries
+        if let Some(profiling_data) = self.gpu_profiler.process_finished_frame(self.queue.get_timestamp_period()) {
+            for p in profiling_data {
+                if let Some(time) = p.time {
+                    let dur = Duration::from_secs_f64(time.end - time.start);
+                    println!("Gpu time ({}): {:?} s", p.label, dur);
+                }
+            }
+        }
+
+
     }
 }
 
