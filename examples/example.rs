@@ -410,7 +410,7 @@ impl winit::application::ApplicationHandler for App {
     ) {
         if let (Some(window), Some(state)) = (&self.window, &mut self.state) {
             // Register window with text system
-            state.renderer.text_mut().handle_event(&event, window);
+            state.renderer.text.handle_event(&event, window);
 
             match event {
                 WindowEvent::CloseRequested => event_loop.exit(),

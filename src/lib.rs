@@ -1,7 +1,15 @@
 pub mod shapes;
 pub use shapes::*;
 
-pub use textslabs::{Text, TextRenderer, TextBoxHandle, TextEditHandle, QuadRanges};
+pub use textslabs;
+
+pub use textslabs::{
+    Text, TextRenderer, TextBoxHandle, TextEditHandle, QuadRanges,
+    TextStyle2, StyleHandle, ColorBrush, with_clipboard, BoundingBox,
+    parley,
+};
+// Re-export font properties from parley
+pub use textslabs::parley::{FontWeight, FontStyle, LineHeight, FontStack};
 pub use keru_images::{ImageRenderer, LoadedImage};
 
 pub mod primitive {
@@ -124,7 +132,8 @@ impl Renderer {
 
         let instance_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Instance Buffer"),
-            size: 1024 * std::mem::size_of::<Instance>() as u64,
+            // todo: make growable
+            size: 16 * 1024 * std::mem::size_of::<Instance>() as u64,
             usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
@@ -316,6 +325,8 @@ impl Renderer {
     }
 
     pub fn draw_text_box(&mut self, text_box: &TextBoxHandle) {
+        self.text_renderer.prepare_text_box_layout(self.text.get_text_box_mut(text_box));
+
         let QuadRanges { glyph_range, decorations_range } = self.text.get_text_box(text_box).quad_range();
 
         // Push glyph quads - directly reference quad indices from textslabs
@@ -336,6 +347,8 @@ impl Renderer {
     }
 
     pub fn draw_text_edit(&mut self, text_edit: &TextEditHandle) {
+        self.text_renderer.prepare_text_edit_layout(self.text.get_text_edit_mut(text_edit));
+
         let QuadRanges { glyph_range, decorations_range } = self.text.get_text_edit(text_edit).quad_range();
 
         // Push glyph quads - directly reference quad indices from textslabs
@@ -386,16 +399,10 @@ impl Renderer {
         self.text_renderer.update_resolution(width, height);
         // Update SVG renderer resolution
         self.image_renderer.update_resolution(width, height);
-        // Prepare text layouts (must be done before drawing text)
-        // Note: This requires at least one window event to have been processed
-        self.text.prepare_all(&mut self.text_renderer);
         // Clear all buffers
         self.clear();
     }
 
-    pub fn text_mut(&mut self) -> &mut Text {
-        &mut self.text
-    }
 
     pub fn text_renderer_mut(&mut self) -> &mut TextRenderer {
         &mut self.text_renderer
@@ -412,6 +419,7 @@ impl Renderer {
 
     pub fn render(&mut self, view: &wgpu::TextureView) {
         // Upload resources to GPU
+        // todo skip all this if it's not needed
         self.shapes.upload(&self.device, &self.queue);
         self.text_renderer.load_to_gpu(&self.device, &self.queue);
         self.image_renderer.load_to_gpu(&self.device, &self.queue);
@@ -465,5 +473,22 @@ impl Renderer {
         }
 
         self.queue.submit(std::iter::once(encoder.finish()));
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn imported_textslabs_shader_matches() {
+        let imported_shader = include_str!("shaders/textslabs.slang");
+        let original_shader = textslabs::TextRenderer::composable_shader_source();
+        assert!(imported_shader == original_shader);
+    }
+
+    #[test]
+    fn imported_image_shader_matches() {
+        let imported_shader = include_str!("shaders/keru_images.slang");
+        let original_shader = keru_images::ImageRenderer::composable_shader_source();
+        assert!(imported_shader == original_shader);
     }
 }
