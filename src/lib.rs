@@ -420,6 +420,7 @@ impl Renderer {
     }
 
     pub fn render(&mut self, view: &wgpu::TextureView) {
+        // Prepare text decorations
         let decorations_range = self.text.prepare_decorations(&mut self.text_renderer);
         for q in (decorations_range.0)..(decorations_range.1) {
             self.instances.push(Instance {
@@ -429,7 +430,6 @@ impl Renderer {
         }
 
         // Upload resources to GPU
-        // todo skip all this if it's not needed. even doe the functions do their own skipping 
         self.shapes.load_to_gpu(&self.device, &self.queue);
         self.text_renderer.load_to_gpu(&self.device, &self.queue);
         self.image_renderer.load_to_gpu(&self.device, &self.queue);
