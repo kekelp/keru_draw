@@ -419,8 +419,8 @@ impl Renderer {
         &self.device
     }
 
-    pub fn render(&mut self, view: &wgpu::TextureView) {
-        // Prepare text decorations
+    /// Render into a render pass.
+    pub fn render(&mut self, render_pass: &mut wgpu::RenderPass) {
         let decorations_range = self.text.prepare_decorations(&mut self.text_renderer);
         for q in (decorations_range.0)..(decorations_range.1) {
             self.instances.push(Instance {
@@ -443,27 +443,40 @@ impl Renderer {
             );
         }
 
-        let mut encoder = self
-            .device
-            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                label: Some("Render Encoder"),
-            });
+        render_pass.set_pipeline(&self.render_pipeline);
+        // The binding indices has to match the order in which the parameter blocks appear in the shader!
+        // If there are issues, compile the shaders with the -reflection-json flag and see the parameterBlock fields.
+        render_pass.set_bind_group(0, &self.shapes.bind_group, &[]);
+        render_pass.set_bind_group(1, &self.text_renderer.bind_group(), &[]);
+        render_pass.set_bind_group(2, self.image_renderer.bind_group(), &[]);
+        render_pass.set_vertex_buffer(0, self.instance_buffer.slice(..));
+
+        render_pass.draw(0..4, 0..self.instances.len() as u32);
+    }
+
+    /// Convenience function that creates a render pass, renders into it, and presents to the screen.
+    /// 
+    /// Panics if the current surface texture can't be obtained from `surface`.  
+    pub fn autorender(&mut self, surface: &wgpu::Surface, background_color: wgpu::Color) {
+        let output = surface.get_current_texture().unwrap();
+        let view = output
+            .texture
+            .create_view(&wgpu::TextureViewDescriptor::default());
+
+        let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+            label: Some("keru_draw autorender render encoder"),
+        });
 
         let query = self.gpu_profiler.begin_query("Render", &mut encoder);
 
         {
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: Some("Render Pass"),
+                label: Some("keru_draw autorender render pass"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view,
+                    view: &view,
                     resolve_target: None,
                     ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(wgpu::Color {
-                            r: 0.5,
-                            g: 0.5,
-                            b: 0.5,
-                            a: 0.5,
-                        }),
+                        load: wgpu::LoadOp::Clear(background_color),
                         store: wgpu::StoreOp::Store,
                     },
                     depth_slice: None,
@@ -473,15 +486,7 @@ impl Renderer {
                 timestamp_writes: None,
             });
 
-            render_pass.set_pipeline(&self.render_pipeline);
-            // The binding indices has to match the order in which the parameter blocks appear in the shader!
-            // If there are issues, compile the shaders with the -reflection-json flag and see the parameterBlock fields.
-            render_pass.set_bind_group(0, &self.shapes.bind_group, &[]);
-            render_pass.set_bind_group(1, &self.text_renderer.bind_group(), &[]);
-            render_pass.set_bind_group(2, self.image_renderer.bind_group(), &[]);
-            render_pass.set_vertex_buffer(0, self.instance_buffer.slice(..));
-
-            render_pass.draw(0..4, 0..self.instances.len() as u32);
+            self.render(&mut render_pass);
         }
 
         self.gpu_profiler.end_query(&mut encoder, query);
@@ -490,7 +495,6 @@ impl Renderer {
         self.queue.submit(std::iter::once(encoder.finish()));
 
         self.gpu_profiler.end_frame().unwrap();
-
 
         if let Some(profiling_data) = self.gpu_profiler.process_finished_frame(self.queue.get_timestamp_period()) {
             for p in profiling_data {
@@ -501,7 +505,7 @@ impl Renderer {
             }
         }
 
-
+        output.present();
     }
 }
 
