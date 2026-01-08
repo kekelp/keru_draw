@@ -1,7 +1,9 @@
 pub mod shapes;
+pub use shapes::*;
+
+pub mod gpu_vec;
 use std::time::Duration;
 
-pub use shapes::*;
 
 pub use textslabs;
 

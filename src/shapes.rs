@@ -1,41 +1,71 @@
-mod box_shape;
-mod circle;
-mod segment;
+#[repr(C)]
+#[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
+pub struct Box {
+    pub top_left: [f32; 2],
+    pub size: [f32; 2],
+    pub x_clip: [f32; 2],
+    pub y_clip: [f32; 2],
+    pub corner_radius: f32,
+    pub border_thickness: f32,
+    pub gradient_direction: [f32; 2],
+    pub color_start: [f32; 4],
+    pub color_end: [f32; 4],
+    pub gradient_type: u32, // 0=solid, 1=linear
+    pub pad: [f32; 3],
+}
 
-pub use box_shape::{BoxData, Boxes};
-pub use circle::{CircleData, Circles};
-pub use segment::{SegmentData, Segments};
+#[repr(C)]
+#[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
+pub struct Circle {
+    pub center: [f32; 2],
+    pub radii: [f32; 2],      // [inner_radius, outer_radius]
+    pub angles: [f32; 2],     // [start_angle, end_angle] in radians
+    pub x_clip: [f32; 2],
+    pub y_clip: [f32; 2],
+    pub gradient_direction: [f32; 2],
+    pub color_start: [f32; 4],
+    pub color_end: [f32; 4],
+    pub gradient_type: u32, // 0=solid, 1=linear, 2=radial
+    pub _padding: [f32; 3],
+}
+
+#[repr(C)]
+#[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
+pub struct Segment {
+    pub start: [f32; 2],
+    pub end: [f32; 2],
+    pub x_clip: [f32; 2],
+    pub y_clip: [f32; 2],
+    pub color_start: [f32; 4],
+    pub color_end: [f32; 4],
+    pub thickness_dash: [f32; 4],
+    pub gradient_type: u32, // 0=solid, 1=linear along segment
+    pub pad: [f32; 3],
+}
+
+use crate::gpu_vec::GpuVec;
 
 pub struct Shapes {
-    boxes: Boxes,
-    circles: Circles,
-    segments: Segments,
+    boxes: GpuVec<Box>,
+    circles: GpuVec<Circle>,
+    segments: GpuVec<Segment>,
     pub bind_group: wgpu::BindGroup,
 }
 
 impl Shapes {
     pub fn new(device: &wgpu::Device) -> Self {
-        let boxes = Boxes::new(device);
-        let circles = Circles::new(device);
-        let segments = Segments::new(device);
+        let boxes = GpuVec::new(device, 64, "Box Buffer");
+        let circles = GpuVec::new(device, 64, "Circle Buffer");
+        let segments = GpuVec::new(device, 64, "Segment Buffer");
 
         let bind_group_layout = Self::bind_group_layout(device);
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("Shapes Bind Group"),
             layout: &bind_group_layout,
             entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: boxes.buffer.as_entire_binding(),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 1,
-                    resource: circles.buffer.as_entire_binding(),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 2,
-                    resource: segments.buffer.as_entire_binding(),
-                },
+                boxes.bind_group_entry(0),
+                circles.bind_group_entry(1),
+                segments.bind_group_entry(2),
             ],
         });
 
@@ -64,7 +94,8 @@ impl Shapes {
         x_clip: [f32; 2],
         y_clip: [f32; 2],
     ) -> usize {
-        self.boxes.push(BoxData {
+        let index = self.boxes.len();
+        self.boxes.push(Box {
             top_left,
             size,
             x_clip,
@@ -76,7 +107,8 @@ impl Shapes {
             color_end: color,
             gradient_type: 0, // solid
             pad: [0.0, 0.0, 0.0],
-        })
+        });
+        index
     }
 
     pub fn push_box_gradient(
@@ -92,7 +124,8 @@ impl Shapes {
         y_clip: [f32; 2],
     ) -> usize {
         let gradient_direction = [gradient_angle.cos(), gradient_angle.sin()];
-        self.boxes.push(BoxData {
+        let index = self.boxes.len();
+        self.boxes.push(Box {
             top_left,
             size,
             x_clip,
@@ -104,7 +137,8 @@ impl Shapes {
             color_end,
             gradient_type: 1, // linear
             pad: [0.0, 0.0, 0.0],
-        })
+        });
+        index
     }
 
 
@@ -116,7 +150,8 @@ impl Shapes {
         x_clip: [f32; 2],
         y_clip: [f32; 2],
     ) -> usize {
-        self.circles.push(CircleData {
+        let index = self.circles.len();
+        self.circles.push(Circle {
             center,
             radii: [0.0, radius],
             angles: [0.0, std::f32::consts::TAU],
@@ -127,7 +162,8 @@ impl Shapes {
             color_end: color,
             gradient_type: 0, // solid
             _padding: [0.0, 0.0, 0.0],
-        })
+        });
+        index
     }
 
     pub fn push_circle_gradient(
@@ -142,7 +178,8 @@ impl Shapes {
         y_clip: [f32; 2],
     ) -> usize {
         let gradient_direction = [gradient_angle.cos(), gradient_angle.sin()];
-        self.circles.push(CircleData {
+        let index = self.circles.len();
+        self.circles.push(Circle {
             center,
             radii: [0.0, radius],
             angles: [0.0, std::f32::consts::TAU],
@@ -153,7 +190,8 @@ impl Shapes {
             color_end,
             gradient_type,
             _padding: [0.0, 0.0, 0.0],
-        })
+        });
+        index
     }
 
 
@@ -166,7 +204,8 @@ impl Shapes {
         x_clip: [f32; 2],
         y_clip: [f32; 2],
     ) -> usize {
-        self.circles.push(CircleData {
+        let index = self.circles.len();
+        self.circles.push(Circle {
             center,
             radii: [inner_radius, outer_radius],
             angles: [0.0, std::f32::consts::TAU],
@@ -177,7 +216,8 @@ impl Shapes {
             color_end: color,
             gradient_type: 0, // solid
             _padding: [0.0, 0.0, 0.0],
-        })
+        });
+        index
     }
 
     pub fn push_ring_gradient(
@@ -193,7 +233,8 @@ impl Shapes {
         y_clip: [f32; 2],
     ) -> usize {
         let gradient_direction = [gradient_angle.cos(), gradient_angle.sin()];
-        self.circles.push(CircleData {
+        let index = self.circles.len();
+        self.circles.push(Circle {
             center,
             radii: [inner_radius, outer_radius],
             angles: [0.0, std::f32::consts::TAU],
@@ -204,7 +245,8 @@ impl Shapes {
             color_end,
             gradient_type,
             _padding: [0.0, 0.0, 0.0],
-        })
+        });
+        index
     }
 
 
@@ -219,7 +261,8 @@ impl Shapes {
         x_clip: [f32; 2],
         y_clip: [f32; 2],
     ) -> usize {
-        self.circles.push(CircleData {
+        let index = self.circles.len();
+        self.circles.push(Circle {
             center,
             radii: [radius - thickness * 0.5, radius + thickness * 0.5],
             angles: [start_angle, end_angle],
@@ -230,7 +273,8 @@ impl Shapes {
             color_end: color,
             gradient_type: 0, // solid
             _padding: [0.0, 0.0, 0.0],
-        })
+        });
+        index
     }
 
 
@@ -244,7 +288,8 @@ impl Shapes {
         x_clip: [f32; 2],
         y_clip: [f32; 2],
     ) -> usize {
-        self.circles.push(CircleData {
+        let index = self.circles.len();
+        self.circles.push(Circle {
             center,
             radii: [0.0, radius],
             angles: [start_angle, end_angle],
@@ -255,7 +300,8 @@ impl Shapes {
             color_end: color,
             gradient_type: 0, // solid
             _padding: [0.0, 0.0, 0.0],
-        })
+        });
+        index
     }
 
 
@@ -268,7 +314,8 @@ impl Shapes {
         x_clip: [f32; 2],
         y_clip: [f32; 2],
     ) -> usize {
-        self.segments.push(SegmentData {
+        let index = self.segments.len();
+        self.segments.push(Segment {
             start,
             end,
             x_clip,
@@ -278,7 +325,8 @@ impl Shapes {
             thickness_dash: [thickness, 1.0, 1.0, 1.0],
             gradient_type: 0, // solid
             pad: [0.0, 0.0, 0.0],
-        })
+        });
+        index
     }
 
     pub fn push_segment_gradient(
@@ -291,7 +339,8 @@ impl Shapes {
         x_clip: [f32; 2],
         y_clip: [f32; 2],
     ) -> usize {
-        self.segments.push(SegmentData {
+        let index = self.segments.len();
+        self.segments.push(Segment {
             start,
             end,
             x_clip,
@@ -301,13 +350,14 @@ impl Shapes {
             thickness_dash: [thickness, 1.0, 1.0, 1.0],
             gradient_type: 1, // linear along segment
             pad: [0.0, 0.0, 0.0],
-        })
+        });
+        index
     }
 
     pub fn load_to_gpu(&mut self, device: &wgpu::Device, queue: &wgpu::Queue) {
-        let boxes_changed = self.boxes.upload(device, queue);
-        let circles_changed = self.circles.upload(device, queue);
-        let segments_changed = self.segments.upload(device, queue);
+        let boxes_changed = self.boxes.load_to_gpu(device, queue);
+        let circles_changed = self.circles.load_to_gpu(device, queue);
+        let segments_changed = self.segments.load_to_gpu(device, queue);
 
         if boxes_changed || circles_changed || segments_changed {
             let bind_group_layout = Self::bind_group_layout(device);
@@ -315,18 +365,9 @@ impl Shapes {
                 label: Some("Shapes Bind Group"),
                 layout: &bind_group_layout,
                 entries: &[
-                    wgpu::BindGroupEntry {
-                        binding: 0,
-                        resource: self.boxes.buffer.as_entire_binding(),
-                    },
-                    wgpu::BindGroupEntry {
-                        binding: 1,
-                        resource: self.circles.buffer.as_entire_binding(),
-                    },
-                    wgpu::BindGroupEntry {
-                        binding: 2,
-                        resource: self.segments.buffer.as_entire_binding(),
-                    },
+                    self.boxes.bind_group_entry(0),
+                    self.circles.bind_group_entry(1),
+                    self.segments.bind_group_entry(2),
                 ],
             });
         }
@@ -336,39 +377,9 @@ impl Shapes {
         device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: Some("Shapes Bind Group Layout"),
             entries: &[
-            
-                wgpu::BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Storage { read_only: true },
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
-                    },
-                    count: None,
-                },
-            
-                wgpu::BindGroupLayoutEntry {
-                    binding: 1,
-                    visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Storage { read_only: true },
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
-                    },
-                    count: None,
-                },
-            
-                wgpu::BindGroupLayoutEntry {
-                    binding: 2,
-                    visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Storage { read_only: true },
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
-                    },
-                    count: None,
-                },
+                GpuVec::<Box>::bind_group_layout_entry(0),
+                GpuVec::<Circle>::bind_group_layout_entry(1),
+                GpuVec::<Segment>::bind_group_layout_entry(2),
             ],
         })
     }
