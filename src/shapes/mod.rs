@@ -304,7 +304,7 @@ impl Shapes {
         })
     }
 
-    pub fn upload(&mut self, device: &wgpu::Device, queue: &wgpu::Queue) {
+    pub fn load_to_gpu(&mut self, device: &wgpu::Device, queue: &wgpu::Queue) {
         let boxes_changed = self.boxes.upload(device, queue);
         let circles_changed = self.circles.upload(device, queue);
         let segments_changed = self.segments.upload(device, queue);
@@ -331,19 +331,6 @@ impl Shapes {
             });
         }
     }
-
-    pub fn boxes_len(&self) -> usize {
-        self.boxes.len()
-    }
-
-    pub fn circles_len(&self) -> usize {
-        self.circles.len()
-    }
-
-    pub fn segments_len(&self) -> usize {
-        self.segments.len()
-    }
-
 
     pub fn bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
         device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {

@@ -2,7 +2,6 @@ use std::borrow::Cow;
 
 use keru_draw::*;
 use textslabs::{ColorBrush, parley::FontStack, TextStyle2, parley::FontFamily};
-use wgpu::Queue;
 use winit::{
     dpi::PhysicalSize, event::WindowEvent, event_loop::EventLoop, window::Window,
 };
@@ -21,7 +20,6 @@ struct State {
     renderer: Renderer,
     text_edit: TextEditHandle,
     svg_handle: LoadedImage,
-    queue: Queue,
 }
 
 impl State {
@@ -103,7 +101,6 @@ impl State {
             renderer,
             text_edit,
             svg_handle,
-            queue,
         }
     }
 

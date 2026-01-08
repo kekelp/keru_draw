@@ -49,6 +49,11 @@ impl Renderer {
         queue: wgpu::Queue,
         surface_format: wgpu::TextureFormat,
     ) -> Self {
+        #[cfg(debug_assertions)] {
+            assert_imported_image_shader_matches();
+            assert_imported_textslabs_shader_matches();
+        }
+
         let vs_spirv = include_bytes!("../slangc_output/shader.vert.spv");
         let vs_module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("Vertex Shader"),
@@ -423,7 +428,7 @@ impl Renderer {
 
         // Upload resources to GPU
         // todo skip all this if it's not needed. even doe the functions do their own skipping 
-        self.shapes.upload(&self.device, &self.queue);
+        self.shapes.load_to_gpu(&self.device, &self.queue);
         self.text_renderer.load_to_gpu(&self.device, &self.queue);
         self.image_renderer.load_to_gpu(&self.device, &self.queue);
 
@@ -484,8 +489,7 @@ impl Renderer {
 
         self.gpu_profiler.end_frame().unwrap();
 
-        // Process any finished frames - this may return None for several frames
-        // until the GPU has actually completed the timestamp queries
+
         if let Some(profiling_data) = self.gpu_profiler.process_finished_frame(self.queue.get_timestamp_period()) {
             for p in profiling_data {
                 if let Some(time) = p.time {
@@ -499,19 +503,24 @@ impl Renderer {
     }
 }
 
+fn assert_imported_textslabs_shader_matches() {
+    let imported_shader = include_str!("shaders/textslabs.slang");
+    let original_shader = textslabs::TextRenderer::composable_shader_source();
+    assert!(imported_shader == original_shader);
+}
+
+fn assert_imported_image_shader_matches() {
+    let imported_shader = include_str!("shaders/keru_images.slang");
+    let original_shader = keru_images::ImageRenderer::composable_shader_source();
+    assert!(imported_shader == original_shader);
+}
+
 #[cfg(test)]
 mod tests {
+    use crate::*;
     #[test]
-    fn imported_textslabs_shader_matches() {
-        let imported_shader = include_str!("shaders/textslabs.slang");
-        let original_shader = textslabs::TextRenderer::composable_shader_source();
-        assert!(imported_shader == original_shader);
-    }
-
-    #[test]
-    fn imported_image_shader_matches() {
-        let imported_shader = include_str!("shaders/keru_images.slang");
-        let original_shader = keru_images::ImageRenderer::composable_shader_source();
-        assert!(imported_shader == original_shader);
+    fn test_imported_shaders() {
+        assert_imported_textslabs_shader_matches();
+        assert_imported_image_shader_matches();
     }
 }
