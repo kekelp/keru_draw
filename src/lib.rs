@@ -2,6 +2,7 @@ pub mod shapes;
 pub use shapes::*;
 
 pub mod gpu_vec;
+use gpu_vec::GpuVec;
 use std::time::Duration;
 
 
@@ -29,12 +30,11 @@ pub struct Renderer {
     device: wgpu::Device,
     queue: wgpu::Queue,
     render_pipeline: wgpu::RenderPipeline,
-    instance_buffer: wgpu::Buffer,
-    pub shapes: Shapes,
+    pub image_renderer: ImageRenderer,
     pub text: Text,
     text_renderer: TextRenderer,
-    pub image_renderer: ImageRenderer,
-    instances: Vec<Instance>,
+    shapes: Shapes,
+    instances: GpuVec<Instance>,
     pub gpu_profiler: GpuProfiler,
 }
 
@@ -141,13 +141,12 @@ impl Renderer {
             cache: None,
         });
 
-        let instance_buffer = device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some("Instance Buffer"),
-            // todo: make growable
-            size: 16 * 1024 * std::mem::size_of::<Instance>() as u64,
-            usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
-            mapped_at_creation: false,
-        });
+        let instances = GpuVec::with_usage(
+            &device,
+            256,
+            "keru_draw instances",
+            wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+        );
 
         let gpu_profiler = GpuProfiler::new(&device, GpuProfilerSettings {
             enable_timer_queries: false,
@@ -159,12 +158,11 @@ impl Renderer {
             device,
             queue,
             render_pipeline,
-            instance_buffer,
             shapes,
             text,
             text_renderer,
             image_renderer: svg_renderer,
-            instances: Vec::new(),
+            instances,
             gpu_profiler,
         }
     }
@@ -433,15 +431,7 @@ impl Renderer {
         self.shapes.load_to_gpu(&self.device, &self.queue);
         self.text_renderer.load_to_gpu(&self.device, &self.queue);
         self.image_renderer.load_to_gpu(&self.device, &self.queue);
-
-        // Update instance buffer
-        if !self.instances.is_empty() {
-            self.queue.write_buffer(
-                &self.instance_buffer,
-                0,
-                bytemuck::cast_slice(&self.instances),
-            );
-        }
+        self.instances.load_to_gpu(&self.device, &self.queue);
 
         render_pass.set_pipeline(&self.render_pipeline);
         // The binding indices has to match the order in which the parameter blocks appear in the shader!
@@ -449,7 +439,7 @@ impl Renderer {
         render_pass.set_bind_group(0, &self.shapes.bind_group, &[]);
         render_pass.set_bind_group(1, &self.text_renderer.bind_group(), &[]);
         render_pass.set_bind_group(2, self.image_renderer.bind_group(), &[]);
-        render_pass.set_vertex_buffer(0, self.instance_buffer.slice(..));
+        render_pass.set_vertex_buffer(0, self.instances.buffer().slice(..));
 
         render_pass.draw(0..4, 0..self.instances.len() as u32);
     }

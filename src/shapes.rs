@@ -54,9 +54,9 @@ pub struct Shapes {
 
 impl Shapes {
     pub fn new(device: &wgpu::Device) -> Self {
-        let boxes = GpuVec::new(device, 64, "Box Buffer");
-        let circles = GpuVec::new(device, 64, "Circle Buffer");
-        let segments = GpuVec::new(device, 64, "Segment Buffer");
+        let boxes = GpuVec::new(device, 64, "keru_draw boxes");
+        let circles = GpuVec::new(device, 64, "keru_draw circles");
+        let segments = GpuVec::new(device, 64, "keru_draw segments");
 
         let bind_group_layout = Self::bind_group_layout(device);
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
@@ -362,7 +362,7 @@ impl Shapes {
         if boxes_changed || circles_changed || segments_changed {
             let bind_group_layout = Self::bind_group_layout(device);
             self.bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-                label: Some("Shapes Bind Group"),
+                label: Some("keru_draw shapes bind group"),
                 layout: &bind_group_layout,
                 entries: &[
                     self.boxes.bind_group_entry(0),
@@ -375,7 +375,7 @@ impl Shapes {
 
     pub fn bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
         device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: Some("Shapes Bind Group Layout"),
+            label: Some("keru_draw shapes bind group layout"),
             entries: &[
                 GpuVec::<Box>::bind_group_layout_entry(0),
                 GpuVec::<Circle>::bind_group_layout_entry(1),

@@ -8,14 +8,19 @@ pub struct GpuVec<T: Copy> {
     buffer_capacity: usize,
     label: String,
     dirty: bool,
+    usage: wgpu::BufferUsages,
 }
 
 impl<T: Copy> GpuVec<T> {
     pub fn new(device: &wgpu::Device, capacity: usize, label: &str) -> Self {
+        Self::with_usage(device, capacity, label, BufferUsages::STORAGE | BufferUsages::COPY_DST)
+    }
+
+    pub fn with_usage(device: &wgpu::Device, capacity: usize, label: &str, usage: wgpu::BufferUsages) -> Self {
         let buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some(label),
             size: (size_of::<T>() * capacity) as u64,
-            usage: BufferUsages::STORAGE | BufferUsages::COPY_DST,
+            usage,
             mapped_at_creation: false,
         });
 
@@ -25,6 +30,7 @@ impl<T: Copy> GpuVec<T> {
             data: Vec::with_capacity(capacity),
             label: label.to_string(),
             dirty: false,
+            usage,
         }
     }
 
@@ -41,7 +47,7 @@ impl<T: Copy> GpuVec<T> {
             self.buffer = device.create_buffer(&wgpu::BufferDescriptor {
                 label: Some(self.label.as_str()),
                 size: (size_of::<T>() * self.buffer_capacity) as u64,
-                usage: BufferUsages::STORAGE | BufferUsages::COPY_DST,
+                usage: self.usage,
                 mapped_at_creation: false,
             });
         }
@@ -79,6 +85,10 @@ impl<T: Copy> GpuVec<T> {
                 size: None,
             }),
         }
+    }
+
+    pub fn buffer(&self) -> &wgpu::Buffer {
+        &self.buffer
     }
 
     pub fn clear(&mut self) {
