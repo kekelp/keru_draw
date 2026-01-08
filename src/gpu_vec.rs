@@ -1,12 +1,13 @@
 use std::mem::size_of;
-use std::ops::Index;
+use std::ops::{Index, IndexMut};
 use wgpu::*;
 
 pub struct GpuVec<T: Copy> {
-    pub data: Vec<T>,
+    data: Vec<T>,
     buffer: wgpu::Buffer,
     buffer_capacity: usize,
     label: String,
+    dirty: bool,
 }
 
 impl<T: Copy> GpuVec<T> {
@@ -23,27 +24,17 @@ impl<T: Copy> GpuVec<T> {
             buffer_capacity: capacity,
             data: Vec::with_capacity(capacity),
             label: label.to_string(),
-        }
-    }
-
-    pub fn new_uniforms(device: &wgpu::Device, label: &str) -> Self {
-        let buffer = device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some(label),
-            size: size_of::<T>() as _,
-            usage: BufferUsages::UNIFORM | BufferUsages::COPY_DST,
-            mapped_at_creation: false,
-        });
-
-        Self {
-            buffer,
-            buffer_capacity: 1,
-            data: vec![],
-            label: label.into(),
+            dirty: false,
         }
     }
 
     /// Updates the underlying gpu buffer with self.data.
+    /// Returns true if the buffer was reallocated.
     pub fn load_to_gpu(&mut self, device: &wgpu::Device, queue: &wgpu::Queue) -> bool {
+        if !self.dirty {
+            return false;
+        }
+
         let should_realloc = self.data.len() > self.buffer_capacity;
         if should_realloc {
             self.buffer_capacity = self.data.len().next_power_of_two();
@@ -55,10 +46,14 @@ impl<T: Copy> GpuVec<T> {
             });
         }
 
-        let size = self.data.len() * size_of::<T>();
-        queue.write_buffer(&self.buffer, 0, unsafe {
-            std::slice::from_raw_parts_mut(self.data[..].as_ptr() as *mut u8, size)
-        });
+        if !self.data.is_empty() {
+            let size = self.data.len() * size_of::<T>();
+            queue.write_buffer(&self.buffer, 0, unsafe {
+                std::slice::from_raw_parts_mut(self.data[..].as_ptr() as *mut u8, size)
+            });
+        }
+
+        self.dirty = false;
         should_realloc
     }
 
@@ -87,11 +82,15 @@ impl<T: Copy> GpuVec<T> {
     }
 
     pub fn clear(&mut self) {
-        self.data.clear();
+        if !self.data.is_empty() {
+            self.data.clear();
+            self.dirty = true;
+        }
     }
 
     pub fn push(&mut self, value: T) {
         self.data.push(value);
+        self.dirty = true;
     }
 
     pub fn len(&self) -> usize {
@@ -104,5 +103,11 @@ impl<T: Copy> Index<usize> for GpuVec<T> {
 
     fn index(&self, index: usize) -> &Self::Output {
         &self.data[index]
+    }
+}
+impl<T: Copy> IndexMut<usize> for GpuVec<T> {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        self.dirty = true;
+        &mut self.data[index]
     }
 }
