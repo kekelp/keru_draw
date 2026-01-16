@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, f32::consts::PI};
 
 use keru_draw::*;
 use textslabs::{ColorBrush, parley::FontStack, TextStyle2, parley::FontFamily};
@@ -19,6 +19,8 @@ struct State {
     size: PhysicalSize<u32>,
     renderer: Renderer,
     text_edit: TextEditHandle,
+    text_box1: TextBoxHandle,
+    text_box2: TextBoxHandle,
     svg_handle: LoadedImage,
 }
 
@@ -92,6 +94,22 @@ impl State {
         );
         renderer.text.get_text_edit_mut(&text_edit).set_style(&style);
 
+        let text_box1 = renderer.text.add_text_box(
+            "Using rotation or zoom on text and SVGs can look quite disappointing, because they are pre-rasterized on the CPU.".to_owned(),
+            (0.0, 0.0),
+            (200.0, 50.0),
+            0.0,
+        );
+        renderer.text.get_text_box_mut(&text_box1).set_style(&style);
+
+        let text_box2 = renderer.text.add_text_box(
+            "90 degree rotations without scaling should look okay, though.".to_owned(),
+            (0.0, 0.0),
+            (200.0, 60.0),
+            0.0,
+        );
+        renderer.text.get_text_box_mut(&text_box2).set_style(&style);
+
         let svg_handle = renderer.image_renderer.load_svg(TIGER_SVG, 200, 200).unwrap();
 
         Self {
@@ -100,6 +118,8 @@ impl State {
             size,
             renderer,
             text_edit,
+            text_box1,
+            text_box2,
             svg_handle,
         }
     }
@@ -371,6 +391,29 @@ impl State {
 
         self.renderer.draw_image(&self.svg_handle, 520.0, 150.0, 180.0, 180.0, 0.5);
 
+        // Rotated text
+        self.renderer.set_transform(
+            Transform::translate(120.0, 530.0)
+                .then(&Transform::rotate(std::f32::consts::PI * -0.15))
+                .then(&Transform::scale(1.5, 1.5))
+        );
+        self.renderer.draw_text_box(&self.text_box1);
+
+        self.renderer.set_transform(
+            Transform::translate(400.0, 750.0)
+                .then(&Transform::rotate(std::f32::consts::PI * 0.5))
+        );
+        self.renderer.draw_text_box(&self.text_box2);
+
+        self.renderer.set_transform(
+            Transform::translate(600.0, 630.0)
+                .then(&Transform::scale(1.25, 1.25))
+                .then(&Transform::rotate(PI * 0.3))
+        );
+        self.renderer.draw_image(&self.svg_handle, -50.0, -50.0, 100.0, 100.0, 0.5);
+
+        self.renderer.reset_transform();
+
         self.renderer.autorender(&self.surface, wgpu::Color { r: 1.0, g: 1.0, b: 1.0, a: 1.0 });
 
         Ok(())
@@ -384,7 +427,7 @@ impl winit::application::ApplicationHandler for App {
                 event_loop
                     .create_window(
                         Window::default_attributes()
-                            .with_inner_size(PhysicalSize::new(800, 600))
+                            .with_inner_size(PhysicalSize::new(1200, 800))
                             .with_title("example"),
                     )
                     .unwrap(),
@@ -423,12 +466,6 @@ impl winit::application::ApplicationHandler for App {
                 }
                 _ => {}
             }
-        }
-    }
-
-    fn about_to_wait(&mut self, _event_loop: &winit::event_loop::ActiveEventLoop) {
-        if let Some(window) = &self.window {
-            window.request_redraw();
         }
     }
 }

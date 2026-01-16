@@ -22,6 +22,7 @@ struct VertexOutput {
 struct VertexInput {
     uint primitiveType: PRIMTYPE;
     uint primitiveIndex: PRIMINDEX;
+    uint transformIndex: TRANSFORMINDEX;
 }
 
 
@@ -53,8 +54,32 @@ VertexOutput vertexMain(
         image_vertex(input.primitiveIndex, vertexIndex, resolution, output.position, output.uv);
     }
 
+    // Apply transform in screen space (before final NDC conversion)
+    // The position is currently in NDC, so convert back to screen space
+    float2 screen_pos = (output.position.xy * float2(1.0, -1.0) + 1.0) * resolution * 0.5;
+
+    // Apply the transform
+    Transform transform = transformsData.transforms[input.transformIndex];
+    float2 transformed_pos = mul(transform.matrix, screen_pos) + transform.translation;
+
+    // Convert back to NDC
+    float2 ndc = (transformed_pos / resolution) * 2.0 - 1.0;
+    output.position = float4(ndc.x, -ndc.y, output.position.z, 1.0);
+
     return output;
 }
+
+struct Transform {
+    float2x2 matrix;
+    float2 translation;
+    float2 _padding;
+}
+
+struct TransformsData {
+    StructuredBuffer<Transform> transforms;
+}
+
+ParameterBlock<TransformsData> transformsData;
 
 [shader("fragment")]
 float4 fragmentMain(VertexOutput input): SV_Target {

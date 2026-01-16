@@ -26,6 +26,101 @@ pub mod primitive {
     pub const IMAGE: u32 = 4;
 }
 
+#[repr(C)]
+#[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
+pub struct Transform {
+    pub matrix: [[f32; 2]; 2],
+    pub translation: [f32; 2],
+    pub _padding: [f32; 2],
+}
+
+impl Transform {
+    pub const IDENTITY: Transform = Transform {
+        matrix: [[1.0, 0.0], [0.0, 1.0]],
+        translation: [0.0, 0.0],
+        _padding: [0.0, 0.0],
+    };
+
+    /// Create a translation transform.
+    pub const fn translate(x: f32, y: f32) -> Self {
+        Transform {
+            matrix: [[1.0, 0.0], [0.0, 1.0]],
+            translation: [x, y],
+            _padding: [0.0, 0.0],
+        }
+    }
+
+    /// Creates a rotation transform (angle in radians).
+    pub fn rotate(angle: f32) -> Self {
+        let c = angle.cos();
+        let s = angle.sin();
+        Transform {
+            matrix: [[c, -s], [s, c]],
+            translation: [0.0, 0.0],
+            _padding: [0.0, 0.0],
+        }
+    }
+
+    /// Creates a rotation transform (angle in radians).
+    /// 
+    /// Using the precomputed cos and sin of the angle allows this function to be `const`.
+    pub const fn const_rotate(cos_theta: f32, sin_theta: f32) -> Self {
+        Transform {
+            matrix: [[cos_theta, -sin_theta], [sin_theta, cos_theta]],
+            translation: [0.0, 0.0],
+            _padding: [0.0, 0.0],
+        }
+    }
+
+    /// Creates a rotation transform that rotates by `n` × 90 degrees counterclockwise.
+    pub const fn const_rotate_90n(n: usize) -> Self {
+        const COS: [f32; 4] = [1.0, 0.0, -1.0, 0.0];
+        const SIN: [f32; 4] = [0.0, 1.0, 0.0, -1.0];
+        
+        let i = (n % 4 + 4) % 4;
+        
+        Transform {
+            matrix: [[COS[i], -SIN[i]], [SIN[i], COS[i]]],
+            translation: [0.0, 0.0],
+            _padding: [0.0, 0.0],
+        }
+    }
+    
+
+    /// Create a scale transform.
+    pub const fn scale(sx: f32, sy: f32) -> Self {
+        Transform {
+            matrix: [[sx, 0.0], [0.0, sy]],
+            translation: [0.0, 0.0],
+            _padding: [0.0, 0.0],
+        }
+    }
+
+    /// Create a uniform scale transform.
+    pub const fn scale_uniform(s: f32) -> Self {
+        Self::scale(s, s)
+    }
+
+    /// Combine this transform with another (this * other).
+    pub const fn then(&self, other: &Transform) -> Self {
+        // Matrix multiplication: result = self.matrix * other.matrix
+        let m00 = self.matrix[0][0] * other.matrix[0][0] + self.matrix[0][1] * other.matrix[1][0];
+        let m01 = self.matrix[0][0] * other.matrix[0][1] + self.matrix[0][1] * other.matrix[1][1];
+        let m10 = self.matrix[1][0] * other.matrix[0][0] + self.matrix[1][1] * other.matrix[1][0];
+        let m11 = self.matrix[1][0] * other.matrix[0][1] + self.matrix[1][1] * other.matrix[1][1];
+
+        // Transform translation: result.translation = self.matrix * other.translation + self.translation
+        let tx = self.matrix[0][0] * other.translation[0] + self.matrix[0][1] * other.translation[1] + self.translation[0];
+        let ty = self.matrix[1][0] * other.translation[0] + self.matrix[1][1] * other.translation[1] + self.translation[1];
+
+        Transform {
+            matrix: [[m00, m01], [m10, m11]],
+            translation: [tx, ty],
+            _padding: [0.0, 0.0],
+        }
+    }
+}
+
 pub struct Renderer {
     device: wgpu::Device,
     queue: wgpu::Queue,
@@ -35,6 +130,8 @@ pub struct Renderer {
     text_renderer: TextRenderer,
     shapes: Shapes,
     instances: GpuVec<Instance>,
+    transforms: GpuVec<Transform>,
+    current_transform_index: usize,
     pub gpu_profiler: GpuProfiler,
 }
 
@@ -43,6 +140,8 @@ pub struct Renderer {
 struct Instance {
     p_type: u32,
     p_index: u32,
+    transform_index: u32,
+    _padding: u32,
 }
 
 impl Renderer {
@@ -75,15 +174,24 @@ impl Renderer {
 
         let svg_renderer = ImageRenderer::new(&device, &queue, surface_format);
 
+        let transforms_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: Some("keru_draw transforms bind group layout"),
+            entries: &[
+                GpuVec::<Transform>::bind_group_layout_entry(0),
+            ],
+        });
+
         let render_pipeline_layout =
             device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                 label: Some("Render Pipeline Layout"),
                 // The binding indices has to match the order in which the parameter blocks appear in the shader!
                 // If there are issues, compile the shaders with the -reflection-json flag and see the parameterBlock fields.
+                // Binding order: transformsData(0), shapes(1), textslabs(2), imageatlas(3)
                 bind_group_layouts: &[
+                    &transforms_bind_group_layout,
                     &Shapes::bind_group_layout(&device),
                     &text_renderer.bind_group_layout(),
-                    svg_renderer.bind_group_layout()
+                    svg_renderer.bind_group_layout(),
                 ],
                 push_constant_ranges: &[],
             });
@@ -95,7 +203,7 @@ impl Renderer {
                 module: &vs_module,
                 entry_point: Some("main"),
                 buffers: &[wgpu::VertexBufferLayout {
-                    array_stride: 8,
+                    array_stride: 16,
                     step_mode: wgpu::VertexStepMode::Instance,
                     attributes: &[
                         wgpu::VertexAttribute {
@@ -106,6 +214,11 @@ impl Renderer {
                         wgpu::VertexAttribute {
                             offset: 4,
                             shader_location: 1,
+                            format: wgpu::VertexFormat::Uint32,
+                        },
+                        wgpu::VertexAttribute {
+                            offset: 8,
+                            shader_location: 2,
                             format: wgpu::VertexFormat::Uint32,
                         },
                     ],
@@ -148,6 +261,10 @@ impl Renderer {
             wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
         );
 
+        let mut transforms = GpuVec::new(&device, 64, "keru_draw transforms");
+        // Push identity transform at index 0
+        transforms.push(Transform::IDENTITY);
+
         let gpu_profiler = GpuProfiler::new(&device, GpuProfilerSettings {
             enable_timer_queries: false,
             enable_debug_groups: false,
@@ -163,6 +280,8 @@ impl Renderer {
             text_renderer,
             image_renderer: svg_renderer,
             instances,
+            transforms,
+            current_transform_index: 0,
             gpu_profiler,
         }
     }
@@ -182,6 +301,8 @@ impl Renderer {
         self.instances.push(Instance {
             p_type: primitive::BOX,
             p_index: index as u32,
+            transform_index: self.current_transform_index as u32,
+            _padding: 0,
         });
     }
 
@@ -201,6 +322,8 @@ impl Renderer {
         self.instances.push(Instance {
             p_type: primitive::BOX,
             p_index: index as u32,
+            transform_index: self.current_transform_index as u32,
+            _padding: 0,
         });
     }
 
@@ -216,6 +339,8 @@ impl Renderer {
         self.instances.push(Instance {
             p_type: primitive::CIRCLE,
             p_index: index as u32,
+            transform_index: self.current_transform_index as u32,
+            _padding: 0,
         });
     }
 
@@ -234,6 +359,8 @@ impl Renderer {
         self.instances.push(Instance {
             p_type: primitive::CIRCLE,
             p_index: index as u32,
+            transform_index: self.current_transform_index as u32,
+            _padding: 0,
         });
     }
 
@@ -250,6 +377,8 @@ impl Renderer {
         self.instances.push(Instance {
             p_type: primitive::CIRCLE,
             p_index: index as u32,
+            transform_index: self.current_transform_index as u32,
+            _padding: 0,
         });
     }
 
@@ -269,6 +398,8 @@ impl Renderer {
         self.instances.push(Instance {
             p_type: primitive::CIRCLE,
             p_index: index as u32,
+            transform_index: self.current_transform_index as u32,
+            _padding: 0,
         });
     }
 
@@ -287,6 +418,8 @@ impl Renderer {
         self.instances.push(Instance {
             p_type: primitive::CIRCLE,
             p_index: index as u32,
+            transform_index: self.current_transform_index as u32,
+            _padding: 0,
         });
     }
 
@@ -304,6 +437,8 @@ impl Renderer {
         self.instances.push(Instance {
             p_type: primitive::CIRCLE,
             p_index: index as u32,
+            transform_index: self.current_transform_index as u32,
+            _padding: 0,
         });
     }
 
@@ -320,6 +455,8 @@ impl Renderer {
         self.instances.push(Instance {
             p_type: primitive::SEGMENT,
             p_index: index as u32,
+            transform_index: self.current_transform_index as u32,
+            _padding: 0,
         });
     }
 
@@ -337,6 +474,8 @@ impl Renderer {
         self.instances.push(Instance {
             p_type: primitive::SEGMENT,
             p_index: index as u32,
+            transform_index: self.current_transform_index as u32,
+            _padding: 0,
         });
     }
 
@@ -350,6 +489,8 @@ impl Renderer {
             self.instances.push(Instance {
                 p_type: primitive::TEXT,
                 p_index: q as u32,
+                transform_index: self.current_transform_index as u32,
+                _padding: 0,
             });
         }
     }
@@ -363,6 +504,8 @@ impl Renderer {
             self.instances.push(Instance {
                 p_type: primitive::TEXT,
                 p_index: q as u32,
+                transform_index: self.current_transform_index as u32,
+                _padding: 0,
             });
         }
     }
@@ -383,6 +526,8 @@ impl Renderer {
             self.instances.push(Instance {
                 p_type: primitive::IMAGE,
                 p_index: q as u32,
+                transform_index: self.current_transform_index as u32,
+                _padding: 0,
             });
         }
     }
@@ -392,6 +537,10 @@ impl Renderer {
         self.image_renderer.clear();
         self.instances.clear();
         self.text_renderer.clear();
+        self.transforms.clear();
+        // Re-add identity transform at index 0
+        self.transforms.push(Transform::IDENTITY);
+        self.current_transform_index = 0;
     }
 
     pub fn begin_frame(&mut self, width: f32, height: f32) {
@@ -417,6 +566,31 @@ impl Renderer {
         &self.device
     }
 
+    /// Set the current transform for all subsequent draw calls.
+    /// The transform is applied in screen space after clipping.
+    /// Returns the index of the transform in the buffer.
+    pub fn set_transform(&mut self, transform: Transform) -> usize {
+        let index = self.transforms.len();
+        self.transforms.push(transform);
+        self.current_transform_index = index;
+        index
+    }
+
+    /// Reset to identity transform (no transformation).
+    pub fn reset_transform(&mut self) {
+        self.current_transform_index = 0;
+    }
+
+    /// Get the current transform index being used for draw calls.
+    pub fn current_transform_index(&self) -> usize {
+        self.current_transform_index
+    }
+
+    /// Use a previously created transform by its index.
+    pub fn use_transform(&mut self, index: usize) {
+        self.current_transform_index = index;
+    }
+
     /// Render into a render pass.
     pub fn render(&mut self, render_pass: &mut wgpu::RenderPass) {
         let decorations_range = self.text.prepare_decorations(&mut self.text_renderer);
@@ -424,6 +598,8 @@ impl Renderer {
             self.instances.push(Instance {
                 p_type: primitive::TEXT,
                 p_index: q as u32,
+                transform_index: self.current_transform_index as u32,
+                _padding: 0,
             });
         }
 
@@ -433,12 +609,44 @@ impl Renderer {
         self.image_renderer.load_to_gpu(&self.device, &self.queue);
         self.instances.load_to_gpu(&self.device, &self.queue);
 
+        let transforms_changed = self.transforms.load_to_gpu(&self.device, &self.queue);
+        let transforms_bind_group = if transforms_changed {
+            let layout = self.device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                label: Some("keru_draw transforms bind group layout"),
+                entries: &[
+                    GpuVec::<Transform>::bind_group_layout_entry(0),
+                ],
+            });
+            self.device.create_bind_group(&wgpu::BindGroupDescriptor {
+                label: Some("keru_draw transforms bind group"),
+                layout: &layout,
+                entries: &[
+                    self.transforms.bind_group_entry(0),
+                ],
+            })
+        } else {
+            self.device.create_bind_group(&wgpu::BindGroupDescriptor {
+                label: Some("keru_draw transforms bind group"),
+                layout: &self.device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                    label: Some("keru_draw transforms bind group layout"),
+                    entries: &[
+                        GpuVec::<Transform>::bind_group_layout_entry(0),
+                    ],
+                }),
+                entries: &[
+                    self.transforms.bind_group_entry(0),
+                ],
+            })
+        };
+
         render_pass.set_pipeline(&self.render_pipeline);
         // The binding indices has to match the order in which the parameter blocks appear in the shader!
         // If there are issues, compile the shaders with the -reflection-json flag and see the parameterBlock fields.
-        render_pass.set_bind_group(0, &self.shapes.bind_group, &[]);
-        render_pass.set_bind_group(1, &self.text_renderer.bind_group(), &[]);
-        render_pass.set_bind_group(2, self.image_renderer.bind_group(), &[]);
+        // Binding order: transformsData(0), shapes(1), textslabs(2), imageatlas(3)
+        render_pass.set_bind_group(0, &transforms_bind_group, &[]);
+        render_pass.set_bind_group(1, &self.shapes.bind_group, &[]);
+        render_pass.set_bind_group(2, &self.text_renderer.bind_group(), &[]);
+        render_pass.set_bind_group(3, self.image_renderer.bind_group(), &[]);
         render_pass.set_vertex_buffer(0, self.instances.buffer().slice(..));
 
         render_pass.draw(0..4, 0..self.instances.len() as u32);

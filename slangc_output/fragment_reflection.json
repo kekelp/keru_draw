@@ -1,8 +1,135 @@
 {
     "parameters": [
         {
-            "name": "shapes",
+            "name": "transformsData",
             "binding": {"kind": "subElementRegisterSpace", "index": 0},
+            "type": {
+                "kind": "parameterBlock",
+                "elementType": {
+                    "kind": "struct",
+                    "name": "TransformsData",
+                    "fields": [
+                        {
+                            "name": "transforms",
+                            "type": {
+                                "kind": "resource",
+                                "baseShape": "structuredBuffer",
+                                "resultType": {
+                                    "kind": "struct",
+                                    "name": "Transform",
+                                    "fields": [
+                                        {
+                                            "name": "matrix",
+                                            "type": {
+                                                "kind": "matrix",
+                                                "rowCount": 2,
+                                                "columnCount": 2,
+                                                "elementType": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                }
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 0, "size": 16, "elementStride": 0}
+                                        },
+                                        {
+                                            "name": "translation",
+                                            "type": {
+                                                "kind": "vector",
+                                                "elementCount": 2,
+                                                "elementType": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                }
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 16, "size": 8, "elementStride": 4}
+                                        },
+                                        {
+                                            "name": "_padding",
+                                            "type": {
+                                                "kind": "vector",
+                                                "elementCount": 2,
+                                                "elementType": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                }
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 24, "size": 8, "elementStride": 4}
+                                        }
+                                    ]
+                                }
+                            },
+                            "binding": {"kind": "descriptorTableSlot", "index": 0}
+                        }
+                    ]
+                },
+                "containerVarLayout": {
+                    "binding": {"kind": "subElementRegisterSpace", "index": 0}
+                },
+                "elementVarLayout": {
+                    "type": {
+                        "kind": "struct",
+                        "name": "TransformsData",
+                        "fields": [
+                            {
+                                "name": "transforms",
+                                "type": {
+                                    "kind": "resource",
+                                    "baseShape": "structuredBuffer",
+                                    "resultType": {
+                                        "kind": "struct",
+                                        "name": "Transform",
+                                        "fields": [
+                                            {
+                                                "name": "matrix",
+                                                "type": {
+                                                    "kind": "matrix",
+                                                    "rowCount": 2,
+                                                    "columnCount": 2,
+                                                    "elementType": {
+                                                        "kind": "scalar",
+                                                        "scalarType": "float32"
+                                                    }
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 0, "size": 16, "elementStride": 0}
+                                            },
+                                            {
+                                                "name": "translation",
+                                                "type": {
+                                                    "kind": "vector",
+                                                    "elementCount": 2,
+                                                    "elementType": {
+                                                        "kind": "scalar",
+                                                        "scalarType": "float32"
+                                                    }
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 16, "size": 8, "elementStride": 4}
+                                            },
+                                            {
+                                                "name": "_padding",
+                                                "type": {
+                                                    "kind": "vector",
+                                                    "elementCount": 2,
+                                                    "elementType": {
+                                                        "kind": "scalar",
+                                                        "scalarType": "float32"
+                                                    }
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 24, "size": 8, "elementStride": 4}
+                                            }
+                                        ]
+                                    }
+                                },
+                                "binding": {"kind": "descriptorTableSlot", "index": 0}
+                            }
+                        ]
+                    },
+                    "binding": {"kind": "descriptorTableSlot", "index": 0}
+                }
+            }
+        },
+        {
+            "name": "shapes",
+            "binding": {"kind": "subElementRegisterSpace", "index": 1},
             "type": {
                 "kind": "parameterBlock",
                 "elementType": {
@@ -863,7 +990,7 @@
         },
         {
             "name": "textslabs",
-            "binding": {"kind": "subElementRegisterSpace", "index": 1},
+            "binding": {"kind": "subElementRegisterSpace", "index": 2},
             "type": {
                 "kind": "parameterBlock",
                 "elementType": {
@@ -1280,7 +1407,7 @@
         },
         {
             "name": "imageatlas",
-            "binding": {"kind": "subElementRegisterSpace", "index": 2},
+            "binding": {"kind": "subElementRegisterSpace", "index": 3},
             "type": {
                 "kind": "parameterBlock",
                 "elementType": {
@@ -1812,16 +1939,20 @@
             },
             "bindings": [
                 {
-                    "name": "shapes",
+                    "name": "transformsData",
                     "binding": {"kind": "subElementRegisterSpace", "index": 0, "used": 0}
                 },
                 {
-                    "name": "textslabs",
+                    "name": "shapes",
                     "binding": {"kind": "subElementRegisterSpace", "index": 1, "used": 0}
                 },
                 {
-                    "name": "imageatlas",
+                    "name": "textslabs",
                     "binding": {"kind": "subElementRegisterSpace", "index": 2, "used": 0}
+                },
+                {
+                    "name": "imageatlas",
+                    "binding": {"kind": "subElementRegisterSpace", "index": 3, "used": 0}
                 }
             ]
         }
