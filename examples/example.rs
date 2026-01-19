@@ -416,9 +416,9 @@ impl State {
         self.renderer.draw_text_box(&self.text_box2);
 
         self.renderer.set_transform(
-            Transform::translate(600.0, 630.0)
-                .then(&Transform::scale(1.25, 1.25))
-                .then(&Transform::rotate(PI * 0.3))
+            Transform::translation(600.0, 630.0)
+                .then_scale(1.25, 1.25)
+                .then_rotate(euclid::Angle::radians(PI * 0.3))
         );
         self.renderer.draw_image(&self.svg_handle, -50.0, -50.0, 100.0, 100.0, 0.5);
 

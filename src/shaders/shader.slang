@@ -60,7 +60,10 @@ VertexOutput vertexMain(
 
     // Apply the transform
     Transform transform = transformsData.transforms[input.transformIndex];
-    float2 transformed_pos = mul(transform.matrix, screen_pos) + transform.translation;
+    float2x2 matrix = float2x2(transform.m11, transform.m12,
+                                transform.m21, transform.m22);
+    float2 translation = float2(transform.m31, transform.m32);
+    float2 transformed_pos = mul(matrix, screen_pos) + translation;
 
     // Convert back to NDC
     float2 ndc = (transformed_pos / resolution) * 2.0 - 1.0;
@@ -70,9 +73,9 @@ VertexOutput vertexMain(
 }
 
 struct Transform {
-    float2x2 matrix;
-    float2 translation;
-    float2 _padding;
+    float m11; float m12;
+    float m21; float m22;
+    float m31; float m32;
 }
 
 struct TransformsData {

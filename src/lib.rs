@@ -18,6 +18,9 @@ pub use textslabs::parley::{FontWeight, FontStyle, LineHeight, FontStack};
 pub use keru_images::{ImageRenderer, LoadedImage};
 use wgpu_profiler::{GpuProfiler, GpuProfilerSettings};
 
+pub use euclid;
+use euclid::UnknownUnit;
+
 pub mod primitive {
     pub const BOX: u32 = 0;
     pub const CIRCLE: u32 = 1;
@@ -26,100 +29,8 @@ pub mod primitive {
     pub const IMAGE: u32 = 4;
 }
 
-#[repr(C)]
-#[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
-pub struct Transform {
-    pub matrix: [[f32; 2]; 2],
-    pub translation: [f32; 2],
-    pub _padding: [f32; 2],
-}
-
-impl Transform {
-    pub const IDENTITY: Transform = Transform {
-        matrix: [[1.0, 0.0], [0.0, 1.0]],
-        translation: [0.0, 0.0],
-        _padding: [0.0, 0.0],
-    };
-
-    /// Create a translation transform.
-    pub const fn translate(x: f32, y: f32) -> Self {
-        Transform {
-            matrix: [[1.0, 0.0], [0.0, 1.0]],
-            translation: [x, y],
-            _padding: [0.0, 0.0],
-        }
-    }
-
-    /// Creates a rotation transform (angle in radians).
-    pub fn rotate(angle: f32) -> Self {
-        let c = angle.cos();
-        let s = angle.sin();
-        Transform {
-            matrix: [[c, -s], [s, c]],
-            translation: [0.0, 0.0],
-            _padding: [0.0, 0.0],
-        }
-    }
-
-    /// Creates a rotation transform (angle in radians).
-    /// 
-    /// Using the precomputed cos and sin of the angle allows this function to be `const`.
-    pub const fn const_rotate(cos_theta: f32, sin_theta: f32) -> Self {
-        Transform {
-            matrix: [[cos_theta, -sin_theta], [sin_theta, cos_theta]],
-            translation: [0.0, 0.0],
-            _padding: [0.0, 0.0],
-        }
-    }
-
-    /// Creates a rotation transform that rotates by `n` × 90 degrees counterclockwise.
-    pub const fn const_rotate_90n(n: usize) -> Self {
-        const COS: [f32; 4] = [1.0, 0.0, -1.0, 0.0];
-        const SIN: [f32; 4] = [0.0, 1.0, 0.0, -1.0];
-        
-        let i = (n % 4 + 4) % 4;
-        
-        Transform {
-            matrix: [[COS[i], -SIN[i]], [SIN[i], COS[i]]],
-            translation: [0.0, 0.0],
-            _padding: [0.0, 0.0],
-        }
-    }
-    
-
-    /// Create a scale transform.
-    pub const fn scale(sx: f32, sy: f32) -> Self {
-        Transform {
-            matrix: [[sx, 0.0], [0.0, sy]],
-            translation: [0.0, 0.0],
-            _padding: [0.0, 0.0],
-        }
-    }
-
-    /// Create a uniform scale transform.
-    pub const fn scale_uniform(s: f32) -> Self {
-        Self::scale(s, s)
-    }
-
-    /// Combine this transform with another (this * other).
-    pub const fn then(&self, other: &Transform) -> Self {
-        // Matrix multiplication: result = self.matrix * other.matrix
-        let m00 = self.matrix[0][0] * other.matrix[0][0] + self.matrix[0][1] * other.matrix[1][0];
-        let m01 = self.matrix[0][0] * other.matrix[0][1] + self.matrix[0][1] * other.matrix[1][1];
-        let m10 = self.matrix[1][0] * other.matrix[0][0] + self.matrix[1][1] * other.matrix[1][0];
-        let m11 = self.matrix[1][0] * other.matrix[0][1] + self.matrix[1][1] * other.matrix[1][1];
-
-        // Transform translation: result.translation = self.matrix * other.translation + self.translation
-        let tx = self.matrix[0][0] * other.translation[0] + self.matrix[0][1] * other.translation[1] + self.translation[0];
-        let ty = self.matrix[1][0] * other.translation[0] + self.matrix[1][1] * other.translation[1] + self.translation[1];
-
-        Transform {
-            matrix: [[m00, m01], [m10, m11]],
-            translation: [tx, ty],
-            _padding: [0.0, 0.0],
-        }
-    }
-}
+/// A 2D affine transform using euclid's Transform2D.
+pub type Transform = euclid::Transform2D<f32, UnknownUnit, UnknownUnit>;
 
 pub struct Renderer {
     device: wgpu::Device,
@@ -263,7 +174,7 @@ impl Renderer {
 
         let mut transforms = GpuVec::new(&device, 64, "keru_draw transforms");
         // Push identity transform at index 0
-        transforms.push(Transform::IDENTITY);
+        transforms.push(Transform::identity());
 
         let gpu_profiler = GpuProfiler::new(&device, GpuProfilerSettings {
             enable_timer_queries: false,
@@ -539,7 +450,7 @@ impl Renderer {
         self.text_renderer.clear();
         self.transforms.clear();
         // Re-add identity transform at index 0
-        self.transforms.push(Transform::IDENTITY);
+        self.transforms.push(Transform::identity());
         self.current_transform_index = 0;
     }
 
