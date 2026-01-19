@@ -1,7 +1,7 @@
 use std::{borrow::Cow, f32::consts::PI};
 
 use keru_draw::*;
-use textslabs::{ColorBrush, parley::FontStack, TextStyle2, parley::FontFamily};
+use textslabs::{ColorBrush, TextStyle2, Transform2D, parley::{FontFamily, FontStack}};
 use winit::{
     dpi::PhysicalSize, event::WindowEvent, event_loop::EventLoop, window::Window,
 };
@@ -96,11 +96,16 @@ impl State {
 
         let text_box1 = renderer.text.add_text_box(
             "Using rotation or zoom on text and SVGs can look quite disappointing, because they are pre-rasterized on the CPU.".to_owned(),
-            (0.0, 0.0),
+            (120.0, 530.0),
             (200.0, 50.0),
             0.0,
         );
         renderer.text.get_text_box_mut(&text_box1).set_style(&style);
+        renderer.text.get_text_box_mut(&text_box1).set_transform(Transform2D {
+            translation: (120.0, 530.0),
+            rotation: std::f32::consts::PI * -0.15,
+            scale: 1.0,
+        });
 
         let text_box2 = renderer.text.add_text_box(
             "90 degree rotations without scaling should look okay, though.".to_owned(),
@@ -109,6 +114,11 @@ impl State {
             0.0,
         );
         renderer.text.get_text_box_mut(&text_box2).set_style(&style);
+        renderer.text.get_text_box_mut(&text_box2).set_transform(Transform2D {
+            translation: (400.0, 550.0),
+            rotation: std::f32::consts::PI * 0.5,
+            scale: 1.0,
+        });
 
         let svg_handle = renderer.image_renderer.load_svg(TIGER_SVG, 200, 200).unwrap();
 
@@ -392,17 +402,17 @@ impl State {
         self.renderer.draw_image(&self.svg_handle, 520.0, 150.0, 180.0, 180.0, 0.5);
 
         // Rotated text
-        self.renderer.set_transform(
-            Transform::translate(120.0, 530.0)
-                .then(&Transform::rotate(std::f32::consts::PI * -0.15))
-                .then(&Transform::scale(1.5, 1.5))
-        );
+        // self.renderer.set_transform(
+        //     Transform::translate(120.0, 530.0)
+        //         .then(&Transform::rotate(std::f32::consts::PI * -0.15))
+        //         .then(&Transform::scale(1.5, 1.5))
+        // );
         self.renderer.draw_text_box(&self.text_box1);
 
-        self.renderer.set_transform(
-            Transform::translate(400.0, 750.0)
-                .then(&Transform::rotate(std::f32::consts::PI * 0.5))
-        );
+        // self.renderer.set_transform(
+        //     Transform::translate(400.0, 750.0)
+        //         .then(&Transform::rotate(std::f32::consts::PI * 0.5))
+        // );
         self.renderer.draw_text_box(&self.text_box2);
 
         self.renderer.set_transform(

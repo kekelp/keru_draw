@@ -1,11 +1,18 @@
+use std::process::Command;
+
 fn main() {
-    // println!("cargo:rerun-if-changed=__force_to_always_rerun_by_depending_on_a_nonexisting_file");
+    #[cfg(debug_assertions)] {
 
-    // let imported_textslabs_shader = include_str!("src/shaders/textslabs.slang");
-    // let original_textslabs_shader = textslabs::TextRenderer::composable_shader_source();
-    // assert!(imported_textslabs_shader == original_textslabs_shader, "Imported textslabs shader does not match original!");
-
-    // let imported_images_shader = include_str!("src/shaders/keru_images.slang");
-    // let original_images_shader = keru_images::ImageRenderer::composable_shader_source();
-    // assert!(imported_images_shader == original_images_shader, "Imported keru_images shader does not match original!");
+        println!("cargo:rerun-if-changed=src/shaders");
+        
+        let output = Command::new("just")
+            .arg("compile_shaders")
+            .current_dir(env!("CARGO_MANIFEST_DIR"))
+            .output()
+            .expect("Failed to compile shaders. Make sure 'just' and 'slangc' are installed.");
+    
+        if !output.status.success() {
+            panic!("Shader compilation failed:\n{}", String::from_utf8_lossy(&output.stderr));
+        }
+    }
 }
