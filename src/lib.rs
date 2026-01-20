@@ -79,7 +79,7 @@ pub struct Renderer {
     shapes: Shapes,
     instances: GpuVec<Instance>,
     transforms: GpuVec<Transform>,
-    current_transform_index: usize,
+    transform_stack: Vec<usize>,
     pub gpu_profiler: GpuProfiler,
 }
 
@@ -229,7 +229,7 @@ impl Renderer {
             image_renderer: svg_renderer,
             instances,
             transforms,
-            current_transform_index: 0,
+            transform_stack: vec![0], // Start with identity transform at index 0
             gpu_profiler,
         }
     }
@@ -249,7 +249,7 @@ impl Renderer {
         self.instances.push(Instance {
             p_type: primitive::BOX,
             p_index: index as u32,
-            transform_index: self.current_transform_index as u32,
+            transform_index: *self.transform_stack.last().unwrap() as u32,
             _padding: 0,
         });
     }
@@ -270,7 +270,7 @@ impl Renderer {
         self.instances.push(Instance {
             p_type: primitive::BOX,
             p_index: index as u32,
-            transform_index: self.current_transform_index as u32,
+            transform_index: *self.transform_stack.last().unwrap() as u32,
             _padding: 0,
         });
     }
@@ -287,7 +287,7 @@ impl Renderer {
         self.instances.push(Instance {
             p_type: primitive::CIRCLE,
             p_index: index as u32,
-            transform_index: self.current_transform_index as u32,
+            transform_index: *self.transform_stack.last().unwrap() as u32,
             _padding: 0,
         });
     }
@@ -307,7 +307,7 @@ impl Renderer {
         self.instances.push(Instance {
             p_type: primitive::CIRCLE,
             p_index: index as u32,
-            transform_index: self.current_transform_index as u32,
+            transform_index: *self.transform_stack.last().unwrap() as u32,
             _padding: 0,
         });
     }
@@ -325,7 +325,7 @@ impl Renderer {
         self.instances.push(Instance {
             p_type: primitive::CIRCLE,
             p_index: index as u32,
-            transform_index: self.current_transform_index as u32,
+            transform_index: *self.transform_stack.last().unwrap() as u32,
             _padding: 0,
         });
     }
@@ -346,7 +346,7 @@ impl Renderer {
         self.instances.push(Instance {
             p_type: primitive::CIRCLE,
             p_index: index as u32,
-            transform_index: self.current_transform_index as u32,
+            transform_index: *self.transform_stack.last().unwrap() as u32,
             _padding: 0,
         });
     }
@@ -366,7 +366,7 @@ impl Renderer {
         self.instances.push(Instance {
             p_type: primitive::CIRCLE,
             p_index: index as u32,
-            transform_index: self.current_transform_index as u32,
+            transform_index: *self.transform_stack.last().unwrap() as u32,
             _padding: 0,
         });
     }
@@ -385,7 +385,7 @@ impl Renderer {
         self.instances.push(Instance {
             p_type: primitive::CIRCLE,
             p_index: index as u32,
-            transform_index: self.current_transform_index as u32,
+            transform_index: *self.transform_stack.last().unwrap() as u32,
             _padding: 0,
         });
     }
@@ -403,7 +403,7 @@ impl Renderer {
         self.instances.push(Instance {
             p_type: primitive::SEGMENT,
             p_index: index as u32,
-            transform_index: self.current_transform_index as u32,
+            transform_index: *self.transform_stack.last().unwrap() as u32,
             _padding: 0,
         });
     }
@@ -422,7 +422,7 @@ impl Renderer {
         self.instances.push(Instance {
             p_type: primitive::SEGMENT,
             p_index: index as u32,
-            transform_index: self.current_transform_index as u32,
+            transform_index: *self.transform_stack.last().unwrap() as u32,
             _padding: 0,
         });
     }
@@ -447,7 +447,7 @@ impl Renderer {
             self.instances.push(Instance {
                 p_type: primitive::TEXT,
                 p_index: q as u32,
-                transform_index: self.current_transform_index as u32,
+                transform_index: *self.transform_stack.last().unwrap() as u32,
                 _padding: 0,
             });
         }
@@ -476,7 +476,7 @@ impl Renderer {
             self.instances.push(Instance {
                 p_type: primitive::TEXT,
                 p_index: q as u32,
-                transform_index: self.current_transform_index as u32,
+                transform_index: *self.transform_stack.last().unwrap() as u32,
                 _padding: 0,
             });
         }
@@ -498,7 +498,7 @@ impl Renderer {
             self.instances.push(Instance {
                 p_type: primitive::IMAGE,
                 p_index: q as u32,
-                transform_index: self.current_transform_index as u32,
+                transform_index: *self.transform_stack.last().unwrap() as u32,
                 _padding: 0,
             });
         }
@@ -512,7 +512,8 @@ impl Renderer {
         self.transforms.clear();
         // Re-add identity transform at index 0
         self.transforms.push(Transform::identity());
-        self.current_transform_index = 0;
+        self.transform_stack.clear();
+        self.transform_stack.push(0);
     }
 
     pub fn begin_frame(&mut self, width: f32, height: f32) {
@@ -538,38 +539,42 @@ impl Renderer {
         &self.device
     }
 
-    /// Set the current transform for all subsequent draw calls.
+    /// Push a new transform onto the stack. The new transform is composed with the current
+    /// transform (current transform applied first, then the new transform).
     /// The transform is applied in screen space after clipping.
-    /// Returns the index of the transform in the buffer.
-    pub fn set_transform(&mut self, transform: Transform) -> usize {
-        let index = self.transforms.len();
-        self.transforms.push(transform);
-        self.current_transform_index = index;
-        index
+    pub fn push_transform(&mut self, transform: Transform) {
+        // Get the current transform from the top of the stack
+        let current_transform_index = *self.transform_stack.last().unwrap();
+        let current_transform = self.transforms[current_transform_index];
+
+        // Compose: current transform first, then the new transform
+        let composed = current_transform.then(&transform);
+
+        // Add the composed transform to the buffer
+        let new_index = self.transforms.len();
+        self.transforms.push(composed);
+
+        // Push the new index onto the stack
+        self.transform_stack.push(new_index);
     }
 
-    /// Reset to identity transform (no transformation).
-    pub fn reset_transform(&mut self) {
-        self.current_transform_index = 0;
-    }
-
-    /// Get the current transform index being used for draw calls.
-    pub fn current_transform_index(&self) -> usize {
-        self.current_transform_index
+    /// Pop the current transform from the stack, returning to the previous transform.
+    /// Panics if trying to pop the last transform (the identity transform).
+    pub fn pop_transform(&mut self) {
+        if self.transform_stack.len() <= 1 {
+            panic!("Cannot pop the last transform from the stack");
+        }
+        self.transform_stack.pop();
     }
 
     /// Get the current transform being used for draw calls.
     fn get_current_transform(&self) -> Transform {
-        if self.current_transform_index < self.transforms.len() {
-            self.transforms[self.current_transform_index]
+        let current_index = *self.transform_stack.last().unwrap();
+        if current_index < self.transforms.len() {
+            self.transforms[current_index]
         } else {
             Transform::identity()
         }
-    }
-
-    /// Use a previously created transform by its index.
-    pub fn use_transform(&mut self, index: usize) {
-        self.current_transform_index = index;
     }
 
     /// Render into a render pass.
@@ -579,7 +584,7 @@ impl Renderer {
             self.instances.push(Instance {
                 p_type: primitive::TEXT,
                 p_index: q as u32,
-                transform_index: self.current_transform_index as u32,
+                transform_index: *self.transform_stack.last().unwrap() as u32,
                 _padding: 0,
             });
         }

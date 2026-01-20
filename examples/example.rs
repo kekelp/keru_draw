@@ -402,27 +402,18 @@ impl State {
         self.renderer.draw_image(&self.svg_handle, 520.0, 150.0, 180.0, 180.0, 0.5);
 
         // Rotated text
-        // self.renderer.set_transform(
-        //     Transform::translate(120.0, 530.0)
-        //         .then(&Transform::rotate(std::f32::consts::PI * -0.15))
-        //         .then(&Transform::scale(1.5, 1.5))
-        // );
         self.renderer.draw_text_box(&self.text_box1);
 
-        // self.renderer.set_transform(
-        //     Transform::translate(400.0, 750.0)
-        //         .then(&Transform::rotate(std::f32::consts::PI * 0.5))
-        // );
         self.renderer.draw_text_box(&self.text_box2);
 
-        self.renderer.set_transform(
+        self.renderer.push_transform(
             Transform::translation(600.0, 630.0)
                 .then_scale(1.25, 1.25)
                 .then_rotate(euclid::Angle::radians(PI * 0.3))
         );
         self.renderer.draw_image(&self.svg_handle, -50.0, -50.0, 100.0, 100.0, 0.5);
 
-        self.renderer.reset_transform();
+        self.renderer.pop_transform();
 
         self.renderer.autorender(&self.surface, wgpu::Color { r: 1.0, g: 1.0, b: 1.0, a: 1.0 });
 
