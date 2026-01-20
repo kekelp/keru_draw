@@ -54,20 +54,23 @@ VertexOutput vertexMain(
         image_vertex(input.primitiveIndex, vertexIndex, resolution, output.position, output.uv);
     }
 
-    // Apply transform in screen space (before final NDC conversion)
-    // The position is currently in NDC, so convert back to screen space
-    float2 screen_pos = (output.position.xy * float2(1.0, -1.0) + 1.0) * resolution * 0.5;
+    // Apply transform
+    // Textslabs quads are already aware of their transform
+    if (input.primitiveType != PrimitiveType::Text) {
+        // The position is currently in NDC, so convert back to screen space
+        float2 screen_pos = (output.position.xy * float2(1.0, -1.0) + 1.0) * resolution * 0.5;
 
-    // Apply the transform
-    Transform transform = transformsData.transforms[input.transformIndex];
-    float2x2 matrix = float2x2(transform.m11, transform.m12,
-                                transform.m21, transform.m22);
-    float2 translation = float2(transform.m31, transform.m32);
-    float2 transformed_pos = mul(matrix, screen_pos) + translation;
+        // Apply the transform
+        Transform transform = transformsData.transforms[input.transformIndex];
+        float2x2 matrix = float2x2(transform.m11, transform.m12,
+                                    transform.m21, transform.m22);
+        float2 translation = float2(transform.m31, transform.m32);
+        float2 transformed_pos = mul(matrix, screen_pos) + translation;
 
-    // Convert back to NDC
-    float2 ndc = (transformed_pos / resolution) * 2.0 - 1.0;
-    output.position = float4(ndc.x, -ndc.y, output.position.z, 1.0);
+        // Convert back to NDC
+        float2 ndc = (transformed_pos / resolution) * 2.0 - 1.0;
+        output.position = float4(ndc.x, -ndc.y, output.position.z, 1.0);
+    }
 
     return output;
 }

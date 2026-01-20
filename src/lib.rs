@@ -32,6 +32,43 @@ pub mod primitive {
 /// A 2D affine transform using euclid's Transform2D.
 pub type Transform = euclid::Transform2D<f32, UnknownUnit, UnknownUnit>;
 
+/// Combines a euclid Transform2D with a textslabs Transform2D.
+/// The textslabs transform is applied first, then the euclid transform.
+fn combine_transforms(euclid_transform: &Transform, textslabs_transform: &textslabs::Transform2D) -> textslabs::Transform2D {
+    // Convert textslabs transform to euclid
+    // textslabs applies: scale, then rotation, then translation
+    let cos_r = textslabs_transform.rotation.cos();
+    let sin_r = textslabs_transform.rotation.sin();
+    let s = textslabs_transform.scale;
+
+    let textslabs_euclid = Transform::new(
+        s * cos_r, s * sin_r,
+        -s * sin_r, s * cos_r,
+        textslabs_transform.translation.0,
+        textslabs_transform.translation.1,
+    );
+
+    // Combine: textslabs_euclid, then euclid_transform
+    let combined_euclid = textslabs_euclid.then(euclid_transform);
+
+    // Convert back to textslabs::Transform2D
+    // Extract translation from m31, m32
+    let translation = (combined_euclid.m31, combined_euclid.m32);
+
+    // Extract rotation and scale from the matrix
+    // For a 2D transform matrix: [[m11, m21], [m12, m22]]
+    // rotation = atan2(m12, m11)
+    // scale = sqrt(m11^2 + m12^2) (assuming uniform scale)
+    let rotation = combined_euclid.m12.atan2(combined_euclid.m11);
+    let scale = (combined_euclid.m11.powi(2) + combined_euclid.m12.powi(2)).sqrt();
+
+    textslabs::Transform2D {
+        translation,
+        rotation,
+        scale,
+    }
+}
+
 pub struct Renderer {
     device: wgpu::Device,
     queue: wgpu::Queue,
@@ -391,7 +428,17 @@ impl Renderer {
     }
 
     pub fn draw_text_box(&mut self, text_box: &TextBoxHandle) {
+        // Get current transform before borrowing text_box_ref
+        let current_euclid_transform = self.get_current_transform();
+
+        // Combine keru_draw's transform with the text box's retained_transform
         let text_box_ref = self.text.get_text_box_mut(text_box);
+        let retained = text_box_ref.retained_transform;
+
+        // Combine: first apply retained_transform, then keru_draw's transform
+        let combined = combine_transforms(&current_euclid_transform, &retained);
+        text_box_ref.transform = combined;
+
         self.text_renderer.prepare_text_box_layout(text_box_ref);
 
         let QuadRanges { glyph_range, .. } = self.text.get_text_box(text_box).quad_range();
@@ -407,7 +454,21 @@ impl Renderer {
     }
 
     pub fn draw_text_edit(&mut self, text_edit: &TextEditHandle) {
-        self.text_renderer.prepare_text_edit_layout(self.text.get_text_edit_mut(text_edit));
+        // Get current transform before borrowing text_edit_ref
+        let current_euclid_transform = self.get_current_transform();
+
+        // For TextEdit, we assume retained_transform is managed by the TextEdit itself
+        // We just combine with the current transform
+        let text_edit_ref = self.text.get_text_edit_mut(text_edit);
+
+        // TextEdit doesn't expose retained_transform publicly
+        // For now, we'll just apply the keru_draw transform on top of whatever transform the text_edit has
+        // This might need adjustment if TextEdit needs to track retained_transform separately
+        let current_text_transform = text_edit_ref.transform();
+        let combined = combine_transforms(&current_euclid_transform, &current_text_transform);
+        text_edit_ref.set_transform(combined);
+
+        self.text_renderer.prepare_text_edit_layout(text_edit_ref);
 
         let QuadRanges { glyph_range, .. } = self.text.get_text_edit(text_edit).quad_range();
 
@@ -495,6 +556,15 @@ impl Renderer {
     /// Get the current transform index being used for draw calls.
     pub fn current_transform_index(&self) -> usize {
         self.current_transform_index
+    }
+
+    /// Get the current transform being used for draw calls.
+    fn get_current_transform(&self) -> Transform {
+        if self.current_transform_index < self.transforms.len() {
+            self.transforms[self.current_transform_index]
+        } else {
+            Transform::identity()
+        }
     }
 
     /// Use a previously created transform by its index.
