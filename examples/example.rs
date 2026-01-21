@@ -95,16 +95,16 @@ impl State {
         renderer.text.get_text_edit_mut(&text_edit).set_style(&style);
 
         let text_box1 = renderer.text.add_text_box(
-            "Using rotation or zoom on text and SVGs can look quite disappointing, because they are pre-rasterized on the CPU.".to_owned(),
-            (120.0, 530.0),
+            "Using rotation or zoom on text and SVGs can look quite disappointing, because they are pre-rasterized on the CPU.Using rotation or zoom on text and SVGs can look quite disappointing, because they are pre-rasterized on the CPU.Using rotation or zoom on text and SVGs can look quite disappointing, because they are pre-rasterized on the CPU.Using rotation or zoom on text and SVGs can look quite disappointing, because they are pre-rasterized on the CPU.Using rotation or zoom on text and SVGs can look quite disappointing, because they are pre-rasterized on the CPU.Using rotation or zoom on text and SVGs can look quite disappointing, because they are pre-rasterized on the CPU.".to_owned(),
+            (10.0, 530.0),
             (200.0, 50.0),
             0.0,
         );
         renderer.text.get_text_box_mut(&text_box1).set_style(&style);
         renderer.text.get_text_box_mut(&text_box1).set_transform(Transform2D {
-            translation: (120.0, 530.0),
+            translation: (20.0, 530.0),
             rotation: std::f32::consts::PI * -0.15,
-            scale: 1.0,
+            scale: 1.5,
         });
 
         let text_box2 = renderer.text.add_text_box(
@@ -402,8 +402,9 @@ impl State {
         self.renderer.draw_image(&self.svg_handle, 520.0, 150.0, 180.0, 180.0, 0.5);
 
         // Rotated text
+        self.renderer.text.get_text_box_mut(&self.text_box1).set_screen_space_clip_rect(Some((0.0, 0.0, 100.0, 1000000.0)));
         self.renderer.draw_text_box(&self.text_box1);
-
+        
         self.renderer.draw_text_box(&self.text_box2);
 
         self.renderer.push_transform(
@@ -411,7 +412,8 @@ impl State {
                 .then_scale(1.25, 1.25)
                 .then_rotate(euclid::Angle::radians(PI * 0.3))
         );
-        self.renderer.draw_image(&self.svg_handle, -50.0, -50.0, 100.0, 100.0, 0.5);
+
+            self.renderer.draw_image(&self.svg_handle, -50.0, -50.0, 100.0, 100.0, 0.5);
 
         self.renderer.pop_transform();
 

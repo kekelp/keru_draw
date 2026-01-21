@@ -29,6 +29,32 @@ pub mod primitive {
     pub const IMAGE: u32 = 4;
 }
 
+/// A screen-space rectangle in pixel coordinates.
+/// Screen space has (0, 0) at the top-left corner, with Y increasing downward.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct ScreenRect {
+    /// Minimum X coordinate in pixels (left edge)
+    pub min_x: f32,
+    /// Minimum Y coordinate in pixels (top edge)
+    pub min_y: f32,
+    /// Maximum X coordinate in pixels (right edge)
+    pub max_x: f32,
+    /// Maximum Y coordinate in pixels (bottom edge)
+    pub max_y: f32,
+}
+
+impl ScreenRect {
+    /// Create a new ScreenRect from pixel coordinates.
+    pub fn new(min_x: f32, min_y: f32, max_x: f32, max_y: f32) -> Self {
+        Self { min_x, min_y, max_x, max_y }
+    }
+
+    /// Convert to the tuple format expected by textslabs.
+    fn to_tuple(self) -> (f32, f32, f32, f32) {
+        (self.min_x, self.min_y, self.max_x, self.max_y)
+    }
+}
+
 /// A 2D affine transform using euclid's Transform2D.
 pub type Transform = euclid::Transform2D<f32, UnknownUnit, UnknownUnit>;
 
@@ -427,6 +453,7 @@ impl Renderer {
         });
     }
 
+    /// Draw a text box.
     pub fn draw_text_box(&mut self, text_box: &TextBoxHandle) {
         // Get current transform before borrowing text_box_ref
         let current_euclid_transform = self.get_current_transform();
@@ -453,6 +480,7 @@ impl Renderer {
         }
     }
 
+    /// Draw a text edit widget.
     pub fn draw_text_edit(&mut self, text_edit: &TextEditHandle) {
         // Get current transform before borrowing text_edit_ref
         let current_euclid_transform = self.get_current_transform();
@@ -539,20 +567,12 @@ impl Renderer {
         &self.device
     }
 
-    /// Push a new transform onto the stack. The new transform is composed with the current
-    /// transform (current transform applied first, then the new transform).
+    /// Push a new transform onto the stack.
     /// The transform is applied in screen space after clipping.
     pub fn push_transform(&mut self, transform: Transform) {
-        // Get the current transform from the top of the stack
-        let current_transform_index = *self.transform_stack.last().unwrap();
-        let current_transform = self.transforms[current_transform_index];
-
-        // Compose: current transform first, then the new transform
-        let composed = current_transform.then(&transform);
-
-        // Add the composed transform to the buffer
+        // Add the transform to the buffer
         let new_index = self.transforms.len();
-        self.transforms.push(composed);
+        self.transforms.push(transform);
 
         // Push the new index onto the stack
         self.transform_stack.push(new_index);

@@ -59,9 +59,11 @@ void box_vertex(
     float2 resolution,
     out float4 position,
     out float2 uv,
+    out float2 screen_pos,
 ) {
     var box: BoxData = shapes.boxes[instanceIndex];
-    clipped_quad_vertex(box.top_left, box.size, box.x_clip, box.y_clip, vertexIndex, resolution, position, uv);
+    quad_vertex(box.top_left, box.size, vertexIndex, resolution, position, uv);
+    screen_pos = box.top_left + uv * box.size;
 }
 
 float linear(float a, float b, float x) { return (x-a)/(b-a); }
@@ -129,8 +131,13 @@ float sd_rounded_box(float2 p, float2 size, float r) {
     return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - r;
 }
 
-float4 box_fragment(uint primitiveIndex, float2 uv, bool surface_is_srgb): SV_Target {
+float4 box_fragment(uint primitiveIndex, float2 uv, float2 screen_pos, bool surface_is_srgb): SV_Target {
     var box: BoxData = shapes.boxes[primitiveIndex];
+
+    if (screen_pos.x < box.x_clip.x || screen_pos.x > box.x_clip.y ||
+        screen_pos.y < box.y_clip.x || screen_pos.y > box.y_clip.y) {
+        discard;
+    }
 
     float2 p = (uv - 0.5) * box.size;
 
@@ -174,6 +181,7 @@ void circle_vertex(
     float2 resolution,
     out float4 position,
     out float2 uv,
+    out float2 screen_pos,
 ) {
     var circle: CircleData = shapes.circles[instanceIndex];
 
@@ -182,7 +190,8 @@ void circle_vertex(
     float2 top_left = circle.center - float2(outer_radius, outer_radius);
     float2 size = float2(outer_radius * 2.0, outer_radius * 2.0);
 
-    clipped_quad_vertex(top_left, size, circle.x_clip, circle.y_clip, vertexIndex, resolution, position, uv);
+    quad_vertex(top_left, size, vertexIndex, resolution, position, uv);
+    screen_pos = top_left + uv * size;
 }
 
 float normalize_angle(float angle) {
@@ -251,8 +260,13 @@ float sd_circle_variant(float2 p, CircleData circle) {
     }
 }
 
-float4 circle_fragment(uint primitiveIndex, float2 uv, bool srgb): SV_Target {
+float4 circle_fragment(uint primitiveIndex, float2 uv, float2 screen_pos, bool srgb): SV_Target {
     var circle: CircleData = shapes.circles[primitiveIndex];
+
+    if (screen_pos.x < circle.x_clip.x || screen_pos.x > circle.x_clip.y ||
+        screen_pos.y < circle.y_clip.x || screen_pos.y > circle.y_clip.y) {
+        discard;
+    }
 
     // Convert UV to position relative to circle center
     float outer_radius = circle.radii.y;
@@ -294,6 +308,7 @@ void segment_vertex(
     float2 resolution,
     out float4 position,
     out float2 uv,
+    out float2 screen_pos,
 ) {
     var seg: SegmentData = shapes.segments[instanceIndex];
 
@@ -305,7 +320,8 @@ void segment_vertex(
     float2 top_left = min_point;
     float2 size = max_point - min_point;
 
-    clipped_quad_vertex(top_left, size, seg.x_clip, seg.y_clip, vertexIndex, resolution, position, uv);
+    quad_vertex(top_left, size, vertexIndex, resolution, position, uv);
+    screen_pos = top_left + uv * size;
 }
 
 // SDF for line segment from Inigo Quilez
@@ -316,8 +332,13 @@ float sd_segment(float2 p, float2 a, float2 b) {
     return length(pa - ba * h);
 }
 
-float4 segment_fragment(uint primitiveIndex, float2 uv, bool srgb): SV_Target {
+float4 segment_fragment(uint primitiveIndex, float2 uv, float2 screen_pos, bool srgb): SV_Target {
     var seg: SegmentData = shapes.segments[primitiveIndex];
+
+    if (screen_pos.x < seg.x_clip.x || screen_pos.x > seg.x_clip.y ||
+        screen_pos.y < seg.y_clip.x || screen_pos.y > seg.y_clip.y) {
+        discard;
+    }
 
     // Convert UV to world position
     float half_thickness = seg.thickness_dash[0] * 0.5;

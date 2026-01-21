@@ -17,6 +17,7 @@ struct VertexOutput {
     uint primitiveType: PRIMTYPE;
     uint primitiveIndex: PRIMINDEX;
     float2 uv: TEXCOORD0;
+    float2 screen_pos: TEXCOORD1;
 }
 
 struct VertexInput {
@@ -39,19 +40,21 @@ VertexOutput vertexMain(
     float2 resolution = textslabs.params.resolution;
 
     if (input.primitiveType == PrimitiveType::Box) {
-        box_vertex(input.primitiveIndex, vertexIndex, resolution, output.position, output.uv);
+        box_vertex(input.primitiveIndex, vertexIndex, resolution, output.position, output.uv, output.screen_pos);
     }
     else if (input.primitiveType == PrimitiveType::Circle) {
-        circle_vertex(input.primitiveIndex, vertexIndex, resolution, output.position, output.uv);
+        circle_vertex(input.primitiveIndex, vertexIndex, resolution, output.position, output.uv, output.screen_pos);
     }
     else if (input.primitiveType == PrimitiveType::Segment) {
-        segment_vertex(input.primitiveIndex, vertexIndex, resolution, output.position, output.uv);
+        segment_vertex(input.primitiveIndex, vertexIndex, resolution, output.position, output.uv, output.screen_pos);
     }
     else if (input.primitiveType == PrimitiveType::Text) {
         text_vertex(input.primitiveIndex, vertexIndex, resolution, output.position, output.uv);
+        output.screen_pos = float2(0.0, 0.0); // Text doesn't use screen_pos for clipping
     }
     else if (input.primitiveType == PrimitiveType::Image) {
         image_vertex(input.primitiveIndex, vertexIndex, resolution, output.position, output.uv);
+        output.screen_pos = float2(0.0, 0.0); // Image doesn't use screen_pos for clipping
     }
 
     // Apply transform
@@ -66,6 +69,9 @@ VertexOutput vertexMain(
                                     transform.m21, transform.m22);
         float2 translation = float2(transform.m31, transform.m32);
         float2 transformed_pos = mul(matrix, screen_pos) + translation;
+
+        // Store the transformed screen position for clipping in fragment shader
+        output.screen_pos = transformed_pos;
 
         // Convert back to NDC
         float2 ndc = (transformed_pos / resolution) * 2.0 - 1.0;
@@ -94,16 +100,16 @@ float4 fragmentMain(VertexOutput input): SV_Target {
     bool srgb = textslabs.params.srgb != 0;
 
     if (input.primitiveType == PrimitiveType::Box) {
-        return box_fragment(input.primitiveIndex, input.uv, srgb);
+        return box_fragment(input.primitiveIndex, input.uv, input.screen_pos, srgb);
     }
     else if (input.primitiveType == PrimitiveType::Circle) {
-        return circle_fragment(input.primitiveIndex, input.uv, srgb);
+        return circle_fragment(input.primitiveIndex, input.uv, input.screen_pos, srgb);
     }
     else if (input.primitiveType == PrimitiveType::Segment) {
-        return segment_fragment(input.primitiveIndex, input.uv, srgb);
+        return segment_fragment(input.primitiveIndex, input.uv, input.screen_pos, srgb);
     }
     else if (input.primitiveType == PrimitiveType::Text) {
-        return text_fragment(input.primitiveIndex, input.uv);
+        return text_fragment(input.primitiveIndex, input.uv, input.position);
     }
     else if (input.primitiveType == PrimitiveType::Image) {
         return image_fragment(input.primitiveIndex, input.uv);
