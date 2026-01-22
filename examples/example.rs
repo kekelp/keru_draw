@@ -87,7 +87,7 @@ impl State {
             None,
         );
         let text_edit = renderer.text.add_text_edit(
-            "Bottom text o algo 🌈".to_owned(),
+            "🌈Bottom text".to_owned(),
             (500.0, 400.0),
             (280.0, 150.0),
             0.0,
@@ -108,7 +108,7 @@ impl State {
         });
 
         let text_box2 = renderer.text.add_text_box(
-            "90 degree rotations without scaling should look okay, though.".to_owned(),
+            "90 degree rotation".to_owned(),
             (0.0, 0.0),
             (200.0, 60.0),
             0.0,
@@ -348,6 +348,7 @@ impl State {
             [1.0, 0.5, 0.0, 1.0],
             clip_x,
             clip_y,
+            None,
         );
 
         self.renderer.draw_segment(
@@ -357,6 +358,7 @@ impl State {
             [1.0, 0.6, 0.0, 1.0],
             clip_x,
             clip_y,
+            Some(10.0),
         );
 
         self.renderer.draw_segment(
@@ -366,6 +368,7 @@ impl State {
             [1.0, 0.7, 0.0, 1.0],
             clip_x,
             clip_y,
+            Some(15.0),
         );
 
         self.renderer.draw_segment(
@@ -375,6 +378,7 @@ impl State {
             [1.0, 0.8, 0.0, 1.0],
             clip_x,
             clip_y,
+            Some(5.0),
         );
 
         // Gradient segments forming an X
@@ -386,6 +390,7 @@ impl State {
             [0.2, 0.9, 1.0, 0.7],
             clip_x,
             clip_y,
+            Some(8.0),
         );
         self.renderer.draw_segment_gradient(
             [370.0, 540.0],
@@ -395,6 +400,7 @@ impl State {
             [0.2, 1.0, 0.9, 0.8],
             clip_x,
             clip_y,
+            None,
         );
 
         self.renderer.draw_text_edit(&self.text_edit);

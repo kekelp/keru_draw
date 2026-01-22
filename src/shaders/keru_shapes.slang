@@ -359,6 +359,24 @@ float4 segment_fragment(uint primitiveIndex, float2 uv, float2 screen_pos, bool 
         discard;
     }
 
+    // Handle dashed lines
+    float dash_length = seg.thickness_dash[1];
+    if (dash_length > 0.0001) {
+        float2 seg_vec = seg.end - seg.start;
+        float seg_len = length(seg_vec);
+        float t = 0.0;
+        if (seg_len > 0.001) {
+            t = dot(p - seg.start, seg_vec) / seg_len;
+        }
+
+        float dash_period = dash_length * 2.0;
+        float pos_in_period = fmod(t, dash_period);
+
+        if (pos_in_period > dash_length) {
+            discard;
+        }
+    }
+
     // Calculate gradient color
     float4 color;
     if (seg.gradient_type == 1) {

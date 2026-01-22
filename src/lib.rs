@@ -424,8 +424,9 @@ impl Renderer {
         color: [f32; 4],
         x_clip: [f32; 2],
         y_clip: [f32; 2],
+        dash_length: Option<f32>,
     ) {
-        let index = self.shapes.push_segment(start, end, thickness, color, x_clip, y_clip);
+        let index = self.shapes.push_segment(start, end, thickness, color, x_clip, y_clip, dash_length);
         self.instances.push(Instance {
             p_type: primitive::SEGMENT,
             p_index: index as u32,
@@ -443,8 +444,9 @@ impl Renderer {
         color_end: [f32; 4],
         x_clip: [f32; 2],
         y_clip: [f32; 2],
+        dash_length: Option<f32>,
     ) {
-        let index = self.shapes.push_segment_gradient(start, end, thickness, color_start, color_end, x_clip, y_clip);
+        let index = self.shapes.push_segment_gradient(start, end, thickness, color_start, color_end, x_clip, y_clip, dash_length);
         self.instances.push(Instance {
             p_type: primitive::SEGMENT,
             p_index: index as u32,

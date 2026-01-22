@@ -38,7 +38,7 @@ pub struct Segment {
     pub y_clip: [f32; 2],
     pub color_start: [f32; 4],
     pub color_end: [f32; 4],
-    pub thickness_dash: [f32; 4],
+    pub thickness_dash: [f32; 4], // [thickness, dash_length, unused, unused]
     pub gradient_type: u32, // 0=solid, 1=linear along segment
     pub pad: [f32; 3],
 }
@@ -313,6 +313,7 @@ impl Shapes {
         color: [f32; 4],
         x_clip: [f32; 2],
         y_clip: [f32; 2],
+        dash_length: Option<f32>,
     ) -> usize {
         let index = self.segments.len();
         self.segments.push(Segment {
@@ -322,7 +323,7 @@ impl Shapes {
             y_clip,
             color_start: color,
             color_end: color,
-            thickness_dash: [thickness, 1.0, 1.0, 1.0],
+            thickness_dash: [thickness, dash_length.unwrap_or(0.0), 1.0, 1.0],
             gradient_type: 0, // solid
             pad: [0.0, 0.0, 0.0],
         });
@@ -338,6 +339,7 @@ impl Shapes {
         color_end: [f32; 4],
         x_clip: [f32; 2],
         y_clip: [f32; 2],
+        dash_length: Option<f32>,
     ) -> usize {
         let index = self.segments.len();
         self.segments.push(Segment {
@@ -347,7 +349,7 @@ impl Shapes {
             y_clip,
             color_start,
             color_end,
-            thickness_dash: [thickness, 1.0, 1.0, 1.0],
+            thickness_dash: [thickness, dash_length.unwrap_or(0.0), 1.0, 1.0],
             gradient_type: 1, // linear along segment
             pad: [0.0, 0.0, 0.0],
         });
