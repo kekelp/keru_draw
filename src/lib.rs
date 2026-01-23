@@ -43,18 +43,6 @@ pub struct ScreenRect {
     pub max_y: f32,
 }
 
-impl ScreenRect {
-    /// Create a new ScreenRect from pixel coordinates.
-    pub fn new(min_x: f32, min_y: f32, max_x: f32, max_y: f32) -> Self {
-        Self { min_x, min_y, max_x, max_y }
-    }
-
-    /// Convert to the tuple format expected by textslabs.
-    fn to_tuple(self) -> (f32, f32, f32, f32) {
-        (self.min_x, self.min_y, self.max_x, self.max_y)
-    }
-}
-
 /// A 2D affine transform using euclid's Transform2D.
 pub type Transform = euclid::Transform2D<f32, UnknownUnit, UnknownUnit>;
 
