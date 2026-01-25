@@ -544,8 +544,7 @@ impl Renderer {
         &self.device
     }
 
-    /// Returns the current number of instances that have been added.
-    /// This is useful for tracking ranges when building custom render plans.
+    /// Returns the current number of instances that have been added so far.
     pub fn instance_count(&self) -> usize {
         self.instances.len()
     }
@@ -582,16 +581,6 @@ impl Renderer {
 
     /// Render into a render pass.
     pub fn render(&mut self, render_pass: &mut wgpu::RenderPass) {
-        let decorations_range = self.text.prepare_decorations(&mut self.text_renderer);
-        for q in (decorations_range.0)..(decorations_range.1) {
-            self.instances.push(Instance {
-                p_type: primitive::TEXT,
-                p_index: q as u32,
-                transform_index: *self.transform_stack.last().unwrap() as u32,
-                _padding: 0,
-            });
-        }
-
         // Upload resources to GPU
         self.shapes.load_to_gpu(&self.device, &self.queue);
         self.text_renderer.load_to_gpu(&self.device, &self.queue);
@@ -603,8 +592,7 @@ impl Renderer {
         render_pass.draw(0..4, 0..self.instances.len() as u32);
     }
 
-    /// todo remove
-    pub fn setup_render_pass(&mut self, render_pass: &mut wgpu::RenderPass) {
+    pub fn prepare_text_decorations(&mut self) {
         let decorations_range = self.text.prepare_decorations(&mut self.text_renderer);
         for q in (decorations_range.0)..(decorations_range.1) {
             self.instances.push(Instance {
@@ -614,14 +602,14 @@ impl Renderer {
                 _padding: 0,
             });
         }
+    }
 
+    pub fn load_to_gpu(&mut self) {
         // Upload resources to GPU
         self.shapes.load_to_gpu(&self.device, &self.queue);
         self.text_renderer.load_to_gpu(&self.device, &self.queue);
         self.image_renderer.load_to_gpu(&self.device, &self.queue);
         self.instances.load_to_gpu(&self.device, &self.queue);
-
-        self.set_pipeline_state(render_pass);
     }
 
     pub fn set_pipeline_state(&mut self, render_pass: &mut wgpu::RenderPass) {
