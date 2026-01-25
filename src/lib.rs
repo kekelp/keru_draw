@@ -5,6 +5,8 @@ pub mod gpu_vec;
 use gpu_vec::GpuVec;
 use std::time::Duration;
 
+#[derive(Debug, Clone, Copy)]
+pub struct InstanceRange { pub start: usize, pub end: usize }
 
 pub use textslabs;
 
@@ -596,23 +598,12 @@ impl Renderer {
         self.image_renderer.load_to_gpu(&self.device, &self.queue);
         self.instances.load_to_gpu(&self.device, &self.queue);
 
-        render_pass.set_pipeline(&self.render_pipeline);
-        // The binding indices has to match the order in which the parameter blocks appear in the shader!
-        // If there are issues, compile the shaders with the -reflection-json flag and see the parameterBlock fields.
-        // Binding order: transformsData+shapes(0), textslabs(1), imageatlas(2)
-        render_pass.set_bind_group(0, &self.shapes.bind_group, &[]);
-        render_pass.set_bind_group(1, &self.text_renderer.bind_group(), &[]);
-        render_pass.set_bind_group(2, self.image_renderer.bind_group(), &[]);
-        render_pass.set_vertex_buffer(0, self.instances.buffer().slice(..));
+        self.set_pipeline_state(render_pass);
 
         render_pass.draw(0..4, 0..self.instances.len() as u32);
     }
 
-    /// Set up the render pass for custom rendering.
-    ///
-    /// This prepares all GPU resources and sets up the render pipeline and bind groups,
-    /// but doesn't actually draw anything. After calling this, you can call `render_range()`
-    /// multiple times to draw specific ranges of instances.
+    /// todo remove
     pub fn setup_render_pass(&mut self, render_pass: &mut wgpu::RenderPass) {
         let decorations_range = self.text.prepare_decorations(&mut self.text_renderer);
         for q in (decorations_range.0)..(decorations_range.1) {
@@ -630,6 +621,10 @@ impl Renderer {
         self.image_renderer.load_to_gpu(&self.device, &self.queue);
         self.instances.load_to_gpu(&self.device, &self.queue);
 
+        self.set_pipeline_state(render_pass);
+    }
+
+    pub fn set_pipeline_state(&mut self, render_pass: &mut wgpu::RenderPass) {
         render_pass.set_pipeline(&self.render_pipeline);
         // The binding indices has to match the order in which the parameter blocks appear in the shader!
         // If there are issues, compile the shaders with the -reflection-json flag and see the parameterBlock fields.
@@ -646,13 +641,15 @@ impl Renderer {
     /// Keru's rendering with your own custom drawing code.
     ///
     /// Note: You must call `setup_render_pass()` before calling this method.
-    pub fn render_range(&mut self, render_pass: &mut wgpu::RenderPass, range: std::ops::Range<usize>) {
-        if range.is_empty() || range.start >= self.instances.len() {
+    pub fn render_range(&mut self, render_pass: &mut wgpu::RenderPass, range: InstanceRange) {
+        if range.start >= range.end || range.start >= self.instances.len() {
             return;
         }
 
-        let actual_end = range.end.min(self.instances.len());
-        render_pass.draw(0..4, range.start as u32..actual_end as u32);
+        self.set_pipeline_state(render_pass);
+
+        let real_end = range.end.min(self.instances.len());
+        render_pass.draw(0..4, range.start as u32..real_end as u32);
     }
 
     /// Convenience function that creates a render pass, renders into it, and presents to the screen.
