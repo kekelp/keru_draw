@@ -103,6 +103,15 @@ impl<T: Copy> GpuVec<T> {
         self.dirty = true;
     }
 
+    pub fn vec(&mut self) -> &Vec<T> {
+        &self.data
+    }
+
+    pub fn vec_mut(&mut self) -> &mut Vec<T> {
+        self.dirty = true;
+        &mut self.data
+    }
+
     pub fn len(&self) -> usize {
         self.data.len()
     }

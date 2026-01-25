@@ -64,7 +64,7 @@ VertexOutput vertexMain(
         float2 screen_pos = (output.position.xy * float2(1.0, -1.0) + 1.0) * resolution * 0.5;
 
         // Apply the transform
-        Transform transform = transformsData.transforms[input.transformIndex];
+        Transform transform = shapes.transforms[input.transformIndex];
         float2x2 matrix = float2x2(transform.m11, transform.m12,
                                     transform.m21, transform.m22);
         float2 translation = float2(transform.m31, transform.m32);
@@ -80,18 +80,6 @@ VertexOutput vertexMain(
 
     return output;
 }
-
-struct Transform {
-    float m11; float m12;
-    float m21; float m22;
-    float m31; float m32;
-}
-
-struct TransformsData {
-    StructuredBuffer<Transform> transforms;
-}
-
-ParameterBlock<TransformsData> transformsData;
 
 [shader("fragment")]
 float4 fragmentMain(VertexOutput input): SV_Target {

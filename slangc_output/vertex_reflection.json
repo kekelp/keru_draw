@@ -1,13 +1,13 @@
 {
     "parameters": [
         {
-            "name": "transformsData",
+            "name": "shapes",
             "binding": {"kind": "subElementRegisterSpace", "index": 0},
             "type": {
                 "kind": "parameterBlock",
                 "elementType": {
                     "kind": "struct",
-                    "name": "TransformsData",
+                    "name": "ShapesData",
                     "fields": [
                         {
                             "name": "transforms",
@@ -70,94 +70,7 @@
                                 }
                             },
                             "binding": {"kind": "descriptorTableSlot", "index": 0}
-                        }
-                    ]
-                },
-                "containerVarLayout": {
-                    "binding": {"kind": "subElementRegisterSpace", "index": 0}
-                },
-                "elementVarLayout": {
-                    "type": {
-                        "kind": "struct",
-                        "name": "TransformsData",
-                        "fields": [
-                            {
-                                "name": "transforms",
-                                "type": {
-                                    "kind": "resource",
-                                    "baseShape": "structuredBuffer",
-                                    "resultType": {
-                                        "kind": "struct",
-                                        "name": "Transform",
-                                        "fields": [
-                                            {
-                                                "name": "m11",
-                                                "type": {
-                                                    "kind": "scalar",
-                                                    "scalarType": "float32"
-                                                },
-                                                "binding": {"kind": "uniform", "offset": 0, "size": 4, "elementStride": 0}
-                                            },
-                                            {
-                                                "name": "m12",
-                                                "type": {
-                                                    "kind": "scalar",
-                                                    "scalarType": "float32"
-                                                },
-                                                "binding": {"kind": "uniform", "offset": 4, "size": 4, "elementStride": 0}
-                                            },
-                                            {
-                                                "name": "m21",
-                                                "type": {
-                                                    "kind": "scalar",
-                                                    "scalarType": "float32"
-                                                },
-                                                "binding": {"kind": "uniform", "offset": 8, "size": 4, "elementStride": 0}
-                                            },
-                                            {
-                                                "name": "m22",
-                                                "type": {
-                                                    "kind": "scalar",
-                                                    "scalarType": "float32"
-                                                },
-                                                "binding": {"kind": "uniform", "offset": 12, "size": 4, "elementStride": 0}
-                                            },
-                                            {
-                                                "name": "m31",
-                                                "type": {
-                                                    "kind": "scalar",
-                                                    "scalarType": "float32"
-                                                },
-                                                "binding": {"kind": "uniform", "offset": 16, "size": 4, "elementStride": 0}
-                                            },
-                                            {
-                                                "name": "m32",
-                                                "type": {
-                                                    "kind": "scalar",
-                                                    "scalarType": "float32"
-                                                },
-                                                "binding": {"kind": "uniform", "offset": 20, "size": 4, "elementStride": 0}
-                                            }
-                                        ]
-                                    }
-                                },
-                                "binding": {"kind": "descriptorTableSlot", "index": 0}
-                            }
-                        ]
-                    },
-                    "binding": {"kind": "descriptorTableSlot", "index": 0}
-                }
-            }
-        },
-        {
-            "name": "shapes",
-            "binding": {"kind": "subElementRegisterSpace", "index": 1},
-            "type": {
-                "kind": "parameterBlock",
-                "elementType": {
-                    "kind": "struct",
-                    "name": "ShapesData",
-                    "fields": [
+                        },
                         {
                             "name": "boxes",
                             "type": {
@@ -302,7 +215,7 @@
                                     ]
                                 }
                             },
-                            "binding": {"kind": "descriptorTableSlot", "index": 0}
+                            "binding": {"kind": "descriptorTableSlot", "index": 1}
                         },
                         {
                             "name": "circles",
@@ -444,7 +357,7 @@
                                     ]
                                 }
                             },
-                            "binding": {"kind": "descriptorTableSlot", "index": 1}
+                            "binding": {"kind": "descriptorTableSlot", "index": 2}
                         },
                         {
                             "name": "segments",
@@ -574,7 +487,7 @@
                                     ]
                                 }
                             },
-                            "binding": {"kind": "descriptorTableSlot", "index": 2}
+                            "binding": {"kind": "descriptorTableSlot", "index": 3}
                         }
                     ]
                 },
@@ -586,6 +499,68 @@
                         "kind": "struct",
                         "name": "ShapesData",
                         "fields": [
+                            {
+                                "name": "transforms",
+                                "type": {
+                                    "kind": "resource",
+                                    "baseShape": "structuredBuffer",
+                                    "resultType": {
+                                        "kind": "struct",
+                                        "name": "Transform",
+                                        "fields": [
+                                            {
+                                                "name": "m11",
+                                                "type": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 0, "size": 4, "elementStride": 0}
+                                            },
+                                            {
+                                                "name": "m12",
+                                                "type": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 4, "size": 4, "elementStride": 0}
+                                            },
+                                            {
+                                                "name": "m21",
+                                                "type": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 8, "size": 4, "elementStride": 0}
+                                            },
+                                            {
+                                                "name": "m22",
+                                                "type": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 12, "size": 4, "elementStride": 0}
+                                            },
+                                            {
+                                                "name": "m31",
+                                                "type": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 16, "size": 4, "elementStride": 0}
+                                            },
+                                            {
+                                                "name": "m32",
+                                                "type": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 20, "size": 4, "elementStride": 0}
+                                            }
+                                        ]
+                                    }
+                                },
+                                "binding": {"kind": "descriptorTableSlot", "index": 0}
+                            },
                             {
                                 "name": "boxes",
                                 "type": {
@@ -730,7 +705,7 @@
                                         ]
                                     }
                                 },
-                                "binding": {"kind": "descriptorTableSlot", "index": 0}
+                                "binding": {"kind": "descriptorTableSlot", "index": 1}
                             },
                             {
                                 "name": "circles",
@@ -872,7 +847,7 @@
                                         ]
                                     }
                                 },
-                                "binding": {"kind": "descriptorTableSlot", "index": 1}
+                                "binding": {"kind": "descriptorTableSlot", "index": 2}
                             },
                             {
                                 "name": "segments",
@@ -1002,17 +977,17 @@
                                         ]
                                     }
                                 },
-                                "binding": {"kind": "descriptorTableSlot", "index": 2}
+                                "binding": {"kind": "descriptorTableSlot", "index": 3}
                             }
                         ]
                     },
-                    "binding": {"kind": "descriptorTableSlot", "index": 0, "count": 3}
+                    "binding": {"kind": "descriptorTableSlot", "index": 0, "count": 4}
                 }
             }
         },
         {
             "name": "textslabs",
-            "binding": {"kind": "subElementRegisterSpace", "index": 2},
+            "binding": {"kind": "subElementRegisterSpace", "index": 1},
             "type": {
                 "kind": "parameterBlock",
                 "elementType": {
@@ -1617,7 +1592,7 @@
         },
         {
             "name": "imageatlas",
-            "binding": {"kind": "subElementRegisterSpace", "index": 3},
+            "binding": {"kind": "subElementRegisterSpace", "index": 2},
             "type": {
                 "kind": "parameterBlock",
                 "elementType": {
@@ -2199,20 +2174,16 @@
             },
             "bindings": [
                 {
-                    "name": "transformsData",
+                    "name": "shapes",
                     "binding": {"kind": "subElementRegisterSpace", "index": 0, "used": 0}
                 },
                 {
-                    "name": "shapes",
+                    "name": "textslabs",
                     "binding": {"kind": "subElementRegisterSpace", "index": 1, "used": 0}
                 },
                 {
-                    "name": "textslabs",
-                    "binding": {"kind": "subElementRegisterSpace", "index": 2, "used": 0}
-                },
-                {
                     "name": "imageatlas",
-                    "binding": {"kind": "subElementRegisterSpace", "index": 3, "used": 0}
+                    "binding": {"kind": "subElementRegisterSpace", "index": 2, "used": 0}
                 }
             ]
         }

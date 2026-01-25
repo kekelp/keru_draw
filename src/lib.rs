@@ -92,7 +92,6 @@ pub struct Renderer {
     text_renderer: TextRenderer,
     shapes: Shapes,
     instances: GpuVec<Instance>,
-    transforms: GpuVec<Transform>,
     transform_stack: Vec<usize>,
     pub gpu_profiler: GpuProfiler,
 }
@@ -136,21 +135,13 @@ impl Renderer {
 
         let svg_renderer = ImageRenderer::new(&device, &queue, surface_format);
 
-        let transforms_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: Some("keru_draw transforms bind group layout"),
-            entries: &[
-                GpuVec::<Transform>::bind_group_layout_entry(0),
-            ],
-        });
-
         let render_pipeline_layout =
             device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                 label: Some("Render Pipeline Layout"),
                 // The binding indices has to match the order in which the parameter blocks appear in the shader!
                 // If there are issues, compile the shaders with the -reflection-json flag and see the parameterBlock fields.
-                // Binding order: transformsData(0), shapes(1), textslabs(2), imageatlas(3)
+                // Binding order: transformsData+shapes(0), textslabs(1), imageatlas(2)
                 bind_group_layouts: &[
-                    &transforms_bind_group_layout,
                     &Shapes::bind_group_layout(&device),
                     &text_renderer.bind_group_layout(),
                     svg_renderer.bind_group_layout(),
@@ -223,10 +214,6 @@ impl Renderer {
             wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
         );
 
-        let mut transforms = GpuVec::new(&device, 64, "keru_draw transforms");
-        // Push identity transform at index 0
-        transforms.push(Transform::identity());
-
         let gpu_profiler = GpuProfiler::new(&device, GpuProfilerSettings {
             enable_timer_queries: false,
             enable_debug_groups: false,
@@ -242,7 +229,6 @@ impl Renderer {
             text_renderer,
             image_renderer: svg_renderer,
             instances,
-            transforms,
             transform_stack: vec![0], // Start with identity transform at index 0
             gpu_profiler,
         }
@@ -527,9 +513,8 @@ impl Renderer {
         self.image_renderer.clear();
         self.instances.clear();
         self.text_renderer.clear();
-        self.transforms.clear();
-        // Re-add identity transform at index 0
-        self.transforms.push(Transform::identity());
+        self.shapes.transforms.clear();
+        self.shapes.transforms.push(Transform::identity());
         self.transform_stack.clear();
         self.transform_stack.push(0);
     }
@@ -557,12 +542,18 @@ impl Renderer {
         &self.device
     }
 
+    /// Returns the current number of instances that have been added.
+    /// This is useful for tracking ranges when building custom render plans.
+    pub fn instance_count(&self) -> usize {
+        self.instances.len()
+    }
+
     /// Push a new transform onto the stack.
     /// The transform is applied in screen space after clipping.
     pub fn push_transform(&mut self, transform: Transform) {
         // Add the transform to the buffer
-        let new_index = self.transforms.len();
-        self.transforms.push(transform);
+        let new_index = self.shapes.transforms.len();
+        self.shapes.transforms.push(transform);
 
         // Push the new index onto the stack
         self.transform_stack.push(new_index);
@@ -580,8 +571,8 @@ impl Renderer {
     /// Get the current transform being used for draw calls.
     fn get_current_transform(&self) -> Transform {
         let current_index = *self.transform_stack.last().unwrap();
-        if current_index < self.transforms.len() {
-            self.transforms[current_index]
+        if current_index < self.shapes.transforms.len() {
+            self.shapes.transforms[current_index]
         } else {
             Transform::identity()
         }
@@ -605,47 +596,63 @@ impl Renderer {
         self.image_renderer.load_to_gpu(&self.device, &self.queue);
         self.instances.load_to_gpu(&self.device, &self.queue);
 
-        let transforms_changed = self.transforms.load_to_gpu(&self.device, &self.queue);
-        let transforms_bind_group = if transforms_changed {
-            let layout = self.device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-                label: Some("keru_draw transforms bind group layout"),
-                entries: &[
-                    GpuVec::<Transform>::bind_group_layout_entry(0),
-                ],
+        render_pass.set_pipeline(&self.render_pipeline);
+        // The binding indices has to match the order in which the parameter blocks appear in the shader!
+        // If there are issues, compile the shaders with the -reflection-json flag and see the parameterBlock fields.
+        // Binding order: transformsData+shapes(0), textslabs(1), imageatlas(2)
+        render_pass.set_bind_group(0, &self.shapes.bind_group, &[]);
+        render_pass.set_bind_group(1, &self.text_renderer.bind_group(), &[]);
+        render_pass.set_bind_group(2, self.image_renderer.bind_group(), &[]);
+        render_pass.set_vertex_buffer(0, self.instances.buffer().slice(..));
+
+        render_pass.draw(0..4, 0..self.instances.len() as u32);
+    }
+
+    /// Set up the render pass for custom rendering.
+    ///
+    /// This prepares all GPU resources and sets up the render pipeline and bind groups,
+    /// but doesn't actually draw anything. After calling this, you can call `render_range()`
+    /// multiple times to draw specific ranges of instances.
+    pub fn setup_render_pass(&mut self, render_pass: &mut wgpu::RenderPass) {
+        let decorations_range = self.text.prepare_decorations(&mut self.text_renderer);
+        for q in (decorations_range.0)..(decorations_range.1) {
+            self.instances.push(Instance {
+                p_type: primitive::TEXT,
+                p_index: q as u32,
+                transform_index: *self.transform_stack.last().unwrap() as u32,
+                _padding: 0,
             });
-            self.device.create_bind_group(&wgpu::BindGroupDescriptor {
-                label: Some("keru_draw transforms bind group"),
-                layout: &layout,
-                entries: &[
-                    self.transforms.bind_group_entry(0),
-                ],
-            })
-        } else {
-            self.device.create_bind_group(&wgpu::BindGroupDescriptor {
-                label: Some("keru_draw transforms bind group"),
-                layout: &self.device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-                    label: Some("keru_draw transforms bind group layout"),
-                    entries: &[
-                        GpuVec::<Transform>::bind_group_layout_entry(0),
-                    ],
-                }),
-                entries: &[
-                    self.transforms.bind_group_entry(0),
-                ],
-            })
-        };
+        }
+
+        // Upload resources to GPU
+        self.shapes.load_to_gpu(&self.device, &self.queue);
+        self.text_renderer.load_to_gpu(&self.device, &self.queue);
+        self.image_renderer.load_to_gpu(&self.device, &self.queue);
+        self.instances.load_to_gpu(&self.device, &self.queue);
 
         render_pass.set_pipeline(&self.render_pipeline);
         // The binding indices has to match the order in which the parameter blocks appear in the shader!
         // If there are issues, compile the shaders with the -reflection-json flag and see the parameterBlock fields.
-        // Binding order: transformsData(0), shapes(1), textslabs(2), imageatlas(3)
-        render_pass.set_bind_group(0, &transforms_bind_group, &[]);
-        render_pass.set_bind_group(1, &self.shapes.bind_group, &[]);
-        render_pass.set_bind_group(2, &self.text_renderer.bind_group(), &[]);
-        render_pass.set_bind_group(3, self.image_renderer.bind_group(), &[]);
+        // Binding order: transformsData+shapes(0), textslabs(1), imageatlas(2)
+        render_pass.set_bind_group(0, &self.shapes.bind_group, &[]);
+        render_pass.set_bind_group(1, &self.text_renderer.bind_group(), &[]);
+        render_pass.set_bind_group(2, self.image_renderer.bind_group(), &[]);
         render_pass.set_vertex_buffer(0, self.instances.buffer().slice(..));
+    }
 
-        render_pass.draw(0..4, 0..self.instances.len() as u32);
+    /// Render a specific range of instances into a render pass.
+    ///
+    /// This is useful for custom rendering where you want to interleave
+    /// Keru's rendering with your own custom drawing code.
+    ///
+    /// Note: You must call `setup_render_pass()` before calling this method.
+    pub fn render_range(&mut self, render_pass: &mut wgpu::RenderPass, range: std::ops::Range<usize>) {
+        if range.is_empty() || range.start >= self.instances.len() {
+            return;
+        }
+
+        let actual_end = range.end.min(self.instances.len());
+        render_pass.draw(0..4, range.start as u32..actual_end as u32);
     }
 
     /// Convenience function that creates a render pass, renders into it, and presents to the screen.

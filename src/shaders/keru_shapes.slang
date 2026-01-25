@@ -45,7 +45,14 @@ struct SegmentData {
     float pad2;
 }
 
+struct Transform {
+    float m11; float m12;
+    float m21; float m22;
+    float m31; float m32;
+}
+
 struct ShapesData {
+    StructuredBuffer<Transform> transforms;
     StructuredBuffer<BoxData> boxes;
     StructuredBuffer<CircleData> circles;
     StructuredBuffer<SegmentData> segments;

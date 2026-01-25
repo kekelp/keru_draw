@@ -1,3 +1,5 @@
+use crate::*;
+
 #[repr(C)]
 #[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct Box {
@@ -49,11 +51,16 @@ pub struct Shapes {
     boxes: GpuVec<Box>,
     circles: GpuVec<Circle>,
     segments: GpuVec<Segment>,
+    pub transforms: GpuVec<Transform>,
     pub bind_group: wgpu::BindGroup,
 }
 
 impl Shapes {
     pub fn new(device: &wgpu::Device) -> Self {
+        let mut transforms = GpuVec::new(device, 64, "keru_draw transforms");
+        // Push identity transform at index 0
+        transforms.push(crate::Transform::identity());
+
         let boxes = GpuVec::new(device, 64, "keru_draw boxes");
         let circles = GpuVec::new(device, 64, "keru_draw circles");
         let segments = GpuVec::new(device, 64, "keru_draw segments");
@@ -63,13 +70,15 @@ impl Shapes {
             label: Some("Shapes Bind Group"),
             layout: &bind_group_layout,
             entries: &[
-                boxes.bind_group_entry(0),
-                circles.bind_group_entry(1),
-                segments.bind_group_entry(2),
+                transforms.bind_group_entry(0),
+                boxes.bind_group_entry(1),
+                circles.bind_group_entry(2),
+                segments.bind_group_entry(3),
             ],
         });
 
         Self {
+            transforms,
             boxes,
             circles,
             segments,
@@ -357,19 +366,21 @@ impl Shapes {
     }
 
     pub fn load_to_gpu(&mut self, device: &wgpu::Device, queue: &wgpu::Queue) {
+        let transforms_changed = self.transforms.load_to_gpu(device, queue);
         let boxes_changed = self.boxes.load_to_gpu(device, queue);
         let circles_changed = self.circles.load_to_gpu(device, queue);
         let segments_changed = self.segments.load_to_gpu(device, queue);
 
-        if boxes_changed || circles_changed || segments_changed {
+        if transforms_changed || boxes_changed || circles_changed || segments_changed {
             let bind_group_layout = Self::bind_group_layout(device);
             self.bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
                 label: Some("keru_draw shapes bind group"),
                 layout: &bind_group_layout,
                 entries: &[
-                    self.boxes.bind_group_entry(0),
-                    self.circles.bind_group_entry(1),
-                    self.segments.bind_group_entry(2),
+                    self.transforms.bind_group_entry(0),
+                    self.boxes.bind_group_entry(1),
+                    self.circles.bind_group_entry(2),
+                    self.segments.bind_group_entry(3),
                 ],
             });
         }
@@ -379,9 +390,10 @@ impl Shapes {
         device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: Some("keru_draw shapes bind group layout"),
             entries: &[
-                GpuVec::<Box>::bind_group_layout_entry(0),
-                GpuVec::<Circle>::bind_group_layout_entry(1),
-                GpuVec::<Segment>::bind_group_layout_entry(2),
+                GpuVec::<Transform>::bind_group_layout_entry(0),
+                GpuVec::<Box>::bind_group_layout_entry(1),
+                GpuVec::<Circle>::bind_group_layout_entry(2),
+                GpuVec::<Segment>::bind_group_layout_entry(3),
             ],
         })
     }
