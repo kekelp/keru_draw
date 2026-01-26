@@ -32,6 +32,151 @@ pub mod primitive {
     pub const GRID: u32 = 5;
 }
 
+/// Parameters for drawing a box/rectangle
+#[derive(Debug, Clone, Copy)]
+pub struct BoxParams {
+    pub top_left: [f32; 2],
+    pub size: [f32; 2],
+    pub corner_radius: f32,
+    pub border_thickness: f32,
+    pub color: [f32; 4],
+    pub x_clip: [f32; 2],
+    pub y_clip: [f32; 2],
+}
+
+/// Parameters for drawing a box with a gradient
+#[derive(Debug, Clone, Copy)]
+pub struct BoxGradientParams {
+    pub top_left: [f32; 2],
+    pub size: [f32; 2],
+    pub corner_radius: f32,
+    pub border_thickness: f32,
+    pub color_start: [f32; 4],
+    pub color_end: [f32; 4],
+    pub gradient_angle: f32,
+    pub x_clip: [f32; 2],
+    pub y_clip: [f32; 2],
+}
+
+/// Parameters for drawing a circle
+#[derive(Debug, Clone, Copy)]
+pub struct CircleParams {
+    pub center: [f32; 2],
+    pub radius: f32,
+    pub color: [f32; 4],
+    pub x_clip: [f32; 2],
+    pub y_clip: [f32; 2],
+}
+
+/// Parameters for drawing a circle with a gradient
+#[derive(Debug, Clone, Copy)]
+pub struct CircleGradientParams {
+    pub center: [f32; 2],
+    pub radius: f32,
+    pub color_start: [f32; 4],
+    pub color_end: [f32; 4],
+    pub gradient_type: u32, // 1=linear, 2=radial
+    pub gradient_angle: f32,
+    pub x_clip: [f32; 2],
+    pub y_clip: [f32; 2],
+}
+
+/// Parameters for drawing a ring (hollow circle)
+#[derive(Debug, Clone, Copy)]
+pub struct RingParams {
+    pub center: [f32; 2],
+    pub inner_radius: f32,
+    pub outer_radius: f32,
+    pub color: [f32; 4],
+    pub x_clip: [f32; 2],
+    pub y_clip: [f32; 2],
+}
+
+/// Parameters for drawing a ring with a gradient
+#[derive(Debug, Clone, Copy)]
+pub struct RingGradientParams {
+    pub center: [f32; 2],
+    pub inner_radius: f32,
+    pub outer_radius: f32,
+    pub color_start: [f32; 4],
+    pub color_end: [f32; 4],
+    pub gradient_type: u32, // 1=linear, 2=radial
+    pub gradient_angle: f32,
+    pub x_clip: [f32; 2],
+    pub y_clip: [f32; 2],
+}
+
+/// Parameters for drawing an arc
+#[derive(Debug, Clone, Copy)]
+pub struct ArcParams {
+    pub center: [f32; 2],
+    pub radius: f32,
+    pub start_angle: f32,
+    pub end_angle: f32,
+    pub thickness: f32,
+    pub color: [f32; 4],
+    pub x_clip: [f32; 2],
+    pub y_clip: [f32; 2],
+}
+
+/// Parameters for drawing a pie slice
+#[derive(Debug, Clone, Copy)]
+pub struct PieParams {
+    pub center: [f32; 2],
+    pub radius: f32,
+    pub start_angle: f32,
+    pub end_angle: f32,
+    pub color: [f32; 4],
+    pub x_clip: [f32; 2],
+    pub y_clip: [f32; 2],
+}
+
+/// Parameters for drawing a line segment
+#[derive(Debug, Clone, Copy)]
+pub struct SegmentParams {
+    pub start: [f32; 2],
+    pub end: [f32; 2],
+    pub thickness: f32,
+    pub color: [f32; 4],
+    pub x_clip: [f32; 2],
+    pub y_clip: [f32; 2],
+    pub dash_length: Option<f32>,
+}
+
+/// Parameters for drawing a line segment with a gradient
+#[derive(Debug, Clone, Copy)]
+pub struct SegmentGradientParams {
+    pub start: [f32; 2],
+    pub end: [f32; 2],
+    pub thickness: f32,
+    pub color_start: [f32; 4],
+    pub color_end: [f32; 4],
+    pub x_clip: [f32; 2],
+    pub y_clip: [f32; 2],
+    pub dash_length: Option<f32>,
+}
+
+/// Grid type for the grid primitive
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum GridType {
+    Square = 0,
+    Hexagonal = 1,
+}
+
+/// Parameters for drawing a grid
+#[derive(Debug, Clone, Copy)]
+pub struct GridParams {
+    pub top_left: [f32; 2],
+    pub size: [f32; 2],
+    pub lattice_size: f32,
+    pub offset: [f32; 2],
+    pub line_thickness: f32,
+    pub color: [f32; 4],
+    pub grid_type: GridType,
+    pub x_clip: [f32; 2],
+    pub y_clip: [f32; 2],
+}
+
 /// A screen-space rectangle in pixel coordinates.
 /// Screen space has (0, 0) at the top-left corner, with Y increasing downward.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -238,17 +383,21 @@ impl Renderer {
     }
 
     // Shape drawing methods
-    pub fn draw_box(
-        &mut self,
-        top_left: [f32; 2],
-        size: [f32; 2],
-        corner_radius: f32,
-        border_thickness: f32,
-        color: [f32; 4],
-        x_clip: [f32; 2],
-        y_clip: [f32; 2],
-    ) {
-        let index = self.shapes.push_box(top_left, size, corner_radius, border_thickness, color, x_clip, y_clip);
+    pub fn draw_box(&mut self, params: BoxParams) {
+        let index = self.shapes.boxes.len();
+        self.shapes.boxes.push(shapes::Box {
+            top_left: params.top_left,
+            size: params.size,
+            x_clip: params.x_clip,
+            y_clip: params.y_clip,
+            corner_radius: params.corner_radius,
+            border_thickness: params.border_thickness,
+            gradient_direction: [1.0, 0.0],
+            color_start: params.color,
+            color_end: params.color,
+            gradient_type: 0,
+            pad: [0.0, 0.0, 0.0],
+        });
         self.instances.push(Instance {
             p_type: primitive::BOX,
             p_index: index as u32,
@@ -257,19 +406,22 @@ impl Renderer {
         });
     }
 
-    pub fn draw_box_gradient(
-        &mut self,
-        top_left: [f32; 2],
-        size: [f32; 2],
-        corner_radius: f32,
-        border_thickness: f32,
-        color_start: [f32; 4],
-        color_end: [f32; 4],
-        gradient_angle: f32,
-        x_clip: [f32; 2],
-        y_clip: [f32; 2],
-    ) {
-        let index = self.shapes.push_box_gradient(top_left, size, corner_radius, border_thickness, color_start, color_end, gradient_angle, x_clip, y_clip);
+    pub fn draw_box_gradient(&mut self, params: BoxGradientParams) {
+        let gradient_direction = [params.gradient_angle.cos(), params.gradient_angle.sin()];
+        let index = self.shapes.boxes.len();
+        self.shapes.boxes.push(shapes::Box {
+            top_left: params.top_left,
+            size: params.size,
+            x_clip: params.x_clip,
+            y_clip: params.y_clip,
+            corner_radius: params.corner_radius,
+            border_thickness: params.border_thickness,
+            gradient_direction,
+            color_start: params.color_start,
+            color_end: params.color_end,
+            gradient_type: 1, // linear
+            pad: [0.0, 0.0, 0.0],
+        });
         self.instances.push(Instance {
             p_type: primitive::BOX,
             p_index: index as u32,
@@ -278,15 +430,20 @@ impl Renderer {
         });
     }
 
-    pub fn draw_circle(
-        &mut self,
-        center: [f32; 2],
-        radius: f32,
-        color: [f32; 4],
-        x_clip: [f32; 2],
-        y_clip: [f32; 2],
-    ) {
-        let index = self.shapes.push_circle(center, radius, color, x_clip, y_clip);
+    pub fn draw_circle(&mut self, params: CircleParams) {
+        let index = self.shapes.circles.len();
+        self.shapes.circles.push(shapes::Circle {
+            center: params.center,
+            radii: [0.0, params.radius],
+            angles: [0.0, std::f32::consts::TAU],
+            x_clip: params.x_clip,
+            y_clip: params.y_clip,
+            gradient_direction: [1.0, 0.0],
+            color_start: params.color,
+            color_end: params.color,
+            gradient_type: 0, // solid
+            _padding: [0.0, 0.0, 0.0],
+        });
         self.instances.push(Instance {
             p_type: primitive::CIRCLE,
             p_index: index as u32,
@@ -295,18 +452,21 @@ impl Renderer {
         });
     }
 
-    pub fn draw_circle_gradient(
-        &mut self,
-        center: [f32; 2],
-        radius: f32,
-        color_start: [f32; 4],
-        color_end: [f32; 4],
-        gradient_type: u32, // 1=linear, 2=radial
-        gradient_angle: f32,
-        x_clip: [f32; 2],
-        y_clip: [f32; 2],
-    ) {
-        let index = self.shapes.push_circle_gradient(center, radius, color_start, color_end, gradient_type, gradient_angle, x_clip, y_clip);
+    pub fn draw_circle_gradient(&mut self, params: CircleGradientParams) {
+        let gradient_direction = [params.gradient_angle.cos(), params.gradient_angle.sin()];
+        let index = self.shapes.circles.len();
+        self.shapes.circles.push(shapes::Circle {
+            center: params.center,
+            radii: [0.0, params.radius],
+            angles: [0.0, std::f32::consts::TAU],
+            x_clip: params.x_clip,
+            y_clip: params.y_clip,
+            gradient_direction,
+            color_start: params.color_start,
+            color_end: params.color_end,
+            gradient_type: params.gradient_type,
+            _padding: [0.0, 0.0, 0.0],
+        });
         self.instances.push(Instance {
             p_type: primitive::CIRCLE,
             p_index: index as u32,
@@ -315,16 +475,20 @@ impl Renderer {
         });
     }
 
-    pub fn draw_ring(
-        &mut self,
-        center: [f32; 2],
-        inner_radius: f32,
-        outer_radius: f32,
-        color: [f32; 4],
-        x_clip: [f32; 2],
-        y_clip: [f32; 2],
-    ) {
-        let index = self.shapes.push_ring(center, inner_radius, outer_radius, color, x_clip, y_clip);
+    pub fn draw_ring(&mut self, params: RingParams) {
+        let index = self.shapes.circles.len();
+        self.shapes.circles.push(shapes::Circle {
+            center: params.center,
+            radii: [params.inner_radius, params.outer_radius],
+            angles: [0.0, std::f32::consts::TAU],
+            x_clip: params.x_clip,
+            y_clip: params.y_clip,
+            gradient_direction: [1.0, 0.0],
+            color_start: params.color,
+            color_end: params.color,
+            gradient_type: 0, // solid
+            _padding: [0.0, 0.0, 0.0],
+        });
         self.instances.push(Instance {
             p_type: primitive::CIRCLE,
             p_index: index as u32,
@@ -333,19 +497,21 @@ impl Renderer {
         });
     }
 
-    pub fn draw_ring_gradient(
-        &mut self,
-        center: [f32; 2],
-        inner_radius: f32,
-        outer_radius: f32,
-        color_start: [f32; 4],
-        color_end: [f32; 4],
-        gradient_type: u32, // 1=linear, 2=radial
-        gradient_angle: f32,
-        x_clip: [f32; 2],
-        y_clip: [f32; 2],
-    ) {
-        let index = self.shapes.push_ring_gradient(center, inner_radius, outer_radius, color_start, color_end, gradient_type, gradient_angle, x_clip, y_clip);
+    pub fn draw_ring_gradient(&mut self, params: RingGradientParams) {
+        let gradient_direction = [params.gradient_angle.cos(), params.gradient_angle.sin()];
+        let index = self.shapes.circles.len();
+        self.shapes.circles.push(shapes::Circle {
+            center: params.center,
+            radii: [params.inner_radius, params.outer_radius],
+            angles: [0.0, std::f32::consts::TAU],
+            x_clip: params.x_clip,
+            y_clip: params.y_clip,
+            gradient_direction,
+            color_start: params.color_start,
+            color_end: params.color_end,
+            gradient_type: params.gradient_type,
+            _padding: [0.0, 0.0, 0.0],
+        });
         self.instances.push(Instance {
             p_type: primitive::CIRCLE,
             p_index: index as u32,
@@ -354,18 +520,20 @@ impl Renderer {
         });
     }
 
-    pub fn draw_arc(
-        &mut self,
-        center: [f32; 2],
-        radius: f32,
-        start_angle: f32,
-        end_angle: f32,
-        thickness: f32,
-        color: [f32; 4],
-        x_clip: [f32; 2],
-        y_clip: [f32; 2],
-    ) {
-        let index = self.shapes.push_arc(center, radius, start_angle, end_angle, thickness, color, x_clip, y_clip);
+    pub fn draw_arc(&mut self, params: ArcParams) {
+        let index = self.shapes.circles.len();
+        self.shapes.circles.push(shapes::Circle {
+            center: params.center,
+            radii: [params.radius - params.thickness * 0.5, params.radius + params.thickness * 0.5],
+            angles: [params.start_angle, params.end_angle],
+            x_clip: params.x_clip,
+            y_clip: params.y_clip,
+            gradient_direction: [1.0, 0.0],
+            color_start: params.color,
+            color_end: params.color,
+            gradient_type: 0, // solid
+            _padding: [0.0, 0.0, 0.0],
+        });
         self.instances.push(Instance {
             p_type: primitive::CIRCLE,
             p_index: index as u32,
@@ -374,17 +542,20 @@ impl Renderer {
         });
     }
 
-    pub fn draw_pie(
-        &mut self,
-        center: [f32; 2],
-        radius: f32,
-        start_angle: f32,
-        end_angle: f32,
-        color: [f32; 4],
-        x_clip: [f32; 2],
-        y_clip: [f32; 2],
-    ) {
-        let index = self.shapes.push_pie(center, radius, start_angle, end_angle, color, x_clip, y_clip);
+    pub fn draw_pie(&mut self, params: PieParams) {
+        let index = self.shapes.circles.len();
+        self.shapes.circles.push(shapes::Circle {
+            center: params.center,
+            radii: [0.0, params.radius],
+            angles: [params.start_angle, params.end_angle],
+            x_clip: params.x_clip,
+            y_clip: params.y_clip,
+            gradient_direction: [1.0, 0.0],
+            color_start: params.color,
+            color_end: params.color,
+            gradient_type: 0, // solid
+            _padding: [0.0, 0.0, 0.0],
+        });
         self.instances.push(Instance {
             p_type: primitive::CIRCLE,
             p_index: index as u32,
@@ -393,17 +564,19 @@ impl Renderer {
         });
     }
 
-    pub fn draw_segment(
-        &mut self,
-        start: [f32; 2],
-        end: [f32; 2],
-        thickness: f32,
-        color: [f32; 4],
-        x_clip: [f32; 2],
-        y_clip: [f32; 2],
-        dash_length: Option<f32>,
-    ) {
-        let index = self.shapes.push_segment(start, end, thickness, color, x_clip, y_clip, dash_length);
+    pub fn draw_segment(&mut self, params: SegmentParams) {
+        let index = self.shapes.segments.len();
+        self.shapes.segments.push(shapes::Segment {
+            start: params.start,
+            end: params.end,
+            x_clip: params.x_clip,
+            y_clip: params.y_clip,
+            color_start: params.color,
+            color_end: params.color,
+            thickness_dash: [params.thickness, params.dash_length.unwrap_or(0.0), 1.0, 1.0],
+            gradient_type: 0, // solid
+            pad: [0.0, 0.0, 0.0],
+        });
         self.instances.push(Instance {
             p_type: primitive::SEGMENT,
             p_index: index as u32,
@@ -412,18 +585,19 @@ impl Renderer {
         });
     }
 
-    pub fn draw_segment_gradient(
-        &mut self,
-        start: [f32; 2],
-        end: [f32; 2],
-        thickness: f32,
-        color_start: [f32; 4],
-        color_end: [f32; 4],
-        x_clip: [f32; 2],
-        y_clip: [f32; 2],
-        dash_length: Option<f32>,
-    ) {
-        let index = self.shapes.push_segment_gradient(start, end, thickness, color_start, color_end, x_clip, y_clip, dash_length);
+    pub fn draw_segment_gradient(&mut self, params: SegmentGradientParams) {
+        let index = self.shapes.segments.len();
+        self.shapes.segments.push(shapes::Segment {
+            start: params.start,
+            end: params.end,
+            x_clip: params.x_clip,
+            y_clip: params.y_clip,
+            color_start: params.color_start,
+            color_end: params.color_end,
+            thickness_dash: [params.thickness, params.dash_length.unwrap_or(0.0), 1.0, 1.0],
+            gradient_type: 1, // linear along segment
+            pad: [0.0, 0.0, 0.0],
+        });
         self.instances.push(Instance {
             p_type: primitive::SEGMENT,
             p_index: index as u32,
@@ -432,19 +606,20 @@ impl Renderer {
         });
     }
 
-    pub fn draw_grid(
-        &mut self,
-        top_left: [f32; 2],
-        size: [f32; 2],
-        lattice_size: f32,
-        offset: [f32; 2],
-        line_thickness: f32,
-        color: [f32; 4],
-        grid_type: u32, // 0=square, 1=hex
-        x_clip: [f32; 2],
-        y_clip: [f32; 2],
-    ) {
-        let index = self.shapes.push_grid(top_left, size, lattice_size, offset, line_thickness, color, grid_type, x_clip, y_clip);
+    pub fn draw_grid(&mut self, params: GridParams) {
+        let index = self.shapes.grids.len();
+        self.shapes.grids.push(shapes::Grid {
+            top_left: params.top_left,
+            size: params.size,
+            x_clip: params.x_clip,
+            y_clip: params.y_clip,
+            offset: params.offset,
+            lattice_size: params.lattice_size,
+            line_thickness: params.line_thickness,
+            color: params.color,
+            grid_type: params.grid_type as u32,
+            pad: [0.0, 0.0, 0.0],
+        });
         self.instances.push(Instance {
             p_type: primitive::GRID,
             p_index: index as u32,

@@ -1,6 +1,7 @@
 use std::{borrow::Cow, f32::consts::PI};
 
 use keru_draw::*;
+use keru_draw::GridType;
 use textslabs::{ColorBrush, TextStyle2, Transform2D, parley::{FontFamily, FontStack}};
 use winit::{
     dpi::PhysicalSize, event::WindowEvent, event_loop::EventLoop, window::Window,
@@ -164,281 +165,281 @@ impl State {
         self.renderer.begin_frame(width, height);
 
         // Gradient box - horizontal
-        self.renderer.draw_box_gradient(
-            [20.0, 20.0],
-            [80.0, 60.0],
-            0.0,
-            0.0,
-            [1.0, 0.3, 0.3, 1.0],
-            [0.3, 0.3, 1.0, 1.0],
-            0.0, // horizontal gradient
-            clip_x,
-            clip_y,
-        );
+        self.renderer.draw_box_gradient(BoxGradientParams {
+            top_left: [20.0, 20.0],
+            size: [80.0, 60.0],
+            corner_radius: 0.0,
+            border_thickness: 0.0,
+            color_start: [1.0, 0.3, 0.3, 1.0],
+            color_end: [0.3, 0.3, 1.0, 1.0],
+            gradient_angle: 0.0,
+            x_clip: clip_x,
+            y_clip: clip_y,
+        });
 
         // Gradient box - diagonal
-        self.renderer.draw_box_gradient(
-            [120.0, 20.0],
-            [80.0, 60.0],
-            5.0,
-            0.0,
-            [1.0, 0.5, 0.3, 1.0],
-            [0.3, 1.0, 0.5, 1.0],
-            std::f32::consts::PI * 0.25, // 45 degrees
-            clip_x,
-            clip_y,
-        );
+        self.renderer.draw_box_gradient(BoxGradientParams {
+            top_left: [120.0, 20.0],
+            size: [80.0, 60.0],
+            corner_radius: 5.0,
+            border_thickness: 0.0,
+            color_start: [1.0, 0.5, 0.3, 1.0],
+            color_end: [0.3, 1.0, 0.5, 1.0],
+            gradient_angle: std::f32::consts::PI * 0.25,
+            x_clip: clip_x,
+            y_clip: clip_y,
+        });
 
-        self.renderer.draw_box(
-            [220.0, 20.0],
-            [80.0, 60.0],
-            16.0,
-            5.0,
-            [0.015686, 0.666667, 0.427451, 1.0],
-            clip_x,
-            clip_y,
-        );
+        self.renderer.draw_box(BoxParams {
+            top_left: [220.0, 20.0],
+            size: [80.0, 60.0],
+            corner_radius: 16.0,
+            border_thickness: 5.0,
+            color: [0.015686, 0.666667, 0.427451, 1.0],
+            x_clip: clip_x,
+            y_clip: clip_y,
+        });
 
-        self.renderer.draw_box(
-            [320.0, 20.0],
-            [80.0, 60.0],
-            30.0,
-            5.0,
-            [0.8, 1.0, 0.3, 1.0],
-            clip_x,
-            clip_y,
-        );
+        self.renderer.draw_box(BoxParams {
+            top_left: [320.0, 20.0],
+            size: [80.0, 60.0],
+            corner_radius: 30.0,
+            border_thickness: 5.0,
+            color: [0.8, 1.0, 0.3, 1.0],
+            x_clip: clip_x,
+            y_clip: clip_y,
+        });
 
         // Radial gradient circle
-        self.renderer.draw_circle_gradient(
-            [50.0, 150.0],
-            20.0,
-            [1.0, 1.0, 0.3, 1.0],
-            [1.0, 0.3, 0.3, 1.0],
-            2, // radial
-            0.0,
-            clip_x,
-            clip_y,
-        );
+        self.renderer.draw_circle_gradient(CircleGradientParams {
+            center: [50.0, 150.0],
+            radius: 20.0,
+            color_start: [1.0, 1.0, 0.3, 1.0],
+            color_end: [1.0, 0.3, 0.3, 1.0],
+            gradient_type: 2, // radial
+            gradient_angle: 0.0,
+            x_clip: clip_x,
+            y_clip: clip_y,
+        });
 
         // Linear gradient circle
-        self.renderer.draw_circle_gradient(
-            [140.0, 150.0],
-            30.0,
-            [0.3, 0.7, 1.0, 1.0],
-            [1.0, 0.3, 0.7, 1.0],
-            1, // linear
-            std::f32::consts::PI * 0.5, // vertical
-            clip_x,
-            clip_y,
-        );
+        self.renderer.draw_circle_gradient(CircleGradientParams {
+            center: [140.0, 150.0],
+            radius: 30.0,
+            color_start: [0.3, 0.7, 1.0, 1.0],
+            color_end: [1.0, 0.3, 0.7, 1.0],
+            gradient_type: 1, // linear
+            gradient_angle: std::f32::consts::PI * 0.5,
+            x_clip: clip_x,
+            y_clip: clip_y,
+        });
 
-        self.renderer.draw_circle(
-            [250.0, 150.0],
-            40.0,
-            [0.3, 0.9, 1.0, 1.0],
-            clip_x,
-            clip_y,
-        );
+        self.renderer.draw_circle(CircleParams {
+            center: [250.0, 150.0],
+            radius: 40.0,
+            color: [0.3, 0.9, 1.0, 1.0],
+            x_clip: clip_x,
+            y_clip: clip_y,
+        });
 
-        self.renderer.draw_ring(
-            [360.0, 150.0],
-            35.0,
-            40.0,
-            [1.0, 1.0, 0.3, 1.0],
-            clip_x,
-            clip_y,
-        );
+        self.renderer.draw_ring(RingParams {
+            center: [360.0, 150.0],
+            inner_radius: 35.0,
+            outer_radius: 40.0,
+            color: [1.0, 1.0, 0.3, 1.0],
+            x_clip: clip_x,
+            y_clip: clip_y,
+        });
 
-        self.renderer.draw_ring(
-            [460.0, 150.0],
-            30.0,
-            45.0,
-            [1.0, 0.8, 0.3, 1.0],
-            clip_x,
-            clip_y,
-        );
+        self.renderer.draw_ring(RingParams {
+            center: [460.0, 150.0],
+            inner_radius: 30.0,
+            outer_radius: 45.0,
+            color: [1.0, 0.8, 0.3, 1.0],
+            x_clip: clip_x,
+            y_clip: clip_y,
+        });
 
-        self.renderer.draw_ring(
-            [560.0, 150.0],
-            25.0,
-            50.0,
-            [1.0, 0.6, 0.3, 1.0],
-            clip_x,
-            clip_y,
-        );
+        self.renderer.draw_ring(RingParams {
+            center: [560.0, 150.0],
+            inner_radius: 25.0,
+            outer_radius: 50.0,
+            color: [1.0, 0.6, 0.3, 1.0],
+            x_clip: clip_x,
+            y_clip: clip_y,
+        });
 
-        self.renderer.draw_arc(
-            [60.0, 280.0],
-            40.0,
-            0.0,
-            std::f32::consts::PI * 0.5,
-            8.0,
-            [1.0, 0.3, 1.0, 1.0],
-            clip_x,
-            clip_y,
-        );
+        self.renderer.draw_arc(ArcParams {
+            center: [60.0, 280.0],
+            radius: 40.0,
+            start_angle: 0.0,
+            end_angle: std::f32::consts::PI * 0.5,
+            thickness: 8.0,
+            color: [1.0, 0.3, 1.0, 1.0],
+            x_clip: clip_x,
+            y_clip: clip_y,
+        });
 
-        self.renderer.draw_arc(
-            [170.0, 280.0],
-            40.0,
-            0.0,
-            std::f32::consts::PI,
-            8.0,
-            [0.8, 0.3, 1.0, 1.0],
-            clip_x,
-            clip_y,
-        );
+        self.renderer.draw_arc(ArcParams {
+            center: [170.0, 280.0],
+            radius: 40.0,
+            start_angle: 0.0,
+            end_angle: std::f32::consts::PI,
+            thickness: 8.0,
+            color: [0.8, 0.3, 1.0, 1.0],
+            x_clip: clip_x,
+            y_clip: clip_y,
+        });
 
-        self.renderer.draw_arc(
-            [280.0, 280.0],
-            40.0,
-            0.0,
-            std::f32::consts::PI * 1.5,
-            8.0,
-            [0.6, 0.3, 1.0, 1.0],
-            clip_x,
-            clip_y,
-        );
+        self.renderer.draw_arc(ArcParams {
+            center: [280.0, 280.0],
+            radius: 40.0,
+            start_angle: 0.0,
+            end_angle: std::f32::consts::PI * 1.5,
+            thickness: 8.0,
+            color: [0.6, 0.3, 1.0, 1.0],
+            x_clip: clip_x,
+            y_clip: clip_y,
+        });
 
-        self.renderer.draw_arc(
-            [390.0, 280.0],
-            40.0,
-            std::f32::consts::PI * 0.25,
-            std::f32::consts::PI * 1.25,
-            8.0,
-            [0.4, 0.3, 1.0, 1.0],
-            clip_x,
-            clip_y,
-        );
+        self.renderer.draw_arc(ArcParams {
+            center: [390.0, 280.0],
+            radius: 40.0,
+            start_angle: std::f32::consts::PI * 0.25,
+            end_angle: std::f32::consts::PI * 1.25,
+            thickness: 8.0,
+            color: [0.4, 0.3, 1.0, 1.0],
+            x_clip: clip_x,
+            y_clip: clip_y,
+        });
 
-        self.renderer.draw_pie(
-            [60.0, 400.0],
-            45.0,
-            0.0,
-            std::f32::consts::PI * 0.25,
-            [0.3, 1.0, 1.0, 1.0],
-            clip_x,
-            clip_y,
-        );
+        self.renderer.draw_pie(PieParams {
+            center: [60.0, 400.0],
+            radius: 45.0,
+            start_angle: 0.0,
+            end_angle: std::f32::consts::PI * 0.25,
+            color: [0.3, 1.0, 1.0, 1.0],
+            x_clip: clip_x,
+            y_clip: clip_y,
+        });
 
-        self.renderer.draw_pie(
-            [170.0, 400.0],
-            45.0,
-            0.0,
-            std::f32::consts::PI * 0.5,
-            [0.3, 1.0, 0.8, 1.0],
-            clip_x,
-            clip_y,
-        );
+        self.renderer.draw_pie(PieParams {
+            center: [170.0, 400.0],
+            radius: 45.0,
+            start_angle: 0.0,
+            end_angle: std::f32::consts::PI * 0.5,
+            color: [0.3, 1.0, 0.8, 1.0],
+            x_clip: clip_x,
+            y_clip: clip_y,
+        });
 
-        self.renderer.draw_pie(
-            [280.0, 400.0],
-            45.0,
-            0.0,
-            std::f32::consts::PI,
-            [0.3, 1.0, 0.6, 1.0],
-            clip_x,
-            clip_y,
-        );
+        self.renderer.draw_pie(PieParams {
+            center: [280.0, 400.0],
+            radius: 45.0,
+            start_angle: 0.0,
+            end_angle: std::f32::consts::PI,
+            color: [0.3, 1.0, 0.6, 1.0],
+            x_clip: clip_x,
+            y_clip: clip_y,
+        });
 
-        self.renderer.draw_pie(
-            [390.0, 400.0],
-            45.0,
-            std::f32::consts::PI * 0.5,
-            std::f32::consts::PI * 2.0,
-            [0.3, 1.0, 0.4, 1.0],
-            clip_x,
-            clip_y,
-        );
+        self.renderer.draw_pie(PieParams {
+            center: [390.0, 400.0],
+            radius: 45.0,
+            start_angle: std::f32::consts::PI * 0.5,
+            end_angle: std::f32::consts::PI * 2.0,
+            color: [0.3, 1.0, 0.4, 1.0],
+            x_clip: clip_x,
+            y_clip: clip_y,
+        });
 
-        self.renderer.draw_segment(
-            [20.0, 520.0],
-            [100.0, 520.0],
-            3.0,
-            [1.0, 0.5, 0.0, 1.0],
-            clip_x,
-            clip_y,
-            None,
-        );
+        self.renderer.draw_segment(SegmentParams {
+            start: [20.0, 520.0],
+            end: [100.0, 520.0],
+            thickness: 3.0,
+            color: [1.0, 0.5, 0.0, 1.0],
+            x_clip: clip_x,
+            y_clip: clip_y,
+            dash_length: None,
+        });
 
-        self.renderer.draw_segment(
-            [120.0, 500.0],
-            [200.0, 540.0],
-            6.0,
-            [1.0, 0.6, 0.0, 1.0],
-            clip_x,
-            clip_y,
-            Some(10.0),
-        );
+        self.renderer.draw_segment(SegmentParams {
+            start: [120.0, 500.0],
+            end: [200.0, 540.0],
+            thickness: 6.0,
+            color: [1.0, 0.6, 0.0, 1.0],
+            x_clip: clip_x,
+            y_clip: clip_y,
+            dash_length: Some(10.0),
+        });
 
-        self.renderer.draw_segment(
-            [230.0, 500.0],
-            [230.0, 540.0],
-            10.0,
-            [1.0, 0.7, 0.0, 1.0],
-            clip_x,
-            clip_y,
-            Some(15.0),
-        );
+        self.renderer.draw_segment(SegmentParams {
+            start: [230.0, 500.0],
+            end: [230.0, 540.0],
+            thickness: 10.0,
+            color: [1.0, 0.7, 0.0, 1.0],
+            x_clip: clip_x,
+            y_clip: clip_y,
+            dash_length: Some(15.0),
+        });
 
-        self.renderer.draw_segment(
-            [260.0, 540.0],
-            [340.0, 500.0],
-            8.0,
-            [1.0, 0.8, 0.0, 1.0],
-            clip_x,
-            clip_y,
-            Some(5.0),
-        );
+        self.renderer.draw_segment(SegmentParams {
+            start: [260.0, 540.0],
+            end: [340.0, 500.0],
+            thickness: 8.0,
+            color: [1.0, 0.8, 0.0, 1.0],
+            x_clip: clip_x,
+            y_clip: clip_y,
+            dash_length: Some(5.0),
+        });
 
         // Gradient segments forming an X
-        self.renderer.draw_segment_gradient(
-            [370.0, 500.0],
-            [430.0, 540.0],
-            5.0,
-            [1.0, 0.9, 0.2, 0.7],
-            [0.2, 0.9, 1.0, 0.7],
-            clip_x,
-            clip_y,
-            Some(8.0),
-        );
-        self.renderer.draw_segment_gradient(
-            [370.0, 540.0],
-            [430.0, 500.0],
-            5.0,
-            [1.0, 0.2, 0.9, 0.8],
-            [0.2, 1.0, 0.9, 0.8],
-            clip_x,
-            clip_y,
-            None,
-        );
+        self.renderer.draw_segment_gradient(SegmentGradientParams {
+            start: [370.0, 500.0],
+            end: [430.0, 540.0],
+            thickness: 5.0,
+            color_start: [1.0, 0.9, 0.2, 0.7],
+            color_end: [0.2, 0.9, 1.0, 0.7],
+            x_clip: clip_x,
+            y_clip: clip_y,
+            dash_length: Some(8.0),
+        });
+        self.renderer.draw_segment_gradient(SegmentGradientParams {
+            start: [370.0, 540.0],
+            end: [430.0, 500.0],
+            thickness: 5.0,
+            color_start: [1.0, 0.2, 0.9, 0.8],
+            color_end: [0.2, 1.0, 0.9, 0.8],
+            x_clip: clip_x,
+            y_clip: clip_y,
+            dash_length: None,
+        });
 
         // Square grid
-        self.renderer.draw_grid(
-            [750.0, 20.0],
-            [200.0, 200.0],
-            20.0,              // lattice size
-            [0.0, 0.0],        // offset
-            1.5,               // line thickness
-            [0.5, 0.5, 1.0, 0.5], // color
-            0,                 // grid_type: 0=square
-            clip_x,
-            clip_y,
-        );
+        self.renderer.draw_grid(GridParams {
+            top_left: [750.0, 20.0],
+            size: [200.0, 200.0],
+            lattice_size: 20.0,
+            offset: [0.0, 0.0],
+            line_thickness: 1.5,
+            color: [0.5, 0.5, 1.0, 0.5],
+            grid_type: GridType::Square,
+            x_clip: clip_x,
+            y_clip: clip_y,
+        });
 
         // Hexagonal grid
-        self.renderer.draw_grid(
-            [750.0, 250.0],
-            [300.0, 300.0],
-            30.0,              // lattice size
-            [0.0, 0.0],        // offset
-            2.0,               // line thickness
-            [1.0, 0.0, 0.0, 0.5],
-            1,                 // grid_type: 1=hex
-            clip_x,
-            clip_y,
-        );
+        self.renderer.draw_grid(GridParams {
+            top_left: [750.0, 250.0],
+            size: [300.0, 300.0],
+            lattice_size: 30.0,
+            offset: [0.0, 0.0],
+            line_thickness: 2.0,
+            color: [1.0, 0.0, 0.0, 0.5],
+            grid_type: GridType::Hexagonal,
+            x_clip: clip_x,
+            y_clip: clip_y,
+        });
 
         self.renderer.draw_text_box(&self.text_box3);
         
