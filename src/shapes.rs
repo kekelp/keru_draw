@@ -45,12 +45,28 @@ pub struct Segment {
     pub pad: [f32; 3],
 }
 
+#[repr(C)]
+#[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
+pub struct Grid {
+    pub top_left: [f32; 2],
+    pub size: [f32; 2],
+    pub x_clip: [f32; 2],
+    pub y_clip: [f32; 2],
+    pub offset: [f32; 2],
+    pub lattice_size: f32,
+    pub line_thickness: f32,
+    pub color: [f32; 4],
+    pub grid_type: u32, // 0=square, 1=hex
+    pub pad: [f32; 3],
+}
+
 use crate::gpu_vec::GpuVec;
 
 pub struct Shapes {
     boxes: GpuVec<Box>,
     circles: GpuVec<Circle>,
     segments: GpuVec<Segment>,
+    grids: GpuVec<Grid>,
     pub transforms: GpuVec<Transform>,
     pub bind_group: wgpu::BindGroup,
 }
@@ -64,6 +80,7 @@ impl Shapes {
         let boxes = GpuVec::new(device, 64, "keru_draw boxes");
         let circles = GpuVec::new(device, 64, "keru_draw circles");
         let segments = GpuVec::new(device, 64, "keru_draw segments");
+        let grids = GpuVec::new(device, 64, "keru_draw grids");
 
         let bind_group_layout = Self::bind_group_layout(device);
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
@@ -74,6 +91,7 @@ impl Shapes {
                 boxes.bind_group_entry(1),
                 circles.bind_group_entry(2),
                 segments.bind_group_entry(3),
+                grids.bind_group_entry(4),
             ],
         });
 
@@ -82,6 +100,7 @@ impl Shapes {
             boxes,
             circles,
             segments,
+            grids,
             bind_group,
         }
     }
@@ -90,6 +109,7 @@ impl Shapes {
         self.boxes.clear();
         self.circles.clear();
         self.segments.clear();
+        self.grids.clear();
     }
 
 
@@ -365,13 +385,42 @@ impl Shapes {
         index
     }
 
+    pub fn push_grid(
+        &mut self,
+        top_left: [f32; 2],
+        size: [f32; 2],
+        lattice_size: f32,
+        offset: [f32; 2],
+        line_thickness: f32,
+        color: [f32; 4],
+        grid_type: u32, // 0=square, 1=hex
+        x_clip: [f32; 2],
+        y_clip: [f32; 2],
+    ) -> usize {
+        let index = self.grids.len();
+        self.grids.push(Grid {
+            top_left,
+            size,
+            lattice_size,
+            offset,
+            line_thickness,
+            x_clip,
+            y_clip,
+            color,
+            grid_type,
+            pad: [0.0, 0.0, 0.0],
+        });
+        index
+    }
+
     pub fn load_to_gpu(&mut self, device: &wgpu::Device, queue: &wgpu::Queue) {
         let transforms_changed = self.transforms.load_to_gpu(device, queue);
         let boxes_changed = self.boxes.load_to_gpu(device, queue);
         let circles_changed = self.circles.load_to_gpu(device, queue);
         let segments_changed = self.segments.load_to_gpu(device, queue);
+        let grids_changed = self.grids.load_to_gpu(device, queue);
 
-        if transforms_changed || boxes_changed || circles_changed || segments_changed {
+        if transforms_changed || boxes_changed || circles_changed || segments_changed || grids_changed {
             let bind_group_layout = Self::bind_group_layout(device);
             self.bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
                 label: Some("keru_draw shapes bind group"),
@@ -381,6 +430,7 @@ impl Shapes {
                     self.boxes.bind_group_entry(1),
                     self.circles.bind_group_entry(2),
                     self.segments.bind_group_entry(3),
+                    self.grids.bind_group_entry(4),
                 ],
             });
         }
@@ -394,6 +444,7 @@ impl Shapes {
                 GpuVec::<Box>::bind_group_layout_entry(1),
                 GpuVec::<Circle>::bind_group_layout_entry(2),
                 GpuVec::<Segment>::bind_group_layout_entry(3),
+                GpuVec::<Grid>::bind_group_layout_entry(4),
             ],
         })
     }

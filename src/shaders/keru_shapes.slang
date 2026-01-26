@@ -45,6 +45,21 @@ struct SegmentData {
     float pad2;
 }
 
+struct GridData {
+    float2 top_left;
+    float2 size;
+    float2 x_clip;
+    float2 y_clip;
+    float2 offset;
+    float lattice_size;
+    float line_thickness;
+    float4 color;
+    uint grid_type; // 0=square, 1=hex
+    float pad0;
+    float pad1;
+    float pad2;
+}
+
 struct Transform {
     float m11; float m12;
     float m21; float m22;
@@ -56,6 +71,7 @@ struct ShapesData {
     StructuredBuffer<BoxData> boxes;
     StructuredBuffer<CircleData> circles;
     StructuredBuffer<SegmentData> segments;
+    StructuredBuffer<GridData> grids;
 }
 
 ParameterBlock<ShapesData> shapes;
@@ -401,4 +417,74 @@ float4 segment_fragment(uint primitiveIndex, float2 uv, float2 screen_pos, bool 
     }
 
     return float4(color.rgb, alpha * color.a);
+}
+
+void grid_vertex(
+    uint instanceIndex,
+    uint vertexIndex,
+    float2 resolution,
+    out float4 position,
+    out float2 uv,
+    out float2 screen_pos,
+) {
+    var grid: GridData = shapes.grids[instanceIndex];
+    quad_vertex(grid.top_left, grid.size, vertexIndex, resolution, position, uv);
+    screen_pos = grid.top_left + uv * grid.size;
+}
+
+// Thanks leftofzen. https://www.shadertoy.com/view/wtdSzX
+float4 grid_fragment(uint primitiveIndex, float2 uv, float2 screen_pos, bool surface_is_srgb): SV_Target {
+    var grid: GridData = shapes.grids[primitiveIndex];
+
+    // Apply clipping
+    if (screen_pos.x < grid.x_clip.x || screen_pos.x > grid.x_clip.y ||
+        screen_pos.y < grid.y_clip.x || screen_pos.y > grid.y_clip.y) {
+        discard;
+    }
+
+    // Transform to grid space
+    float2 p_pixels = screen_pos - grid.top_left + grid.offset;
+
+    float dist;
+    if (grid.grid_type == 0) {
+        // Square grid
+        float2 p = p_pixels / grid.lattice_size;
+        float2 grid_pos = fmod(p, 1.0);
+        float2 dist_to_line = min(grid_pos, 1.0 - grid_pos);
+        dist = min(dist_to_line.x, dist_to_line.y) * grid.lattice_size;
+    } else {
+        // Scale by lattice_size to work in normalized hex space
+        float2 p = p_pixels / grid.lattice_size;
+        float2 s = float2(1.0, 1.7320508); // vec2(1, sqrt(3))
+
+        // Two candidate hexagon centers
+        float2 hC1 = floor(p / s) + 0.5;
+        float2 hC2 = floor((p - float2(0.5, 1.0)) / s) + 0.5;
+
+        // Positions relative to each center
+        float2 h1 = p - hC1 * s;
+        float2 h2 = p - (hC2 + 0.5) * s;
+
+        // Pick nearest center
+        float2 h = dot(h1, h1) < dot(h2, h2) ? h1 : h2;
+
+        // Hexagon SDF
+        float2 q = abs(h);
+        float hexDist = max(dot(q, s * 0.5), q.x);
+
+        // Distance to hex edge (edge is at hexDist = 0.5)
+        dist = abs(hexDist - 0.5) * grid.lattice_size;
+    }
+
+    // Apply line thickness and antialiasing
+    float half_thickness = grid.line_thickness * 0.5;
+    float alpha = 1.0 - linearstep(half_thickness - 0.5, half_thickness + 0.5, dist);
+
+    if (alpha < 0.001) {
+        discard;
+    }
+
+    float4 color = grid.color;
+
+    return float4(color.rgb, color.a * alpha);
 }

@@ -21,6 +21,7 @@ struct State {
     text_edit: TextEditHandle,
     text_box1: TextBoxHandle,
     text_box2: TextBoxHandle,
+    text_box3: TextBoxHandle,
     svg_handle: LoadedImage,
 }
 
@@ -120,6 +121,15 @@ impl State {
             scale: 1.0,
         });
 
+        let text_box3 = renderer.text.add_text_box(
+            "What kind of renderer doesn't have a hex grid primitive?".to_owned(),
+            (750.0, 600.0),
+            (250.0, 100.0),
+            0.0,
+        );
+        renderer.text.get_text_box_mut(&text_box3).set_style(&style);
+
+
         let svg_handle = renderer.image_renderer.load_svg(TIGER_SVG, 200, 200).unwrap();
 
         Self {
@@ -130,6 +140,7 @@ impl State {
             text_edit,
             text_box1,
             text_box2,
+            text_box3,
             svg_handle,
         }
     }
@@ -403,6 +414,34 @@ impl State {
             None,
         );
 
+        // Square grid
+        self.renderer.draw_grid(
+            [750.0, 20.0],
+            [200.0, 200.0],
+            20.0,              // lattice size
+            [0.0, 0.0],        // offset
+            1.5,               // line thickness
+            [0.5, 0.5, 1.0, 0.5], // color
+            0,                 // grid_type: 0=square
+            clip_x,
+            clip_y,
+        );
+
+        // Hexagonal grid
+        self.renderer.draw_grid(
+            [750.0, 250.0],
+            [300.0, 300.0],
+            30.0,              // lattice size
+            [0.0, 0.0],        // offset
+            2.0,               // line thickness
+            [1.0, 0.0, 0.0, 0.5],
+            1,                 // grid_type: 1=hex
+            clip_x,
+            clip_y,
+        );
+
+        self.renderer.draw_text_box(&self.text_box3);
+        
         self.renderer.draw_text_edit(&self.text_edit);
 
         self.renderer.draw_image(&self.svg_handle, 520.0, 150.0, 180.0, 180.0, 0.5);

@@ -29,6 +29,7 @@ pub mod primitive {
     pub const SEGMENT: u32 = 2;
     pub const TEXT: u32 = 3;
     pub const IMAGE: u32 = 4;
+    pub const GRID: u32 = 5;
 }
 
 /// A screen-space rectangle in pixel coordinates.
@@ -425,6 +426,27 @@ impl Renderer {
         let index = self.shapes.push_segment_gradient(start, end, thickness, color_start, color_end, x_clip, y_clip, dash_length);
         self.instances.push(Instance {
             p_type: primitive::SEGMENT,
+            p_index: index as u32,
+            transform_index: *self.transform_stack.last().unwrap() as u32,
+            _padding: 0,
+        });
+    }
+
+    pub fn draw_grid(
+        &mut self,
+        top_left: [f32; 2],
+        size: [f32; 2],
+        lattice_size: f32,
+        offset: [f32; 2],
+        line_thickness: f32,
+        color: [f32; 4],
+        grid_type: u32, // 0=square, 1=hex
+        x_clip: [f32; 2],
+        y_clip: [f32; 2],
+    ) {
+        let index = self.shapes.push_grid(top_left, size, lattice_size, offset, line_thickness, color, grid_type, x_clip, y_clip);
+        self.instances.push(Instance {
+            p_type: primitive::GRID,
             p_index: index as u32,
             transform_index: *self.transform_stack.last().unwrap() as u32,
             _padding: 0,
