@@ -2,7 +2,7 @@ use crate::*;
 
 #[repr(C)]
 #[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
-pub struct Box {
+pub struct BoxGpu {
     pub top_left: [f32; 2],
     pub size: [f32; 2],
     pub x_clip: [f32; 2],
@@ -18,7 +18,7 @@ pub struct Box {
 
 #[repr(C)]
 #[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
-pub struct Circle {
+pub struct CircleGpu {
     pub center: [f32; 2],
     pub radii: [f32; 2],      // [inner_radius, outer_radius]
     pub angles: [f32; 2],     // [start_angle, end_angle] in radians
@@ -33,7 +33,7 @@ pub struct Circle {
 
 #[repr(C)]
 #[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
-pub struct Segment {
+pub struct SegmentGpu {
     pub start: [f32; 2],
     pub end: [f32; 2],
     pub x_clip: [f32; 2],
@@ -47,7 +47,7 @@ pub struct Segment {
 
 #[repr(C)]
 #[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
-pub struct Grid {
+pub struct GridGpu {
     pub top_left: [f32; 2],
     pub size: [f32; 2],
     pub x_clip: [f32; 2],
@@ -60,13 +60,29 @@ pub struct Grid {
     pub pad: [f32; 3],
 }
 
+#[repr(C)]
+#[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
+pub struct TriangleGpu {
+    pub p0: [f32; 2],
+    pub p1: [f32; 2],
+    pub p2: [f32; 2],
+    pub x_clip: [f32; 2],
+    pub y_clip: [f32; 2],
+    pub gradient_direction: [f32; 2],
+    pub color_start: [f32; 4],
+    pub color_end: [f32; 4],
+    pub gradient_type: u32, // 0=solid, 1=linear
+    pub pad: [f32; 3],
+}
+
 use crate::gpu_vec::GpuVec;
 
 pub struct Shapes {
-    pub(crate) boxes: GpuVec<Box>,
-    pub(crate) circles: GpuVec<Circle>,
-    pub(crate) segments: GpuVec<Segment>,
-    pub(crate) grids: GpuVec<Grid>,
+    pub(crate) boxes: GpuVec<BoxGpu>,
+    pub(crate) circles: GpuVec<CircleGpu>,
+    pub(crate) segments: GpuVec<SegmentGpu>,
+    pub(crate) grids: GpuVec<GridGpu>,
+    pub(crate) triangles: GpuVec<TriangleGpu>,
     pub transforms: GpuVec<Transform>,
     pub bind_group: wgpu::BindGroup,
 }
@@ -81,6 +97,7 @@ impl Shapes {
         let circles = GpuVec::new(device, 64, "keru_draw circles");
         let segments = GpuVec::new(device, 64, "keru_draw segments");
         let grids = GpuVec::new(device, 64, "keru_draw grids");
+        let triangles = GpuVec::new(device, 64, "keru_draw triangles");
 
         let bind_group_layout = Self::bind_group_layout(device);
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
@@ -92,6 +109,7 @@ impl Shapes {
                 circles.bind_group_entry(2),
                 segments.bind_group_entry(3),
                 grids.bind_group_entry(4),
+                triangles.bind_group_entry(5),
             ],
         });
 
@@ -101,6 +119,7 @@ impl Shapes {
             circles,
             segments,
             grids,
+            triangles,
             bind_group,
         }
     }
@@ -110,6 +129,7 @@ impl Shapes {
         self.circles.clear();
         self.segments.clear();
         self.grids.clear();
+        self.triangles.clear();
     }
 
     pub fn load_to_gpu(&mut self, device: &wgpu::Device, queue: &wgpu::Queue) {
@@ -118,8 +138,9 @@ impl Shapes {
         let circles_changed = self.circles.load_to_gpu(device, queue);
         let segments_changed = self.segments.load_to_gpu(device, queue);
         let grids_changed = self.grids.load_to_gpu(device, queue);
+        let triangles_changed = self.triangles.load_to_gpu(device, queue);
 
-        if transforms_changed || boxes_changed || circles_changed || segments_changed || grids_changed {
+        if transforms_changed || boxes_changed || circles_changed || segments_changed || grids_changed || triangles_changed {
             let bind_group_layout = Self::bind_group_layout(device);
             self.bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
                 label: Some("keru_draw shapes bind group"),
@@ -130,6 +151,7 @@ impl Shapes {
                     self.circles.bind_group_entry(2),
                     self.segments.bind_group_entry(3),
                     self.grids.bind_group_entry(4),
+                    self.triangles.bind_group_entry(5),
                 ],
             });
         }
@@ -140,10 +162,11 @@ impl Shapes {
             label: Some("keru_draw shapes bind group layout"),
             entries: &[
                 GpuVec::<Transform>::bind_group_layout_entry(0),
-                GpuVec::<Box>::bind_group_layout_entry(1),
-                GpuVec::<Circle>::bind_group_layout_entry(2),
-                GpuVec::<Segment>::bind_group_layout_entry(3),
-                GpuVec::<Grid>::bind_group_layout_entry(4),
+                GpuVec::<BoxGpu>::bind_group_layout_entry(1),
+                GpuVec::<CircleGpu>::bind_group_layout_entry(2),
+                GpuVec::<SegmentGpu>::bind_group_layout_entry(3),
+                GpuVec::<GridGpu>::bind_group_layout_entry(4),
+                GpuVec::<TriangleGpu>::bind_group_layout_entry(5),
             ],
         })
     }

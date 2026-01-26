@@ -60,6 +60,21 @@ struct GridData {
     float pad2;
 }
 
+struct TriangleData {
+    float2 p0;
+    float2 p1;
+    float2 p2;
+    float2 x_clip;
+    float2 y_clip;
+    float2 gradient_direction; // normalized direction for linear gradient
+    float4 color_start;
+    float4 color_end;
+    uint gradient_type; // 0=solid, 1=linear
+    float pad0;
+    float pad1;
+    float pad2;
+}
+
 struct Transform {
     float m11; float m12;
     float m21; float m22;
@@ -72,6 +87,7 @@ struct ShapesData {
     StructuredBuffer<CircleData> circles;
     StructuredBuffer<SegmentData> segments;
     StructuredBuffer<GridData> grids;
+    StructuredBuffer<TriangleData> triangles;
 }
 
 ParameterBlock<ShapesData> shapes;
@@ -487,4 +503,113 @@ float4 grid_fragment(uint primitiveIndex, float2 uv, float2 screen_pos, bool sur
     float4 color = grid.color;
 
     return float4(color.rgb, color.a * alpha);
+}
+
+void triangle_vertex(
+    uint instanceIndex,
+    uint vertexIndex,
+    float2 resolution,
+    out float4 position,
+    out float2 uv,
+    out float2 screen_pos,
+) {
+    var tri: TriangleData = shapes.triangles[instanceIndex];
+
+    // Create bounding box for the triangle
+    float2 min_point = min(tri.p0, min(tri.p1, tri.p2));
+    float2 max_point = max(tri.p0, max(tri.p1, tri.p2));
+
+    float2 top_left = min_point;
+    float2 size = max_point - min_point;
+
+    quad_vertex(top_left, size, vertexIndex, resolution, position, uv);
+    screen_pos = top_left + uv * size;
+}
+
+// Compute barycentric coordinates for a point in a triangle
+float3 barycentric(float2 p, float2 a, float2 b, float2 c) {
+    float2 v0 = b - a;
+    float2 v1 = c - a;
+    float2 v2 = p - a;
+
+    float d00 = dot(v0, v0);
+    float d01 = dot(v0, v1);
+    float d11 = dot(v1, v1);
+    float d20 = dot(v2, v0);
+    float d21 = dot(v2, v1);
+
+    float denom = d00 * d11 - d01 * d01;
+    float v = (d11 * d20 - d01 * d21) / denom;
+    float w = (d00 * d21 - d01 * d20) / denom;
+    float u = 1.0 - v - w;
+
+    return float3(u, v, w);
+}
+
+// SDF for triangle - returns signed distance
+float sd_triangle(float2 p, float2 p0, float2 p1, float2 p2) {
+    float2 e0 = p1 - p0;
+    float2 e1 = p2 - p1;
+    float2 e2 = p0 - p2;
+
+    float2 v0 = p - p0;
+    float2 v1 = p - p1;
+    float2 v2 = p - p2;
+
+    float2 pq0 = v0 - e0 * clamp(dot(v0, e0) / dot(e0, e0), 0.0, 1.0);
+    float2 pq1 = v1 - e1 * clamp(dot(v1, e1) / dot(e1, e1), 0.0, 1.0);
+    float2 pq2 = v2 - e2 * clamp(dot(v2, e2) / dot(e2, e2), 0.0, 1.0);
+
+    float s = sign(e0.x * e2.y - e0.y * e2.x);
+    float2 d = min(min(float2(dot(pq0, pq0), s * (v0.x * e0.y - v0.y * e0.x)),
+                       float2(dot(pq1, pq1), s * (v1.x * e1.y - v1.y * e1.x))),
+                       float2(dot(pq2, pq2), s * (v2.x * e2.y - v2.y * e2.x)));
+
+    return -sqrt(d.x) * sign(d.y);
+}
+
+float4 triangle_fragment(uint primitiveIndex, float2 uv, float2 screen_pos, bool surface_is_srgb): SV_Target {
+    var tri: TriangleData = shapes.triangles[primitiveIndex];
+
+    if (screen_pos.x < tri.x_clip.x || screen_pos.x > tri.x_clip.y ||
+        screen_pos.y < tri.y_clip.x || screen_pos.y > tri.y_clip.y) {
+        discard;
+    }
+
+    // Convert UV to world position
+    float2 min_point = min(tri.p0, min(tri.p1, tri.p2));
+    float2 max_point = max(tri.p0, max(tri.p1, tri.p2));
+    float2 top_left = min_point;
+    float2 size = max_point - min_point;
+    float2 p = top_left + uv * size;
+
+    // Calculate distance to triangle
+    float dist = sd_triangle(p, tri.p0, tri.p1, tri.p2);
+
+    float alpha = 1.0 - linearstep(-0.5, 0.5, dist);
+
+    if (alpha < 0.001) {
+        discard;
+    }
+
+    // Calculate gradient color
+    float4 color;
+    if (tri.gradient_type == 1) {
+        // Linear gradient
+        float2 centroid = (tri.p0 + tri.p1 + tri.p2) / 3.0;
+        float2 pos = p - centroid;
+        float tri_size = length(max_point - min_point);
+        float t = dot(pos, tri.gradient_direction) / (tri_size * 0.5);
+        t = t * 0.5 + 0.5; // Remap from [-1,1] to [0,1]
+        color = gradient_oklab(tri.color_start, tri.color_end, clamp(t, 0.0, 1.0));
+    } else {
+        // Solid color (gradient_type == 0)
+        color = tri.color_start;
+    }
+
+    if (surface_is_srgb) {
+        return srgb_to_linear(float4(color.rgb, color.a * alpha));
+    } else {
+        return float4(color.rgb, color.a * alpha);
+    }
 }

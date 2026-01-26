@@ -165,7 +165,7 @@ impl State {
         self.renderer.begin_frame(width, height);
 
         // Gradient box - horizontal
-        self.renderer.draw_box(BoxParams {
+        self.renderer.draw_box(Box {
             top_left: [20.0, 20.0],
             size: [80.0, 60.0],
             corner_radius: 0.0,
@@ -181,7 +181,7 @@ impl State {
         });
 
         // Gradient box - diagonal
-        self.renderer.draw_box(BoxParams {
+        self.renderer.draw_box(Box {
             top_left: [120.0, 20.0],
             size: [80.0, 60.0],
             corner_radius: 5.0,
@@ -196,7 +196,7 @@ impl State {
             y_clip: clip_y,
         });
 
-        self.renderer.draw_box(BoxParams {
+        self.renderer.draw_box(Box {
             top_left: [220.0, 20.0],
             size: [80.0, 60.0],
             corner_radius: 16.0,
@@ -206,7 +206,7 @@ impl State {
             y_clip: clip_y,
         });
 
-        self.renderer.draw_box(BoxParams {
+        self.renderer.draw_box(Box {
             top_left: [320.0, 20.0],
             size: [80.0, 60.0],
             corner_radius: 30.0,
@@ -217,7 +217,7 @@ impl State {
         });
 
         // Radial gradient circle
-        self.renderer.draw_circle(CircleParams {
+        self.renderer.draw_circle(Circle {
             center: [50.0, 150.0],
             radius: 20.0,
             fill: Fill::Gradient {
@@ -231,7 +231,7 @@ impl State {
         });
 
         // Linear gradient circle
-        self.renderer.draw_circle(CircleParams {
+        self.renderer.draw_circle(Circle {
             center: [140.0, 150.0],
             radius: 30.0,
             fill: Fill::Gradient {
@@ -244,7 +244,7 @@ impl State {
             y_clip: clip_y,
         });
 
-        self.renderer.draw_circle(CircleParams {
+        self.renderer.draw_circle(Circle {
             center: [250.0, 150.0],
             radius: 40.0,
             fill: Fill::Solid([0.3, 0.9, 1.0, 1.0]),
@@ -252,7 +252,7 @@ impl State {
             y_clip: clip_y,
         });
 
-        self.renderer.draw_ring(RingParams {
+        self.renderer.draw_ring(Ring {
             center: [360.0, 150.0],
             inner_radius: 35.0,
             outer_radius: 40.0,
@@ -261,7 +261,7 @@ impl State {
             y_clip: clip_y,
         });
 
-        self.renderer.draw_ring(RingParams {
+        self.renderer.draw_ring(Ring {
             center: [460.0, 150.0],
             inner_radius: 30.0,
             outer_radius: 45.0,
@@ -270,7 +270,7 @@ impl State {
             y_clip: clip_y,
         });
 
-        self.renderer.draw_ring(RingParams {
+        self.renderer.draw_ring(Ring {
             center: [560.0, 150.0],
             inner_radius: 25.0,
             outer_radius: 50.0,
@@ -279,7 +279,7 @@ impl State {
             y_clip: clip_y,
         });
 
-        self.renderer.draw_arc(ArcParams {
+        self.renderer.draw_arc(Arc {
             center: [60.0, 280.0],
             radius: 40.0,
             start_angle: 0.0,
@@ -290,7 +290,7 @@ impl State {
             y_clip: clip_y,
         });
 
-        self.renderer.draw_arc(ArcParams {
+        self.renderer.draw_arc(Arc {
             center: [170.0, 280.0],
             radius: 40.0,
             start_angle: 0.0,
@@ -301,7 +301,7 @@ impl State {
             y_clip: clip_y,
         });
 
-        self.renderer.draw_arc(ArcParams {
+        self.renderer.draw_arc(Arc {
             center: [280.0, 280.0],
             radius: 40.0,
             start_angle: 0.0,
@@ -312,7 +312,7 @@ impl State {
             y_clip: clip_y,
         });
 
-        self.renderer.draw_arc(ArcParams {
+        self.renderer.draw_arc(Arc {
             center: [390.0, 280.0],
             radius: 40.0,
             start_angle: std::f32::consts::PI * 0.25,
@@ -323,7 +323,7 @@ impl State {
             y_clip: clip_y,
         });
 
-        self.renderer.draw_pie(PieParams {
+        self.renderer.draw_pie(Pie {
             center: [60.0, 400.0],
             radius: 45.0,
             start_angle: 0.0,
@@ -333,7 +333,7 @@ impl State {
             y_clip: clip_y,
         });
 
-        self.renderer.draw_pie(PieParams {
+        self.renderer.draw_pie(Pie {
             center: [170.0, 400.0],
             radius: 45.0,
             start_angle: 0.0,
@@ -343,7 +343,7 @@ impl State {
             y_clip: clip_y,
         });
 
-        self.renderer.draw_pie(PieParams {
+        self.renderer.draw_pie(Pie {
             center: [280.0, 400.0],
             radius: 45.0,
             start_angle: 0.0,
@@ -353,7 +353,7 @@ impl State {
             y_clip: clip_y,
         });
 
-        self.renderer.draw_pie(PieParams {
+        self.renderer.draw_pie(Pie {
             center: [390.0, 400.0],
             radius: 45.0,
             start_angle: std::f32::consts::PI * 0.5,
@@ -363,7 +363,7 @@ impl State {
             y_clip: clip_y,
         });
 
-        self.renderer.draw_segment(SegmentParams {
+        self.renderer.draw_segment(Segment {
             start: [20.0, 520.0],
             end: [100.0, 520.0],
             thickness: 3.0,
@@ -373,7 +373,7 @@ impl State {
             dash_length: None,
         });
 
-        self.renderer.draw_segment(SegmentParams {
+        self.renderer.draw_segment(Segment {
             start: [120.0, 500.0],
             end: [200.0, 540.0],
             thickness: 6.0,
@@ -383,7 +383,7 @@ impl State {
             dash_length: Some(10.0),
         });
 
-        self.renderer.draw_segment(SegmentParams {
+        self.renderer.draw_segment(Segment {
             start: [230.0, 500.0],
             end: [230.0, 540.0],
             thickness: 10.0,
@@ -393,7 +393,7 @@ impl State {
             dash_length: Some(15.0),
         });
 
-        self.renderer.draw_segment(SegmentParams {
+        self.renderer.draw_segment(Segment {
             start: [260.0, 540.0],
             end: [340.0, 500.0],
             thickness: 8.0,
@@ -404,7 +404,7 @@ impl State {
         });
 
         // Gradient segments forming an X
-        self.renderer.draw_segment(SegmentParams {
+        self.renderer.draw_segment(Segment {
             start: [370.0, 500.0],
             end: [430.0, 540.0],
             thickness: 5.0,
@@ -418,7 +418,7 @@ impl State {
             y_clip: clip_y,
             dash_length: Some(8.0),
         });
-        self.renderer.draw_segment(SegmentParams {
+        self.renderer.draw_segment(Segment {
             start: [370.0, 540.0],
             end: [430.0, 500.0],
             thickness: 5.0,
@@ -434,7 +434,7 @@ impl State {
         });
 
         // Square grid
-        self.renderer.draw_grid(GridParams {
+        self.renderer.draw_grid(Grid {
             top_left: [750.0, 20.0],
             size: [200.0, 200.0],
             lattice_size: 20.0,
@@ -447,7 +447,7 @@ impl State {
         });
 
         // Hexagonal grid
-        self.renderer.draw_grid(GridParams {
+        self.renderer.draw_grid(Grid {
             top_left: [750.0, 250.0],
             size: [300.0, 300.0],
             lattice_size: 30.0,

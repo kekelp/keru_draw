@@ -30,6 +30,7 @@ pub mod primitive {
     pub const TEXT: u32 = 3;
     pub const IMAGE: u32 = 4;
     pub const GRID: u32 = 5;
+    pub const TRIANGLE: u32 = 6;
 }
 
 /// Gradient type for shapes
@@ -53,7 +54,7 @@ pub enum Fill {
 
 /// Parameters for drawing a box/rectangle
 #[derive(Debug, Clone, Copy)]
-pub struct BoxParams {
+pub struct Box {
     pub top_left: [f32; 2],
     pub size: [f32; 2],
     pub corner_radius: f32,
@@ -65,7 +66,7 @@ pub struct BoxParams {
 
 /// Parameters for drawing a circle
 #[derive(Debug, Clone, Copy)]
-pub struct CircleParams {
+pub struct Circle {
     pub center: [f32; 2],
     pub radius: f32,
     pub fill: Fill,
@@ -75,7 +76,7 @@ pub struct CircleParams {
 
 /// Parameters for drawing a ring (hollow circle)
 #[derive(Debug, Clone, Copy)]
-pub struct RingParams {
+pub struct Ring {
     pub center: [f32; 2],
     pub inner_radius: f32,
     pub outer_radius: f32,
@@ -86,7 +87,7 @@ pub struct RingParams {
 
 /// Parameters for drawing an arc
 #[derive(Debug, Clone, Copy)]
-pub struct ArcParams {
+pub struct Arc {
     pub center: [f32; 2],
     pub radius: f32,
     pub start_angle: f32,
@@ -99,7 +100,7 @@ pub struct ArcParams {
 
 /// Parameters for drawing a pie slice
 #[derive(Debug, Clone, Copy)]
-pub struct PieParams {
+pub struct Pie {
     pub center: [f32; 2],
     pub radius: f32,
     pub start_angle: f32,
@@ -111,7 +112,7 @@ pub struct PieParams {
 
 /// Parameters for drawing a line segment
 #[derive(Debug, Clone, Copy)]
-pub struct SegmentParams {
+pub struct Segment {
     pub start: [f32; 2],
     pub end: [f32; 2],
     pub thickness: f32,
@@ -130,7 +131,7 @@ pub enum GridType {
 
 /// Parameters for drawing a grid
 #[derive(Debug, Clone, Copy)]
-pub struct GridParams {
+pub struct Grid {
     pub top_left: [f32; 2],
     pub size: [f32; 2],
     pub lattice_size: f32,
@@ -138,6 +139,17 @@ pub struct GridParams {
     pub line_thickness: f32,
     pub color: [f32; 4],
     pub grid_type: GridType,
+    pub x_clip: [f32; 2],
+    pub y_clip: [f32; 2],
+}
+
+/// Parameters for drawing a triangle
+#[derive(Debug, Clone, Copy)]
+pub struct Triangle {
+    pub p0: [f32; 2],
+    pub p1: [f32; 2],
+    pub p2: [f32; 2],
+    pub fill: Fill,
     pub x_clip: [f32; 2],
     pub y_clip: [f32; 2],
 }
@@ -358,12 +370,12 @@ impl Renderer {
     }
 
     // Shape drawing methods
-    pub fn draw_box(&mut self, params: BoxParams) {
+    pub fn draw_box(&mut self, params: Box) {
         let (gradient_direction, color_start, color_end, gradient_type) =
             self.extract_fill_params(params.fill);
 
         let index = self.shapes.boxes.len();
-        self.shapes.boxes.push(shapes::Box {
+        self.shapes.boxes.push(shapes::BoxGpu {
             top_left: params.top_left,
             size: params.size,
             x_clip: params.x_clip,
@@ -384,12 +396,12 @@ impl Renderer {
         });
     }
 
-    pub fn draw_circle(&mut self, params: CircleParams) {
+    pub fn draw_circle(&mut self, params: Circle) {
         let (gradient_direction, color_start, color_end, gradient_type) =
             self.extract_fill_params(params.fill);
 
         let index = self.shapes.circles.len();
-        self.shapes.circles.push(shapes::Circle {
+        self.shapes.circles.push(shapes::CircleGpu {
             center: params.center,
             radii: [0.0, params.radius],
             angles: [0.0, std::f32::consts::TAU],
@@ -409,12 +421,12 @@ impl Renderer {
         });
     }
 
-    pub fn draw_ring(&mut self, params: RingParams) {
+    pub fn draw_ring(&mut self, params: Ring) {
         let (gradient_direction, color_start, color_end, gradient_type) =
             self.extract_fill_params(params.fill);
 
         let index = self.shapes.circles.len();
-        self.shapes.circles.push(shapes::Circle {
+        self.shapes.circles.push(shapes::CircleGpu {
             center: params.center,
             radii: [params.inner_radius, params.outer_radius],
             angles: [0.0, std::f32::consts::TAU],
@@ -434,12 +446,12 @@ impl Renderer {
         });
     }
 
-    pub fn draw_arc(&mut self, params: ArcParams) {
+    pub fn draw_arc(&mut self, params: Arc) {
         let (gradient_direction, color_start, color_end, gradient_type) =
             self.extract_fill_params(params.fill);
 
         let index = self.shapes.circles.len();
-        self.shapes.circles.push(shapes::Circle {
+        self.shapes.circles.push(shapes::CircleGpu {
             center: params.center,
             radii: [params.radius - params.thickness * 0.5, params.radius + params.thickness * 0.5],
             angles: [params.start_angle, params.end_angle],
@@ -459,12 +471,12 @@ impl Renderer {
         });
     }
 
-    pub fn draw_pie(&mut self, params: PieParams) {
+    pub fn draw_pie(&mut self, params: Pie) {
         let (gradient_direction, color_start, color_end, gradient_type) =
             self.extract_fill_params(params.fill);
 
         let index = self.shapes.circles.len();
-        self.shapes.circles.push(shapes::Circle {
+        self.shapes.circles.push(shapes::CircleGpu {
             center: params.center,
             radii: [0.0, params.radius],
             angles: [params.start_angle, params.end_angle],
@@ -484,7 +496,7 @@ impl Renderer {
         });
     }
 
-    pub fn draw_segment(&mut self, params: SegmentParams) {
+    pub fn draw_segment(&mut self, params: Segment) {
         let (color_start, color_end, gradient_type) = match params.fill {
             Fill::Solid(color) => (color, color, 0),
             Fill::Gradient { color_start, color_end, .. } => {
@@ -494,7 +506,7 @@ impl Renderer {
         };
 
         let index = self.shapes.segments.len();
-        self.shapes.segments.push(shapes::Segment {
+        self.shapes.segments.push(shapes::SegmentGpu {
             start: params.start,
             end: params.end,
             x_clip: params.x_clip,
@@ -513,9 +525,9 @@ impl Renderer {
         });
     }
 
-    pub fn draw_grid(&mut self, params: GridParams) {
+    pub fn draw_grid(&mut self, params: Grid) {
         let index = self.shapes.grids.len();
-        self.shapes.grids.push(shapes::Grid {
+        self.shapes.grids.push(shapes::GridGpu {
             top_left: params.top_left,
             size: params.size,
             x_clip: params.x_clip,
@@ -529,6 +541,31 @@ impl Renderer {
         });
         self.instances.push(Instance {
             p_type: primitive::GRID,
+            p_index: index as u32,
+            transform_index: *self.transform_stack.last().unwrap() as u32,
+            _padding: 0,
+        });
+    }
+
+    pub fn draw_triangle(&mut self, params: Triangle) {
+        let (gradient_direction, color_start, color_end, gradient_type) =
+            self.extract_fill_params(params.fill);
+
+        let index = self.shapes.triangles.len();
+        self.shapes.triangles.push(shapes::TriangleGpu {
+            p0: params.p0,
+            p1: params.p1,
+            p2: params.p2,
+            x_clip: params.x_clip,
+            y_clip: params.y_clip,
+            gradient_direction,
+            color_start,
+            color_end,
+            gradient_type,
+            pad: [0.0, 0.0, 0.0],
+        });
+        self.instances.push(Instance {
+            p_type: primitive::TRIANGLE,
             p_index: index as u32,
             transform_index: *self.transform_stack.last().unwrap() as u32,
             _padding: 0,
