@@ -1,7 +1,7 @@
 use std::{borrow::Cow, f32::consts::PI};
 
 use keru_draw::*;
-use keru_draw::GridType;
+use keru_draw::{GridType, GradientType, Fill};
 use textslabs::{ColorBrush, TextStyle2, Transform2D, parley::{FontFamily, FontStack}};
 use winit::{
     dpi::PhysicalSize, event::WindowEvent, event_loop::EventLoop, window::Window,
@@ -165,27 +165,33 @@ impl State {
         self.renderer.begin_frame(width, height);
 
         // Gradient box - horizontal
-        self.renderer.draw_box_gradient(BoxGradientParams {
+        self.renderer.draw_box(BoxParams {
             top_left: [20.0, 20.0],
             size: [80.0, 60.0],
             corner_radius: 0.0,
             border_thickness: 0.0,
-            color_start: [1.0, 0.3, 0.3, 1.0],
-            color_end: [0.3, 0.3, 1.0, 1.0],
-            gradient_angle: 0.0,
+            fill: Fill::Gradient {
+                color_start: [1.0, 0.3, 0.3, 1.0],
+                color_end: [0.3, 0.3, 1.0, 1.0],
+                gradient_type: GradientType::Linear,
+                angle: 0.0,
+            },
             x_clip: clip_x,
             y_clip: clip_y,
         });
 
         // Gradient box - diagonal
-        self.renderer.draw_box_gradient(BoxGradientParams {
+        self.renderer.draw_box(BoxParams {
             top_left: [120.0, 20.0],
             size: [80.0, 60.0],
             corner_radius: 5.0,
             border_thickness: 0.0,
-            color_start: [1.0, 0.5, 0.3, 1.0],
-            color_end: [0.3, 1.0, 0.5, 1.0],
-            gradient_angle: std::f32::consts::PI * 0.25,
+            fill: Fill::Gradient {
+                color_start: [1.0, 0.5, 0.3, 1.0],
+                color_end: [0.3, 1.0, 0.5, 1.0],
+                gradient_type: GradientType::Linear,
+                angle: std::f32::consts::PI * 0.25,
+            },
             x_clip: clip_x,
             y_clip: clip_y,
         });
@@ -195,7 +201,7 @@ impl State {
             size: [80.0, 60.0],
             corner_radius: 16.0,
             border_thickness: 5.0,
-            color: [0.015686, 0.666667, 0.427451, 1.0],
+            fill: Fill::Solid([0.015686, 0.666667, 0.427451, 1.0]),
             x_clip: clip_x,
             y_clip: clip_y,
         });
@@ -205,31 +211,35 @@ impl State {
             size: [80.0, 60.0],
             corner_radius: 30.0,
             border_thickness: 5.0,
-            color: [0.8, 1.0, 0.3, 1.0],
+            fill: Fill::Solid([0.8, 1.0, 0.3, 1.0]),
             x_clip: clip_x,
             y_clip: clip_y,
         });
 
         // Radial gradient circle
-        self.renderer.draw_circle_gradient(CircleGradientParams {
+        self.renderer.draw_circle(CircleParams {
             center: [50.0, 150.0],
             radius: 20.0,
-            color_start: [1.0, 1.0, 0.3, 1.0],
-            color_end: [1.0, 0.3, 0.3, 1.0],
-            gradient_type: 2, // radial
-            gradient_angle: 0.0,
+            fill: Fill::Gradient {
+                color_start: [1.0, 1.0, 0.3, 1.0],
+                color_end: [1.0, 0.3, 0.3, 1.0],
+                gradient_type: GradientType::Radial,
+                angle: 0.0,
+            },
             x_clip: clip_x,
             y_clip: clip_y,
         });
 
         // Linear gradient circle
-        self.renderer.draw_circle_gradient(CircleGradientParams {
+        self.renderer.draw_circle(CircleParams {
             center: [140.0, 150.0],
             radius: 30.0,
-            color_start: [0.3, 0.7, 1.0, 1.0],
-            color_end: [1.0, 0.3, 0.7, 1.0],
-            gradient_type: 1, // linear
-            gradient_angle: std::f32::consts::PI * 0.5,
+            fill: Fill::Gradient {
+                color_start: [0.3, 0.7, 1.0, 1.0],
+                color_end: [1.0, 0.3, 0.7, 1.0],
+                gradient_type: GradientType::Linear,
+                angle: std::f32::consts::PI * 0.5,
+            },
             x_clip: clip_x,
             y_clip: clip_y,
         });
@@ -237,7 +247,7 @@ impl State {
         self.renderer.draw_circle(CircleParams {
             center: [250.0, 150.0],
             radius: 40.0,
-            color: [0.3, 0.9, 1.0, 1.0],
+            fill: Fill::Solid([0.3, 0.9, 1.0, 1.0]),
             x_clip: clip_x,
             y_clip: clip_y,
         });
@@ -246,7 +256,7 @@ impl State {
             center: [360.0, 150.0],
             inner_radius: 35.0,
             outer_radius: 40.0,
-            color: [1.0, 1.0, 0.3, 1.0],
+            fill: Fill::Solid([1.0, 1.0, 0.3, 1.0]),
             x_clip: clip_x,
             y_clip: clip_y,
         });
@@ -255,7 +265,7 @@ impl State {
             center: [460.0, 150.0],
             inner_radius: 30.0,
             outer_radius: 45.0,
-            color: [1.0, 0.8, 0.3, 1.0],
+            fill: Fill::Solid([1.0, 0.8, 0.3, 1.0]),
             x_clip: clip_x,
             y_clip: clip_y,
         });
@@ -264,7 +274,7 @@ impl State {
             center: [560.0, 150.0],
             inner_radius: 25.0,
             outer_radius: 50.0,
-            color: [1.0, 0.6, 0.3, 1.0],
+            fill: Fill::Solid([1.0, 0.6, 0.3, 1.0]),
             x_clip: clip_x,
             y_clip: clip_y,
         });
@@ -275,7 +285,7 @@ impl State {
             start_angle: 0.0,
             end_angle: std::f32::consts::PI * 0.5,
             thickness: 8.0,
-            color: [1.0, 0.3, 1.0, 1.0],
+            fill: Fill::Solid([1.0, 0.3, 1.0, 1.0]),
             x_clip: clip_x,
             y_clip: clip_y,
         });
@@ -286,7 +296,7 @@ impl State {
             start_angle: 0.0,
             end_angle: std::f32::consts::PI,
             thickness: 8.0,
-            color: [0.8, 0.3, 1.0, 1.0],
+            fill: Fill::Solid([0.8, 0.3, 1.0, 1.0]),
             x_clip: clip_x,
             y_clip: clip_y,
         });
@@ -297,7 +307,7 @@ impl State {
             start_angle: 0.0,
             end_angle: std::f32::consts::PI * 1.5,
             thickness: 8.0,
-            color: [0.6, 0.3, 1.0, 1.0],
+            fill: Fill::Solid([0.6, 0.3, 1.0, 1.0]),
             x_clip: clip_x,
             y_clip: clip_y,
         });
@@ -308,7 +318,7 @@ impl State {
             start_angle: std::f32::consts::PI * 0.25,
             end_angle: std::f32::consts::PI * 1.25,
             thickness: 8.0,
-            color: [0.4, 0.3, 1.0, 1.0],
+            fill: Fill::Solid([0.4, 0.3, 1.0, 1.0]),
             x_clip: clip_x,
             y_clip: clip_y,
         });
@@ -318,7 +328,7 @@ impl State {
             radius: 45.0,
             start_angle: 0.0,
             end_angle: std::f32::consts::PI * 0.25,
-            color: [0.3, 1.0, 1.0, 1.0],
+            fill: Fill::Solid([0.3, 1.0, 1.0, 1.0]),
             x_clip: clip_x,
             y_clip: clip_y,
         });
@@ -328,7 +338,7 @@ impl State {
             radius: 45.0,
             start_angle: 0.0,
             end_angle: std::f32::consts::PI * 0.5,
-            color: [0.3, 1.0, 0.8, 1.0],
+            fill: Fill::Solid([0.3, 1.0, 0.8, 1.0]),
             x_clip: clip_x,
             y_clip: clip_y,
         });
@@ -338,7 +348,7 @@ impl State {
             radius: 45.0,
             start_angle: 0.0,
             end_angle: std::f32::consts::PI,
-            color: [0.3, 1.0, 0.6, 1.0],
+            fill: Fill::Solid([0.3, 1.0, 0.6, 1.0]),
             x_clip: clip_x,
             y_clip: clip_y,
         });
@@ -348,7 +358,7 @@ impl State {
             radius: 45.0,
             start_angle: std::f32::consts::PI * 0.5,
             end_angle: std::f32::consts::PI * 2.0,
-            color: [0.3, 1.0, 0.4, 1.0],
+            fill: Fill::Solid([0.3, 1.0, 0.4, 1.0]),
             x_clip: clip_x,
             y_clip: clip_y,
         });
@@ -357,7 +367,7 @@ impl State {
             start: [20.0, 520.0],
             end: [100.0, 520.0],
             thickness: 3.0,
-            color: [1.0, 0.5, 0.0, 1.0],
+            fill: Fill::Solid([1.0, 0.5, 0.0, 1.0]),
             x_clip: clip_x,
             y_clip: clip_y,
             dash_length: None,
@@ -367,7 +377,7 @@ impl State {
             start: [120.0, 500.0],
             end: [200.0, 540.0],
             thickness: 6.0,
-            color: [1.0, 0.6, 0.0, 1.0],
+            fill: Fill::Solid([1.0, 0.6, 0.0, 1.0]),
             x_clip: clip_x,
             y_clip: clip_y,
             dash_length: Some(10.0),
@@ -377,7 +387,7 @@ impl State {
             start: [230.0, 500.0],
             end: [230.0, 540.0],
             thickness: 10.0,
-            color: [1.0, 0.7, 0.0, 1.0],
+            fill: Fill::Solid([1.0, 0.7, 0.0, 1.0]),
             x_clip: clip_x,
             y_clip: clip_y,
             dash_length: Some(15.0),
@@ -387,29 +397,37 @@ impl State {
             start: [260.0, 540.0],
             end: [340.0, 500.0],
             thickness: 8.0,
-            color: [1.0, 0.8, 0.0, 1.0],
+            fill: Fill::Solid([1.0, 0.8, 0.0, 1.0]),
             x_clip: clip_x,
             y_clip: clip_y,
             dash_length: Some(5.0),
         });
 
         // Gradient segments forming an X
-        self.renderer.draw_segment_gradient(SegmentGradientParams {
+        self.renderer.draw_segment(SegmentParams {
             start: [370.0, 500.0],
             end: [430.0, 540.0],
             thickness: 5.0,
-            color_start: [1.0, 0.9, 0.2, 0.7],
-            color_end: [0.2, 0.9, 1.0, 0.7],
+            fill: Fill::Gradient {
+                color_start: [1.0, 0.9, 0.2, 0.7],
+                color_end: [0.2, 0.9, 1.0, 0.7],
+                gradient_type: GradientType::Linear,
+                angle: 0.0, // angle is ignored for segments
+            },
             x_clip: clip_x,
             y_clip: clip_y,
             dash_length: Some(8.0),
         });
-        self.renderer.draw_segment_gradient(SegmentGradientParams {
+        self.renderer.draw_segment(SegmentParams {
             start: [370.0, 540.0],
             end: [430.0, 500.0],
             thickness: 5.0,
-            color_start: [1.0, 0.2, 0.9, 0.8],
-            color_end: [0.2, 1.0, 0.9, 0.8],
+            fill: Fill::Gradient {
+                color_start: [1.0, 0.2, 0.9, 0.8],
+                color_end: [0.2, 1.0, 0.9, 0.8],
+                gradient_type: GradientType::Linear,
+                angle: 0.0, // angle is ignored for segments
+            },
             x_clip: clip_x,
             y_clip: clip_y,
             dash_length: None,
