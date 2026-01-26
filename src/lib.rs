@@ -640,6 +640,10 @@ impl Renderer {
         render_pass.draw(0..4, range.start as u32..real_end as u32);
     }
 
+    pub fn prepare_decorations(&mut self) {
+        self.text.prepare_decorations(&mut self.text_renderer);
+    }
+
     /// Convenience function that creates a render pass, renders into it, and presents to the screen.
     /// 
     /// Panics if the current surface texture can't be obtained from `surface`.  

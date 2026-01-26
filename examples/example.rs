@@ -95,7 +95,7 @@ impl State {
         renderer.text.get_text_edit_mut(&text_edit).set_style(&style);
 
         let text_box1 = renderer.text.add_text_box(
-            "Using rotation or zoom on text and SVGs can look quite disappointing, because they are pre-rasterized on the CPU.Using rotation or zoom on text and SVGs can look quite disappointing, because they are pre-rasterized on the CPU.Using rotation or zoom on text and SVGs can look quite disappointing, because they are pre-rasterized on the CPU.Using rotation or zoom on text and SVGs can look quite disappointing, because they are pre-rasterized on the CPU.Using rotation or zoom on text and SVGs can look quite disappointing, because they are pre-rasterized on the CPU.Using rotation or zoom on text and SVGs can look quite disappointing, because they are pre-rasterized on the CPU.".to_owned(),
+            "Using rotation or zoom on text and SVGs can look quite disappointing, because they are pre-rasterized on the CPU.".to_owned(),
             (10.0, 530.0),
             (200.0, 50.0),
             0.0,
@@ -419,9 +419,11 @@ impl State {
                 .then_rotate(euclid::Angle::radians(PI * 0.3))
         );
 
-            self.renderer.draw_image(&self.svg_handle, -50.0, -50.0, 100.0, 100.0, 0.5);
+        self.renderer.draw_image(&self.svg_handle, -50.0, -50.0, 100.0, 100.0, 0.5);
 
         self.renderer.pop_transform();
+        
+        self.renderer.prepare_text_decorations();
 
         self.renderer.autorender(&self.surface, wgpu::Color { r: 1.0, g: 1.0, b: 1.0, a: 1.0 });
 
