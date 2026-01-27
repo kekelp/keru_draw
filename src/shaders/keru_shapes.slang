@@ -411,7 +411,15 @@ float4 segment_fragment(uint primitiveIndex, float2 uv, float2 screen_pos, bool 
         float dash_period = dash_length * 2.0;
         float pos_in_period = fmod(t, dash_period);
 
-        if (pos_in_period > dash_length) {
+        float dist_to_start = pos_in_period;
+        float dist_to_end = dash_length - pos_in_period;
+        float dist_to_nearest_edge = min(dist_to_start, dist_to_end);
+
+        float dash_alpha = linearstep(-0.5, 0.5, dist_to_nearest_edge);
+
+        alpha *= dash_alpha;
+
+        if (alpha < 0.001) {
             discard;
         }
     }
