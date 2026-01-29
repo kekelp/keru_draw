@@ -1,7 +1,8 @@
 pub mod shapes;
 pub use shapes::*;
-
 pub mod gpu_vec;
+pub mod images;
+
 use gpu_vec::GpuVec;
 use std::time::Duration;
 
@@ -17,7 +18,7 @@ pub use textslabs::{
 };
 // Re-export font properties from parley
 pub use textslabs::parley::{FontWeight, FontStyle, LineHeight, FontStack};
-pub use keru_images::{ImageRenderer, LoadedImage};
+pub use images::{ImageRenderer, LoadedImage};
 use wgpu_profiler::{GpuProfiler, GpuProfilerSettings};
 
 pub use euclid;
@@ -216,6 +217,8 @@ pub struct Renderer {
     pub text: Text,
     text_renderer: TextRenderer,
     shapes: Shapes,
+    transforms: GpuVec<Transform>,
+    shapes_bind_group: wgpu::BindGroup,
     instances: GpuVec<Instance>,
     transform_stack: Vec<usize>,
     pub gpu_profiler: GpuProfiler,
@@ -247,7 +250,6 @@ impl Renderer {
         surface_format: wgpu::TextureFormat,
     ) -> Self {
         #[cfg(debug_assertions)] {
-            assert_imported_image_shader_matches();
             assert_imported_textslabs_shader_matches();
         }
 
@@ -256,30 +258,44 @@ impl Renderer {
             label: Some("Vertex Shader"),
             source: wgpu::util::make_spirv(vs_spirv),
         });
-        
+
         let fs_spirv = include_bytes!("../slangc_output/shader.frag.spv");
         let fs_module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("Fragment Shader"),
             source: wgpu::util::make_spirv(fs_spirv),
         });
 
-        let shapes = Shapes::new(&device);
-
         let text_renderer = TextRenderer::new(&device, &queue, surface_format);
         let text = Text::new();
 
-        let svg_renderer = ImageRenderer::new(&device, &queue, surface_format);
+        let shapes = Shapes::new(&device);
+        let image_renderer = ImageRenderer::new(&device, &queue, surface_format);
+
+        // Create transforms buffer with identity transform at index 0
+        let mut transforms = GpuVec::new(&device, 64, "keru_draw transforms");
+        transforms.push(Transform::identity());
+
+        // Create merged bind group layout for shapes + images
+        let shapes_bind_group_layout = Self::create_shapes_bind_group_layout(&device);
+
+        // Create merged bind group
+        let shapes_bind_group = Self::create_shapes_bind_group(
+            &device,
+            &shapes_bind_group_layout,
+            &transforms,
+            &shapes,
+            &image_renderer,
+        );
 
         let render_pipeline_layout =
             device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                 label: Some("Render Pipeline Layout"),
                 // The binding indices has to match the order in which the parameter blocks appear in the shader!
                 // If there are issues, compile the shaders with the -reflection-json flag and see the parameterBlock fields.
-                // Binding order: transformsData+shapes(0), textslabs(1), imageatlas(2)
+                // Binding order: shapes+images(0), textslabs(1)
                 bind_group_layouts: &[
-                    &Shapes::bind_group_layout(&device),
+                    &shapes_bind_group_layout,
                     &text_renderer.bind_group_layout(),
-                    svg_renderer.bind_group_layout(),
                 ],
                 push_constant_ranges: &[],
             });
@@ -369,13 +385,120 @@ impl Renderer {
             queue,
             render_pipeline,
             shapes,
+            transforms,
+            image_renderer,
             text,
             text_renderer,
-            image_renderer: svg_renderer,
+            shapes_bind_group,
             instances,
             transform_stack: vec![0], // Start with identity transform at index 0
             gpu_profiler,
         }
+    }
+
+    fn create_shapes_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+        let mut entries = vec![
+            // Transforms buffer
+            GpuVec::<Transform>::bind_group_layout_entry(0),
+        ];
+
+        // Add shapes resources (bindings 1-5)
+        let mut shapes_entries = Shapes::bind_group_layout_entries();
+        for entry in &mut shapes_entries {
+            entry.binding += 1; // Shift by 1 since transforms is at 0
+        }
+        entries.extend(shapes_entries);
+
+        // Add image resources (bindings 6-9)
+        entries.extend_from_slice(&[
+            // Image atlas texture array
+            wgpu::BindGroupLayoutEntry {
+                binding: 6,
+                visibility: wgpu::ShaderStages::VERTEX.union(wgpu::ShaderStages::FRAGMENT),
+                ty: wgpu::BindingType::Texture {
+                    sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                    view_dimension: wgpu::TextureViewDimension::D2Array,
+                    multisampled: false,
+                },
+                count: None,
+            },
+            // Sampler
+            wgpu::BindGroupLayoutEntry {
+                binding: 7,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                count: None,
+            },
+            // Params buffer
+            wgpu::BindGroupLayoutEntry {
+                binding: 8,
+                visibility: wgpu::ShaderStages::VERTEX.union(wgpu::ShaderStages::FRAGMENT),
+                ty: wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Uniform,
+                    has_dynamic_offset: false,
+                    min_binding_size: None,
+                },
+                count: None,
+            },
+            // Quads buffer
+            wgpu::BindGroupLayoutEntry {
+                binding: 9,
+                visibility: wgpu::ShaderStages::VERTEX.union(wgpu::ShaderStages::FRAGMENT),
+                ty: wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Storage { read_only: true },
+                    has_dynamic_offset: false,
+                    min_binding_size: None,
+                },
+                count: None,
+            },
+        ]);
+
+        device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: Some("keru_draw shapes+images bind group layout"),
+            entries: &entries,
+        })
+    }
+
+    fn create_shapes_bind_group(
+        device: &wgpu::Device,
+        layout: &wgpu::BindGroupLayout,
+        transforms: &GpuVec<Transform>,
+        shapes: &Shapes,
+        image_renderer: &ImageRenderer,
+    ) -> wgpu::BindGroup {
+        let texture_view = image_renderer.texture_array.create_view(&wgpu::TextureViewDescriptor {
+            dimension: Some(wgpu::TextureViewDimension::D2Array),
+            ..Default::default()
+        });
+
+        device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("Shapes+Images Bind Group"),
+            layout,
+            entries: &[
+                transforms.bind_group_entry(0),
+                shapes.boxes.bind_group_entry(1),
+                shapes.circles.bind_group_entry(2),
+                shapes.segments.bind_group_entry(3),
+                shapes.grids.bind_group_entry(4),
+                shapes.triangles.bind_group_entry(5),
+                wgpu::BindGroupEntry {
+                    binding: 6,
+                    resource: wgpu::BindingResource::TextureView(&texture_view),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 7,
+                    resource: wgpu::BindingResource::Sampler(&image_renderer.sampler),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 8,
+                    resource: image_renderer.params_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 9,
+                    resource: image_renderer.vertex_buffer.as_entire_binding(),
+                },
+            ],
+        })
     }
 
     // Shape drawing methods
@@ -665,8 +788,8 @@ impl Renderer {
         self.image_renderer.clear();
         self.instances.clear();
         self.text_renderer.clear();
-        self.shapes.transforms.clear();
-        self.shapes.transforms.push(Transform::identity());
+        self.transforms.clear();
+        self.transforms.push(Transform::identity());
         self.transform_stack.clear();
         self.transform_stack.push(0);
     }
@@ -703,8 +826,8 @@ impl Renderer {
     /// The transform is applied in screen space after clipping.
     pub fn push_transform(&mut self, transform: Transform) {
         // Add the transform to the buffer
-        let new_index = self.shapes.transforms.len();
-        self.shapes.transforms.push(transform);
+        let new_index = self.transforms.len();
+        self.transforms.push(transform);
 
         // Push the new index onto the stack
         self.transform_stack.push(new_index);
@@ -722,8 +845,8 @@ impl Renderer {
     /// Get the current transform being used for draw calls.
     fn get_current_transform(&self) -> Transform {
         let current_index = *self.transform_stack.last().unwrap();
-        if current_index < self.shapes.transforms.len() {
-            self.shapes.transforms[current_index]
+        if current_index < self.transforms.len() {
+            self.transforms[current_index]
         } else {
             Transform::identity()
         }
@@ -732,9 +855,23 @@ impl Renderer {
     /// Render into a render pass.
     pub fn render(&mut self, render_pass: &mut wgpu::RenderPass) {
         // Upload resources to GPU
-        self.shapes.load_to_gpu(&self.device, &self.queue);
+        let transforms_changed = self.transforms.load_to_gpu(&self.device, &self.queue);
+        let shapes_changed = self.shapes.load_to_gpu(&self.device, &self.queue);
+        let images_changed = self.image_renderer.load_to_gpu(&self.device, &self.queue);
+
+        // Recreate bind group if transforms, shapes or images changed
+        if transforms_changed || shapes_changed || images_changed {
+            let layout = Self::create_shapes_bind_group_layout(&self.device);
+            self.shapes_bind_group = Self::create_shapes_bind_group(
+                &self.device,
+                &layout,
+                &self.transforms,
+                &self.shapes,
+                &self.image_renderer,
+            );
+        }
+
         self.text_renderer.load_to_gpu(&self.device, &self.queue);
-        self.image_renderer.load_to_gpu(&self.device, &self.queue);
         self.instances.load_to_gpu(&self.device, &self.queue);
 
         self.set_pipeline_state(render_pass);
@@ -756,9 +893,23 @@ impl Renderer {
 
     pub fn load_to_gpu(&mut self) {
         // Upload resources to GPU
-        self.shapes.load_to_gpu(&self.device, &self.queue);
+        let transforms_changed = self.transforms.load_to_gpu(&self.device, &self.queue);
+        let shapes_changed = self.shapes.load_to_gpu(&self.device, &self.queue);
+        let images_changed = self.image_renderer.load_to_gpu(&self.device, &self.queue);
+
+        // Recreate bind group if transforms, shapes or images changed
+        if transforms_changed || shapes_changed || images_changed {
+            let layout = Self::create_shapes_bind_group_layout(&self.device);
+            self.shapes_bind_group = Self::create_shapes_bind_group(
+                &self.device,
+                &layout,
+                &self.transforms,
+                &self.shapes,
+                &self.image_renderer,
+            );
+        }
+
         self.text_renderer.load_to_gpu(&self.device, &self.queue);
-        self.image_renderer.load_to_gpu(&self.device, &self.queue);
         self.instances.load_to_gpu(&self.device, &self.queue);
     }
 
@@ -766,10 +917,9 @@ impl Renderer {
         render_pass.set_pipeline(&self.render_pipeline);
         // The binding indices has to match the order in which the parameter blocks appear in the shader!
         // If there are issues, compile the shaders with the -reflection-json flag and see the parameterBlock fields.
-        // Binding order: transformsData+shapes(0), textslabs(1), imageatlas(2)
-        render_pass.set_bind_group(0, &self.shapes.bind_group, &[]);
+        // Binding order: shapes+images(0), textslabs(1)
+        render_pass.set_bind_group(0, &self.shapes_bind_group, &[]);
         render_pass.set_bind_group(1, &self.text_renderer.bind_group(), &[]);
-        render_pass.set_bind_group(2, self.image_renderer.bind_group(), &[]);
         render_pass.set_vertex_buffer(0, self.instances.buffer().slice(..));
     }
 
@@ -858,18 +1008,11 @@ fn assert_imported_textslabs_shader_matches() {
     assert!(imported_shader == original_shader);
 }
 
-fn assert_imported_image_shader_matches() {
-    let imported_shader = include_str!("shaders/keru_images.slang");
-    let original_shader = keru_images::ImageRenderer::composable_shader_source();
-    assert!(imported_shader == original_shader);
-}
-
 #[cfg(test)]
 mod tests {
     use crate::*;
     #[test]
     fn test_imported_shaders() {
         assert_imported_textslabs_shader_matches();
-        assert_imported_image_shader_matches();
     }
 }
