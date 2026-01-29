@@ -349,8 +349,17 @@ impl Renderer {
             wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
         );
 
+        let features = device.features();
+        let timestamp_queries_supported = features.contains(wgpu::Features::TIMESTAMP_QUERY)
+            && features.contains(wgpu::Features::TIMESTAMP_QUERY_INSIDE_ENCODERS);
+
+        #[cfg(debug_assertions)]
+        let enable_timer_queries = timestamp_queries_supported;
+        #[cfg(not(debug_assertions))]
+        let enable_timer_queries = false;
+
         let gpu_profiler = GpuProfiler::new(&device, GpuProfilerSettings {
-            enable_timer_queries: false,
+            enable_timer_queries,
             enable_debug_groups: false,
             max_num_pending_frames: 3,
         }).unwrap();
@@ -827,11 +836,14 @@ impl Renderer {
 
         self.gpu_profiler.end_frame().unwrap();
 
-        if let Some(profiling_data) = self.gpu_profiler.process_finished_frame(self.queue.get_timestamp_period()) {
-            for p in profiling_data {
-                if let Some(time) = p.time {
-                    let dur = Duration::from_secs_f64(time.end - time.start);
-                    println!("Gpu time ({}): {:?} s", p.label, dur);
+        #[cfg(debug_assertions)]
+        {
+            if let Some(profiling_data) = self.gpu_profiler.process_finished_frame(self.queue.get_timestamp_period()) {
+                for p in profiling_data {
+                    if let Some(time) = p.time {
+                        let dur = Duration::from_secs_f64(time.end - time.start);
+                        println!("Gpu time ({}): {:?} s", p.label, dur);
+                    }
                 }
             }
         }
