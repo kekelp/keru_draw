@@ -463,12 +463,12 @@ impl State {
         
         self.renderer.draw_text_edit(&self.text_edit);
 
-        self.renderer.draw_image(&self.svg_handle, 520.0, 150.0, 180.0, 180.0, 0.5);
+        self.renderer.draw_image(&mut self.svg_handle, 520.0, 150.0, 180.0, 180.0, 0.5);
 
         // Rotated text
         self.renderer.text.get_text_box_mut(&self.text_box1).set_screen_space_clip_rect(Some((0.0, 0.0, 100.0, 1000000.0)));
         self.renderer.draw_text_box(&self.text_box1);
-        
+
         self.renderer.draw_text_box(&self.text_box2);
 
         self.renderer.push_transform(
@@ -477,7 +477,7 @@ impl State {
                 .then_rotate(euclid::Angle::radians(PI * 0.3))
         );
 
-        self.renderer.draw_image(&self.svg_handle, -50.0, -50.0, 100.0, 100.0, 0.5);
+        self.renderer.draw_image(&mut self.svg_handle, -50.0, -50.0, 100.0, 100.0, 0.5);
 
         self.renderer.pop_transform();
         

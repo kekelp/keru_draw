@@ -2,6 +2,7 @@ use etagere::{Allocation, BucketedAtlasAllocator, size2};
 use image::RgbaImage;
 use wgpu::*;
 use bytemuck::{Pod, Zeroable};
+use std::collections::HashMap;
 
 /// A quad for rendering an image instance (SVG or raster) on the GPU.
 #[repr(C)]
@@ -28,6 +29,8 @@ pub struct LoadedImage {
     pub alloc: Allocation,
     pub width: u32,
     pub height: u32,
+    /// Internal ID for looking up SVG data (0 for raster images)
+    pub(crate) id: u64,
 }
 
 struct AtlasPage {
@@ -63,6 +66,11 @@ pub struct ImageRenderer {
     needs_texture_array_rebuild: bool,
 
     surface_is_srgb: bool,
+
+    /// Cache of raw SVG data for rerasterization
+    svg_data_cache: HashMap<u64, Vec<u8>>,
+    /// Counter for generating unique IDs
+    next_id: u64,
 }
 
 const INITIAL_BUFFER_SIZE: u64 = 1024 * 4;
@@ -126,6 +134,8 @@ impl ImageRenderer {
             needs_gpu_sync: false,
             needs_texture_array_rebuild: false,
             surface_is_srgb,
+            svg_data_cache: HashMap::new(),
+            next_id: 1,
         }
     }
 
@@ -149,13 +159,39 @@ impl ImageRenderer {
     }
 
     /// Draw a previously loaded SVG.
-    pub fn draw_svg(&mut self, loaded: &LoadedImage, x: f32, y: f32, width: f32, height: f32, depth: f32) {
+    ///
+    /// If `rerasterize` is true, the SVG will be rerasterized if the desired size
+    /// (width x height) differs from the currently stored rasterization size.
+    pub fn draw_svg(&mut self, loaded: &mut LoadedImage, x: f32, y: f32, width: f32, height: f32, depth: f32, rerasterize: bool) {
+        // Check if rerasterization is needed
+        if rerasterize && loaded.id != 0 {
+            let desired_width = width.round() as u32;
+            let desired_height = height.round() as u32;
+
+            if desired_width != loaded.width || desired_height != loaded.height {
+                // Get the cached SVG data
+                if let Some(svg_data) = self.svg_data_cache.get(&loaded.id).cloned() {
+                    // Deallocate old texture space
+                    self.atlas_pages[loaded.page as usize].packer.deallocate(loaded.alloc.id);
+
+                    // Rerasterize at new size
+                    if let Some(new_loaded) = self.rasterize_and_store_with_id(&svg_data, desired_width, desired_height, loaded.id) {
+                        *loaded = new_loaded;
+                    }
+                }
+            }
+        }
+
         self.add_quad_from_loaded_image(loaded, x, y, width, height, depth);
     }
 
     /// Remove a loaded SVG and free its atlas space.
     pub fn unload_svg(&mut self, loaded: &LoadedImage) {
         self.atlas_pages[loaded.page as usize].packer.deallocate(loaded.alloc.id);
+        // Remove cached SVG data
+        if loaded.id != 0 {
+            self.svg_data_cache.remove(&loaded.id);
+        }
     }
 
     /// Load a raster image from raw RGBA8 bytes, returning the loaded image.
@@ -259,11 +295,21 @@ impl ImageRenderer {
     }
 
     fn rasterize_and_store(&mut self, svg_data: &[u8], width: u32, height: u32) -> Option<LoadedImage> {
+        // Generate unique ID and store SVG data
+        let id = self.next_id;
+        self.next_id += 1;
+        self.svg_data_cache.insert(id, svg_data.to_vec());
+
+        self.rasterize_and_store_with_id(svg_data, width, height, id)
+    }
+
+    fn rasterize_and_store_with_id(&mut self, svg_data: &[u8], width: u32, height: u32, id: u64) -> Option<LoadedImage> {
         // Parse SVG
         let opt = usvg::Options::default();
         let tree = usvg::Tree::from_data(svg_data, &opt).ok()?;
 
         // Create pixmap for rasterization
+        // we could keep a scratch buffer but it probably happens rarely enough that it's better to keep the memory. maybe
         let mut pixmap = tiny_skia::Pixmap::new(width, height)?;
 
         // Calculate scale to fit SVG in requested dimensions
@@ -279,7 +325,8 @@ impl ImageRenderer {
 
         // Get raw RGBA data
         let rgba_data = pixmap.take();
-        self.store_image_data(&rgba_data, width, height)
+
+        self.store_image_data_with_id(&rgba_data, width, height, id)
     }
 
     fn store_image_data(
@@ -287,6 +334,16 @@ impl ImageRenderer {
         rgba_data: &[u8],
         width: u32,
         height: u32,
+    ) -> Option<LoadedImage> {
+        self.store_image_data_with_id(rgba_data, width, height, 0)
+    }
+
+    fn store_image_data_with_id(
+        &mut self,
+        rgba_data: &[u8],
+        width: u32,
+        height: u32,
+        id: u64,
     ) -> Option<LoadedImage> {
         // Verify data size
         if rgba_data.len() != (width * height * 4) as usize {
@@ -296,14 +353,14 @@ impl ImageRenderer {
         // Try to allocate in existing pages
         for page_idx in 0..self.atlas_pages.len() {
             if let Some(alloc) = self.atlas_pages[page_idx].packer.allocate(size2(width as i32, height as i32)) {
-                return Some(self.store_in_atlas(rgba_data, alloc, page_idx, width, height));
+                return Some(self.store_in_atlas(rgba_data, alloc, page_idx, width, height, id));
             }
         }
 
         // Create new page
         let new_page_idx = self.make_new_page();
         if let Some(alloc) = self.atlas_pages[new_page_idx].packer.allocate(size2(width as i32, height as i32)) {
-            return Some(self.store_in_atlas(rgba_data, alloc, new_page_idx, width, height));
+            return Some(self.store_in_atlas(rgba_data, alloc, new_page_idx, width, height, id));
         }
 
         // Image too large even for new page
@@ -317,6 +374,7 @@ impl ImageRenderer {
         page_idx: usize,
         width: u32,
         height: u32,
+        id: u64,
     ) -> LoadedImage {
         // Copy image data to atlas
         let dst_x = alloc.rectangle.min.x as u32;
@@ -342,6 +400,7 @@ impl ImageRenderer {
             alloc,
             width,
             height,
+            id,
         }
     }
 

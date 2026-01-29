@@ -763,15 +763,28 @@ impl Renderer {
 
     pub fn draw_image(
         &mut self,
-        handle: &LoadedImage,
+        handle: &mut LoadedImage,
         x: f32,
         y: f32,
         width: f32,
         height: f32,
         depth: f32,
     ) {
+        self.draw_image_ex(handle, x, y, width, height, depth, false);
+    }
+
+    pub fn draw_image_ex(
+        &mut self,
+        handle: &mut LoadedImage,
+        x: f32,
+        y: f32,
+        width: f32,
+        height: f32,
+        depth: f32,
+        rerasterize: bool,
+    ) {
         let start_idx = self.image_renderer.quads().len();
-        self.image_renderer.draw_svg(handle, x, y, width, height, depth);
+        self.image_renderer.draw_svg(handle, x, y, width, height, depth, rerasterize);
         let end_idx = self.image_renderer.quads().len();
         for q in start_idx..end_idx {
             self.instances.push(Instance {
