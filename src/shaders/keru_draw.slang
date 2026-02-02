@@ -55,7 +55,6 @@ struct GridData {
     float line_thickness;
     float4 color;
     uint grid_type; // 0=square, 1=hex
-    float pad0;
     float pad1;
     float pad2;
 }
@@ -484,7 +483,7 @@ void grid_vertex(
 }
 
 // Thanks leftofzen. https://www.shadertoy.com/view/wtdSzX
-float4 grid_fragment(uint primitiveIndex, float2 uv, float2 screen_pos, bool surface_is_srgb): SV_Target {
+float4 grid_fragment(uint primitiveIndex, float2 uv, float2 screen_pos, bool surface_is_srgb, float transform_scale): SV_Target {
     var grid: GridData = shapes.grids[primitiveIndex];
 
     // Apply clipping
@@ -494,7 +493,8 @@ float4 grid_fragment(uint primitiveIndex, float2 uv, float2 screen_pos, bool sur
     }
 
     // Transform to grid space
-    float2 p_pixels = screen_pos - grid.top_left + grid.offset;
+    float2 local_pos = uv * grid.size;
+    float2 p_pixels = local_pos + grid.offset + float2(0.5, 0.5);
 
     float dist;
     if (grid.grid_type == 0) {
@@ -528,8 +528,11 @@ float4 grid_fragment(uint primitiveIndex, float2 uv, float2 screen_pos, bool sur
     }
 
     // Apply line thickness and antialiasing
-    float half_thickness = grid.line_thickness * 0.5;
-    float alpha = 1.0 - linearstep(half_thickness - 0.5, half_thickness + 0.5, dist);
+    float line_width = grid.line_thickness / max(transform_scale, 0.001);
+    float half_thickness = line_width * 0.5;
+    // Scale antialiasing width based on transform zoom (dist is in local space)
+    float aa_width = 0.5 / max(transform_scale, 0.001);
+    float alpha = 1.0 - linearstep(half_thickness - aa_width, half_thickness + aa_width, dist);
 
     if (alpha < 0.001) {
         discard;

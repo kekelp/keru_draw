@@ -439,7 +439,7 @@ impl State {
             size: [200.0, 200.0],
             lattice_size: 20.0,
             offset: [0.0, 0.0],
-            line_thickness: 1.5,
+            line_thickness: 2.0,
             color: [0.5, 0.5, 1.0, 0.5],
             grid_type: GridType::Square,
             x_clip: clip_x,

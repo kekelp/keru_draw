@@ -111,7 +111,7 @@ float4 fragmentMain(VertexOutput input): SV_Target {
         return segment_fragment(input.primitiveIndex, input.uv, input.screen_pos, srgb);
     }
     else if (input.primitiveType == PrimitiveType::Grid) {
-        return grid_fragment(input.primitiveIndex, input.uv, input.screen_pos, srgb);
+        return grid_fragment(input.primitiveIndex, input.uv, input.screen_pos, srgb, input.transform_scale);
     }
     else if (input.primitiveType == PrimitiveType::Triangle) {
         return triangle_fragment(input.primitiveIndex, input.uv, input.screen_pos, srgb);
