@@ -2630,7 +2630,7 @@
             ],
             "result": {
                 "stage": "vertex",
-                "binding": {"kind": "varyingOutput", "index": 0, "count": 4},
+                "binding": {"kind": "varyingOutput", "index": 0, "count": 5},
                 "type": {
                     "kind": "struct",
                     "name": "VertexOutput",
@@ -2695,6 +2695,17 @@
                             "binding": {"kind": "varyingOutput", "index": 3},
                             "semanticName": "TEXCOORD",
                             "semanticIndex": 1
+                        },
+                        {
+                            "name": "transform_scale",
+                            "type": {
+                                "kind": "scalar",
+                                "scalarType": "float32"
+                            },
+                            "stage": "vertex",
+                            "binding": {"kind": "varyingOutput", "index": 4},
+                            "semanticName": "TEXCOORD",
+                            "semanticIndex": 2
                         }
                     ]
                 }

@@ -19,6 +19,7 @@ struct VertexOutput {
     uint primitiveIndex: PRIMINDEX;
     float2 uv: TEXCOORD0;
     float2 screen_pos: TEXCOORD1;
+    float transform_scale: TEXCOORD2;
 }
 
 struct VertexInput {
@@ -36,6 +37,7 @@ VertexOutput vertexMain(
     VertexOutput output;
     output.primitiveType = input.primitiveType;
     output.primitiveIndex = input.primitiveIndex;
+    output.transform_scale = 1.0; // Default scale
 
     // grab the screen resolution from textslabs
     float2 resolution = textslabs.params.resolution;
@@ -77,6 +79,11 @@ VertexOutput vertexMain(
         float2 translation = float2(transform.m31, transform.m32);
         float2 transformed_pos = mul(matrix, screen_pos) + translation;
 
+        // Calculate the scale factor from the transform matrix
+        // Use sqrt of absolute determinant to get uniform scale
+        float det = transform.m11 * transform.m22 - transform.m12 * transform.m21;
+        output.transform_scale = sqrt(abs(det));
+
         // Store the transformed screen position for clipping in fragment shader
         output.screen_pos = transformed_pos;
 
@@ -95,7 +102,7 @@ float4 fragmentMain(VertexOutput input): SV_Target {
     bool srgb = textslabs.params.srgb != 0;
 
     if (input.primitiveType == PrimitiveType::Box) {
-        return box_fragment(input.primitiveIndex, input.uv, input.screen_pos, srgb);
+        return box_fragment(input.primitiveIndex, input.uv, input.screen_pos, srgb, input.transform_scale);
     }
     else if (input.primitiveType == PrimitiveType::Circle) {
         return circle_fragment(input.primitiveIndex, input.uv, input.screen_pos, srgb);

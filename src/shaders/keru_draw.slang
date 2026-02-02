@@ -195,7 +195,7 @@ float sd_rounded_box(float2 p, float2 size, float r) {
     return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - r;
 }
 
-float4 box_fragment(uint primitiveIndex, float2 uv, float2 screen_pos, bool surface_is_srgb): SV_Target {
+float4 box_fragment(uint primitiveIndex, float2 uv, float2 screen_pos, bool surface_is_srgb, float transform_scale): SV_Target {
     var box: BoxData = shapes.boxes[primitiveIndex];
 
     if (screen_pos.x < box.x_clip.x || screen_pos.x > box.x_clip.y ||
@@ -213,7 +213,9 @@ float4 box_fragment(uint primitiveIndex, float2 uv, float2 screen_pos, bool surf
         dist = abs(dist + box.border_thickness * 0.5) - box.border_thickness * 0.5;
     }
 
-    float alpha = 1.0 - linearstep(-0.5, 0.5, dist);
+    // Scale antialiasing width based on transform zoom
+    float aa_width = 0.5 / max(transform_scale, 0.001);
+    float alpha = 1.0 - linearstep(-aa_width, aa_width, dist);
 
     if (alpha < 0.001) {
         discard;

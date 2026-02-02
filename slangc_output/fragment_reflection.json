@@ -2581,7 +2581,7 @@
                 {
                     "name": "input",
                     "stage": "fragment",
-                    "binding": {"kind": "varyingInput", "index": 0, "count": 4},
+                    "binding": {"kind": "varyingInput", "index": 0, "count": 5},
                     "type": {
                         "kind": "struct",
                         "name": "VertexOutput",
@@ -2646,6 +2646,17 @@
                                 "binding": {"kind": "varyingInput", "index": 3},
                                 "semanticName": "TEXCOORD",
                                 "semanticIndex": 1
+                            },
+                            {
+                                "name": "transform_scale",
+                                "type": {
+                                    "kind": "scalar",
+                                    "scalarType": "float32"
+                                },
+                                "stage": "fragment",
+                                "binding": {"kind": "varyingInput", "index": 4},
+                                "semanticName": "TEXCOORD",
+                                "semanticIndex": 2
                             }
                         ]
                     }
