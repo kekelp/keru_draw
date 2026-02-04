@@ -75,9 +75,9 @@ struct TriangleData {
 }
 
 struct Transform {
-    float m11; float m12;
-    float m21; float m22;
-    float m31; float m32;
+    float2 offset;
+    float scale;
+    float _padding;
 }
 
 struct ImageQuad {

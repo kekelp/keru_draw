@@ -19,23 +19,19 @@
                                     "name": "Transform",
                                     "fields": [
                                         {
-                                            "name": "m11",
+                                            "name": "offset",
                                             "type": {
-                                                "kind": "scalar",
-                                                "scalarType": "float32"
+                                                "kind": "vector",
+                                                "elementCount": 2,
+                                                "elementType": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                }
                                             },
-                                            "binding": {"kind": "uniform", "offset": 0, "size": 4, "elementStride": 0}
+                                            "binding": {"kind": "uniform", "offset": 0, "size": 8, "elementStride": 4}
                                         },
                                         {
-                                            "name": "m12",
-                                            "type": {
-                                                "kind": "scalar",
-                                                "scalarType": "float32"
-                                            },
-                                            "binding": {"kind": "uniform", "offset": 4, "size": 4, "elementStride": 0}
-                                        },
-                                        {
-                                            "name": "m21",
+                                            "name": "scale",
                                             "type": {
                                                 "kind": "scalar",
                                                 "scalarType": "float32"
@@ -43,28 +39,12 @@
                                             "binding": {"kind": "uniform", "offset": 8, "size": 4, "elementStride": 0}
                                         },
                                         {
-                                            "name": "m22",
+                                            "name": "_padding",
                                             "type": {
                                                 "kind": "scalar",
                                                 "scalarType": "float32"
                                             },
                                             "binding": {"kind": "uniform", "offset": 12, "size": 4, "elementStride": 0}
-                                        },
-                                        {
-                                            "name": "m31",
-                                            "type": {
-                                                "kind": "scalar",
-                                                "scalarType": "float32"
-                                            },
-                                            "binding": {"kind": "uniform", "offset": 16, "size": 4, "elementStride": 0}
-                                        },
-                                        {
-                                            "name": "m32",
-                                            "type": {
-                                                "kind": "scalar",
-                                                "scalarType": "float32"
-                                            },
-                                            "binding": {"kind": "uniform", "offset": 20, "size": 4, "elementStride": 0}
                                         }
                                     ]
                                 }
@@ -992,23 +972,19 @@
                                         "name": "Transform",
                                         "fields": [
                                             {
-                                                "name": "m11",
+                                                "name": "offset",
                                                 "type": {
-                                                    "kind": "scalar",
-                                                    "scalarType": "float32"
+                                                    "kind": "vector",
+                                                    "elementCount": 2,
+                                                    "elementType": {
+                                                        "kind": "scalar",
+                                                        "scalarType": "float32"
+                                                    }
                                                 },
-                                                "binding": {"kind": "uniform", "offset": 0, "size": 4, "elementStride": 0}
+                                                "binding": {"kind": "uniform", "offset": 0, "size": 8, "elementStride": 4}
                                             },
                                             {
-                                                "name": "m12",
-                                                "type": {
-                                                    "kind": "scalar",
-                                                    "scalarType": "float32"
-                                                },
-                                                "binding": {"kind": "uniform", "offset": 4, "size": 4, "elementStride": 0}
-                                            },
-                                            {
-                                                "name": "m21",
+                                                "name": "scale",
                                                 "type": {
                                                     "kind": "scalar",
                                                     "scalarType": "float32"
@@ -1016,28 +992,12 @@
                                                 "binding": {"kind": "uniform", "offset": 8, "size": 4, "elementStride": 0}
                                             },
                                             {
-                                                "name": "m22",
+                                                "name": "_padding",
                                                 "type": {
                                                     "kind": "scalar",
                                                     "scalarType": "float32"
                                                 },
                                                 "binding": {"kind": "uniform", "offset": 12, "size": 4, "elementStride": 0}
-                                            },
-                                            {
-                                                "name": "m31",
-                                                "type": {
-                                                    "kind": "scalar",
-                                                    "scalarType": "float32"
-                                                },
-                                                "binding": {"kind": "uniform", "offset": 16, "size": 4, "elementStride": 0}
-                                            },
-                                            {
-                                                "name": "m32",
-                                                "type": {
-                                                    "kind": "scalar",
-                                                    "scalarType": "float32"
-                                                },
-                                                "binding": {"kind": "uniform", "offset": 20, "size": 4, "elementStride": 0}
                                             }
                                         ]
                                     }

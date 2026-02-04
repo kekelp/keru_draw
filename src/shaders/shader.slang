@@ -74,15 +74,10 @@ VertexOutput vertexMain(
 
         // Apply the transform
         Transform transform = shapes.transforms[input.transformIndex];
-        float2x2 matrix = float2x2(transform.m11, transform.m12,
-                                    transform.m21, transform.m22);
-        float2 translation = float2(transform.m31, transform.m32);
-        float2 transformed_pos = mul(matrix, screen_pos) + translation;
+        float2 transformed_pos = screen_pos * transform.scale + transform.offset;
 
-        // Calculate the scale factor from the transform matrix
-        // Use sqrt of absolute determinant to get uniform scale
-        float det = transform.m11 * transform.m22 - transform.m12 * transform.m21;
-        output.transform_scale = sqrt(abs(det));
+        // Store the scale factor for antialiasing
+        output.transform_scale = transform.scale;
 
         // Store the transformed screen position for clipping in fragment shader
         output.screen_pos = transformed_pos;

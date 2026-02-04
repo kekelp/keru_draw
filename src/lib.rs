@@ -22,7 +22,6 @@ pub use images::{ImageRenderer, LoadedImage};
 use wgpu_profiler::{GpuProfiler, GpuProfilerSettings};
 
 pub use euclid;
-use euclid::UnknownUnit;
 
 pub mod primitive {
     pub const BOX: u32 = 0;
@@ -169,43 +168,53 @@ pub struct ScreenRect {
     pub max_y: f32,
 }
 
-/// A 2D affine transform using euclid's Transform2D.
-pub type Transform = euclid::Transform2D<f32, UnknownUnit, UnknownUnit>;
+/// A simple 2D transform with uniform scale and offset
+#[repr(C)]
+#[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
+pub struct Transform {
+    pub offset: [f32; 2],
+    pub scale: f32,
+    pub _padding: f32,  // For 16-byte alignment
+}
 
-/// Combines a euclid Transform2D with a textslabs Transform2D.
-/// The textslabs transform is applied first, then the euclid transform.
-fn combine_transforms(euclid_transform: &Transform, textslabs_transform: &textslabs::Transform2D) -> textslabs::Transform2D {
-    // Convert textslabs transform to euclid
-    // textslabs applies: scale, then rotation, then translation
-    let cos_r = textslabs_transform.rotation.cos();
-    let sin_r = textslabs_transform.rotation.sin();
-    let s = textslabs_transform.scale;
+impl Transform {
+    /// Create an identity transform (no translation, scale = 1.0)
+    pub fn identity() -> Self {
+        Self {
+            offset: [0.0, 0.0],
+            scale: 1.0,
+            _padding: 0.0,
+        }
+    }
 
-    let textslabs_euclid = Transform::new(
-        s * cos_r, s * sin_r,
-        -s * sin_r, s * cos_r,
-        textslabs_transform.translation.0,
-        textslabs_transform.translation.1,
-    );
+    /// Create a translation transform
+    pub fn translation(x: f32, y: f32) -> Self {
+        Self {
+            offset: [x, y],
+            scale: 1.0,
+            _padding: 0.0,
+        }
+    }
 
-    // Combine: textslabs_euclid, then euclid_transform
-    let combined_euclid = textslabs_euclid.then(euclid_transform);
+    /// Create a scale transform centered at origin
+    pub fn scale(scale: f32) -> Self {
+        Self {
+            offset: [0.0, 0.0],
+            scale,
+            _padding: 0.0,
+        }
+    }
+}
 
-    // Convert back to textslabs::Transform2D
-    // Extract translation from m31, m32
-    let translation = (combined_euclid.m31, combined_euclid.m32);
-
-    // Extract rotation and scale from the matrix
-    // For a 2D transform matrix: [[m11, m21], [m12, m22]]
-    // rotation = atan2(m12, m11)
-    // scale = sqrt(m11^2 + m12^2) (assuming uniform scale)
-    let rotation = combined_euclid.m12.atan2(combined_euclid.m11);
-    let scale = (combined_euclid.m11.powi(2) + combined_euclid.m12.powi(2)).sqrt();
-
+/// Combines a keru_draw Transform with a textslabs Transform2D.
+fn combine_transforms(keru_transform: &Transform, textslabs_transform: &textslabs::Transform2D) -> textslabs::Transform2D {
     textslabs::Transform2D {
-        translation,
-        rotation,
-        scale,
+        translation: (
+            textslabs_transform.translation.0 + keru_transform.offset[0],
+            textslabs_transform.translation.1 + keru_transform.offset[1],
+        ),
+        rotation: textslabs_transform.rotation,
+        scale: textslabs_transform.scale * keru_transform.scale,
     }
 }
 

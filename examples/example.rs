@@ -1,4 +1,4 @@
-use std::{borrow::Cow, f32::consts::PI};
+use std::borrow::Cow;
 
 use keru_draw::*;
 use keru_draw::{GridType, GradientType, Fill};
@@ -471,11 +471,11 @@ impl State {
 
         self.renderer.draw_text_box(&self.text_box2);
 
-        self.renderer.push_transform(
-            Transform::translation(600.0, 630.0)
-                .then_scale(1.25, 1.25)
-                .then_rotate(euclid::Angle::radians(PI * 0.3))
-        );
+        self.renderer.push_transform(Transform {
+            offset: [600.0, 630.0],
+            scale: 1.25,
+            _padding: 0.0,
+        });
 
         self.renderer.draw_image(&mut self.svg_handle, -50.0, -50.0, 100.0, 100.0, 0.5);
 
