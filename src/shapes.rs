@@ -13,7 +13,8 @@ pub struct BoxGpu {
     pub color_start: [f32; 4],
     pub color_end: [f32; 4],
     pub gradient_type: u32, // 0=solid, 1=linear
-    pub pad: [f32; 3],
+    pub rounded_corners: u32, // bitflags: 1=top-left, 2=top-right, 4=bottom-left, 8=bottom-right
+    pub pad: [f32; 2],
 }
 
 #[repr(C)]

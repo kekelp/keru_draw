@@ -33,6 +33,23 @@ pub mod primitive {
     pub const TRIANGLE: u32 = 6;
 }
 
+bitflags::bitflags! {
+    /// Bitflags specifying which corners of a rectangle should be rounded.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+    pub struct RoundedCorners: u32 {
+        const TOP_LEFT = 1 << 0;
+        const TOP_RIGHT = 1 << 1;
+        const BOTTOM_LEFT = 1 << 2;
+        const BOTTOM_RIGHT = 1 << 3;
+        const ALL = Self::TOP_LEFT.bits() | Self::TOP_RIGHT.bits() | Self::BOTTOM_LEFT.bits() | Self::BOTTOM_RIGHT.bits();
+        const NONE = 0;
+        const TOP = Self::TOP_LEFT.bits() | Self::TOP_RIGHT.bits();
+        const BOTTOM = Self::BOTTOM_LEFT.bits() | Self::BOTTOM_RIGHT.bits();
+        const LEFT = Self::TOP_LEFT.bits() | Self::BOTTOM_LEFT.bits();
+        const RIGHT = Self::TOP_RIGHT.bits() | Self::BOTTOM_RIGHT.bits();
+    }
+}
+
 /// Gradient type for shapes
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum GradientType {
@@ -58,6 +75,7 @@ pub struct Box {
     pub top_left: [f32; 2],
     pub size: [f32; 2],
     pub corner_radius: f32,
+    pub rounded_corners: RoundedCorners,
     pub border_thickness: f32,
     pub fill: Fill,
     pub x_clip: [f32; 2],
@@ -527,7 +545,8 @@ impl Renderer {
             color_start,
             color_end,
             gradient_type,
-            pad: [0.0, 0.0, 0.0],
+            rounded_corners: params.rounded_corners.bits(),
+            pad: [0.0, 0.0],
         });
         self.instances.push(Instance {
             p_type: primitive::BOX,

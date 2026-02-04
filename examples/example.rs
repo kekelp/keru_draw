@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 
 use keru_draw::*;
-use keru_draw::{GridType, GradientType, Fill};
+use keru_draw::{GridType, GradientType, Fill, RoundedCorners};
 use textslabs::{ColorBrush, TextStyle2, Transform2D, parley::{FontFamily, FontStack}};
 use winit::{
     dpi::PhysicalSize, event::WindowEvent, event_loop::EventLoop, window::Window,
@@ -169,6 +169,7 @@ impl State {
             top_left: [20.0, 20.0],
             size: [80.0, 60.0],
             corner_radius: 0.0,
+            rounded_corners: RoundedCorners::ALL,
             border_thickness: 0.0,
             fill: Fill::Gradient {
                 color_start: [1.0, 0.3, 0.3, 1.0],
@@ -185,6 +186,7 @@ impl State {
             top_left: [120.0, 20.0],
             size: [80.0, 60.0],
             corner_radius: 5.0,
+            rounded_corners: RoundedCorners::ALL,
             border_thickness: 0.0,
             fill: Fill::Gradient {
                 color_start: [1.0, 0.5, 0.3, 1.0],
@@ -196,22 +198,50 @@ impl State {
             y_clip: clip_y,
         });
 
+        // Box with only top corners rounded
         self.renderer.draw_box(Box {
             top_left: [220.0, 20.0],
             size: [80.0, 60.0],
             corner_radius: 16.0,
+            rounded_corners: RoundedCorners::TOP,
             border_thickness: 5.0,
             fill: Fill::Solid([0.015686, 0.666667, 0.427451, 1.0]),
             x_clip: clip_x,
             y_clip: clip_y,
         });
 
+        // Box with all corners rounded
         self.renderer.draw_box(Box {
             top_left: [320.0, 20.0],
             size: [80.0, 60.0],
             corner_radius: 30.0,
+            rounded_corners: RoundedCorners::ALL,
             border_thickness: 5.0,
             fill: Fill::Solid([0.8, 1.0, 0.3, 1.0]),
+            x_clip: clip_x,
+            y_clip: clip_y,
+        });
+
+        // Box with only bottom-right corner rounded
+        self.renderer.draw_box(Box {
+            top_left: [420.0, 20.0],
+            size: [80.0, 60.0],
+            corner_radius: 20.0,
+            rounded_corners: RoundedCorners::BOTTOM_RIGHT,
+            border_thickness: 0.0,
+            fill: Fill::Solid([0.6, 0.3, 0.9, 1.0]),
+            x_clip: clip_x,
+            y_clip: clip_y,
+        });
+
+        // Box with diagonal corners rounded (top-left and bottom-right)
+        self.renderer.draw_box(Box {
+            top_left: [520.0, 20.0],
+            size: [80.0, 60.0],
+            corner_radius: 15.0,
+            rounded_corners: RoundedCorners::TOP_LEFT | RoundedCorners::BOTTOM_RIGHT,
+            border_thickness: 0.0,
+            fill: Fill::Solid([0.9, 0.5, 0.2, 1.0]),
             x_clip: clip_x,
             y_clip: clip_y,
         });

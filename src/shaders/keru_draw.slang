@@ -11,9 +11,9 @@ struct BoxData {
     float4 color_start;
     float4 color_end;
     uint gradient_type; // 0=solid, 1=linear
+    uint rounded_corners; // bitflags: 1=top-left, 2=top-right, 4=bottom-left, 8=bottom-right
     float pad0;
     float pad1;
-    float pad2;
 }
 
 struct CircleData {
@@ -189,9 +189,13 @@ float4 gradient_oklab(float4 color_start, float4 color_end, float t) {
     return float4(rgb, alpha);
 }
 
-float sd_rounded_box(float2 p, float2 size, float r) {
-    float2 q = abs(p) - size + r;
-    return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - r;
+// Per-corner rounded box SDF
+// r.x = top-right, r.y = bottom-right, r.z = bottom-left, r.w = top-left
+float sd_rounded_box(float2 p, float2 size, float4 r) {
+    r.xy = (p.x > 0.0) ? r.xy : r.wz;
+    r.x = (p.y > 0.0) ? r.x : r.y;
+    float2 q = abs(p) - size + r.x;
+    return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - r.x;
 }
 
 float4 box_fragment(uint primitiveIndex, float2 uv, float2 screen_pos, bool surface_is_srgb, float transform_scale): SV_Target {
@@ -204,8 +208,20 @@ float4 box_fragment(uint primitiveIndex, float2 uv, float2 screen_pos, bool surf
 
     float2 p = (uv - 0.5) * box.size;
 
+    // Compute per-corner radii based on bitflags
+    // Bits: 1=top-left, 2=top-right, 4=bottom-left, 8=bottom-right (screen space, Y down)
+    // SDF expects: x=top-right, y=bottom-right, z=bottom-left, w=top-left (math space, Y up)
+    // Screen Y is flipped relative to SDF Y, so we swap top<->bottom
+    float r = box.corner_radius;
+    float4 corner_radii = float4(
+        (box.rounded_corners & 8u) != 0u ? r : 0.0,
+        (box.rounded_corners & 2u) != 0u ? r : 0.0,
+        (box.rounded_corners & 1u) != 0u ? r : 0.0,
+        (box.rounded_corners & 4u) != 0u ? r : 0.0 
+    );
+
     float2 half_size = box.size * 0.5;
-    float dist = sd_rounded_box(p, half_size, box.corner_radius);
+    float dist = sd_rounded_box(p, half_size, corner_radii);
 
     // Handle border-only rendering when border_thickness > 0
     if (box.border_thickness > 0.001) {
@@ -494,7 +510,7 @@ float4 grid_fragment(uint primitiveIndex, float2 uv, float2 screen_pos, bool sur
 
     // Transform to grid space
     float2 local_pos = uv * grid.size;
-    float2 p_pixels = local_pos + grid.offset + float2(0.5, 0.5);
+    float2 p_pixels = local_pos + grid.offset;
 
     float dist;
     if (grid.grid_type == 0) {
