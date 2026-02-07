@@ -8,6 +8,7 @@ use winit::{
 };
 
 const TIGER_SVG: &[u8] = include_bytes!("tiger.svg");
+const TEXTURE: &[u8] = include_bytes!("texture.jpg");
 
 struct App {
     window: Option<std::sync::Arc<Window>>,
@@ -24,6 +25,7 @@ struct State {
     text_box2: TextBoxHandle,
     text_box3: TextBoxHandle,
     svg_handle: LoadedImage,
+    tx_handle: LoadedImage,
 }
 
 impl State {
@@ -132,6 +134,7 @@ impl State {
 
 
         let svg_handle = renderer.image_renderer.load_svg(TIGER_SVG, 200, 200).unwrap();
+        let tx_handle = renderer.image_renderer.load_encoded_image(TEXTURE).unwrap();
 
         Self {
             surface,
@@ -143,6 +146,7 @@ impl State {
             text_box2,
             text_box3,
             svg_handle,
+            tx_handle,
         }
     }
 
@@ -179,6 +183,7 @@ impl State {
             },
             x_clip: clip_x,
             y_clip: clip_y,
+            texture: Some(self.tx_handle),
         });
 
         // Gradient box - diagonal
@@ -196,6 +201,7 @@ impl State {
             },
             x_clip: clip_x,
             y_clip: clip_y,
+            texture: Some(self.tx_handle),
         });
 
         // Box with only top corners rounded
@@ -208,6 +214,7 @@ impl State {
             fill: Fill::Solid([0.015686, 0.666667, 0.427451, 1.0]),
             x_clip: clip_x,
             y_clip: clip_y,
+            texture: Some(self.tx_handle),
         });
 
         // Box with all corners rounded
@@ -220,6 +227,7 @@ impl State {
             fill: Fill::Solid([0.8, 1.0, 0.3, 1.0]),
             x_clip: clip_x,
             y_clip: clip_y,
+            texture: Some(self.tx_handle),
         });
 
         // Box with only bottom-right corner rounded
@@ -232,6 +240,7 @@ impl State {
             fill: Fill::Solid([0.6, 0.3, 0.9, 1.0]),
             x_clip: clip_x,
             y_clip: clip_y,
+            texture: Some(self.tx_handle),
         });
 
         // Box with diagonal corners rounded (top-left and bottom-right)
@@ -244,6 +253,7 @@ impl State {
             fill: Fill::Solid([0.9, 0.5, 0.2, 1.0]),
             x_clip: clip_x,
             y_clip: clip_y,
+            texture: Some(self.tx_handle),
         });
 
         // Radial gradient circle
@@ -258,6 +268,7 @@ impl State {
             },
             x_clip: clip_x,
             y_clip: clip_y,
+            texture: Some(self.tx_handle),
         });
 
         // Linear gradient circle
@@ -272,6 +283,7 @@ impl State {
             },
             x_clip: clip_x,
             y_clip: clip_y,
+            texture: Some(self.tx_handle),
         });
 
         self.renderer.draw_circle(Circle {
@@ -280,6 +292,7 @@ impl State {
             fill: Fill::Solid([0.3, 0.9, 1.0, 1.0]),
             x_clip: clip_x,
             y_clip: clip_y,
+            texture: Some(self.tx_handle),
         });
 
         self.renderer.draw_ring(Ring {
@@ -289,6 +302,7 @@ impl State {
             fill: Fill::Solid([1.0, 1.0, 0.3, 1.0]),
             x_clip: clip_x,
             y_clip: clip_y,
+            texture: Some(self.tx_handle),
         });
 
         self.renderer.draw_ring(Ring {
@@ -298,6 +312,7 @@ impl State {
             fill: Fill::Solid([1.0, 0.8, 0.3, 1.0]),
             x_clip: clip_x,
             y_clip: clip_y,
+            texture: Some(self.tx_handle),
         });
 
         self.renderer.draw_ring(Ring {
@@ -307,9 +322,10 @@ impl State {
             fill: Fill::Solid([1.0, 0.6, 0.3, 1.0]),
             x_clip: clip_x,
             y_clip: clip_y,
+            texture: Some(self.tx_handle),
         });
 
-        self.renderer.draw_arc(Arc {
+        self.renderer.draw_arc(CircleArc {
             center: [60.0, 280.0],
             radius: 40.0,
             start_angle: 0.0,
@@ -318,9 +334,10 @@ impl State {
             fill: Fill::Solid([1.0, 0.3, 1.0, 1.0]),
             x_clip: clip_x,
             y_clip: clip_y,
+            texture: Some(self.tx_handle),
         });
 
-        self.renderer.draw_arc(Arc {
+        self.renderer.draw_arc(CircleArc {
             center: [170.0, 280.0],
             radius: 40.0,
             start_angle: 0.0,
@@ -329,9 +346,10 @@ impl State {
             fill: Fill::Solid([0.8, 0.3, 1.0, 1.0]),
             x_clip: clip_x,
             y_clip: clip_y,
+            texture: Some(self.tx_handle),
         });
 
-        self.renderer.draw_arc(Arc {
+        self.renderer.draw_arc(CircleArc {
             center: [280.0, 280.0],
             radius: 40.0,
             start_angle: 0.0,
@@ -340,9 +358,10 @@ impl State {
             fill: Fill::Solid([0.6, 0.3, 1.0, 1.0]),
             x_clip: clip_x,
             y_clip: clip_y,
+            texture: Some(self.tx_handle),
         });
 
-        self.renderer.draw_arc(Arc {
+        self.renderer.draw_arc(CircleArc {
             center: [390.0, 280.0],
             radius: 40.0,
             start_angle: std::f32::consts::PI * 0.25,
@@ -351,9 +370,10 @@ impl State {
             fill: Fill::Solid([0.4, 0.3, 1.0, 1.0]),
             x_clip: clip_x,
             y_clip: clip_y,
+            texture: Some(self.tx_handle),
         });
 
-        self.renderer.draw_pie(Pie {
+        self.renderer.draw_pie(CirclePie {
             center: [60.0, 400.0],
             radius: 45.0,
             start_angle: 0.0,
@@ -361,9 +381,10 @@ impl State {
             fill: Fill::Solid([0.3, 1.0, 1.0, 1.0]),
             x_clip: clip_x,
             y_clip: clip_y,
+            texture: Some(self.tx_handle),
         });
 
-        self.renderer.draw_pie(Pie {
+        self.renderer.draw_pie(CirclePie {
             center: [170.0, 400.0],
             radius: 45.0,
             start_angle: 0.0,
@@ -371,9 +392,10 @@ impl State {
             fill: Fill::Solid([0.3, 1.0, 0.8, 1.0]),
             x_clip: clip_x,
             y_clip: clip_y,
+            texture: Some(self.tx_handle),
         });
 
-        self.renderer.draw_pie(Pie {
+        self.renderer.draw_pie(CirclePie {
             center: [280.0, 400.0],
             radius: 45.0,
             start_angle: 0.0,
@@ -381,9 +403,10 @@ impl State {
             fill: Fill::Solid([0.3, 1.0, 0.6, 1.0]),
             x_clip: clip_x,
             y_clip: clip_y,
+            texture: Some(self.tx_handle),
         });
 
-        self.renderer.draw_pie(Pie {
+        self.renderer.draw_pie(CirclePie {
             center: [390.0, 400.0],
             radius: 45.0,
             start_angle: std::f32::consts::PI * 0.5,
@@ -391,6 +414,7 @@ impl State {
             fill: Fill::Solid([0.3, 1.0, 0.4, 1.0]),
             x_clip: clip_x,
             y_clip: clip_y,
+            texture: Some(self.tx_handle),
         });
 
         self.renderer.draw_segment(Segment {
@@ -401,6 +425,7 @@ impl State {
             x_clip: clip_x,
             y_clip: clip_y,
             dash_length: None,
+            texture: Some(self.tx_handle),
         });
 
         self.renderer.draw_segment(Segment {
@@ -411,6 +436,7 @@ impl State {
             x_clip: clip_x,
             y_clip: clip_y,
             dash_length: Some(10.0),
+            texture: Some(self.tx_handle),
         });
 
         self.renderer.draw_segment(Segment {
@@ -421,6 +447,7 @@ impl State {
             x_clip: clip_x,
             y_clip: clip_y,
             dash_length: Some(15.0),
+            texture: Some(self.tx_handle),
         });
 
         self.renderer.draw_segment(Segment {
@@ -431,6 +458,7 @@ impl State {
             x_clip: clip_x,
             y_clip: clip_y,
             dash_length: Some(5.0),
+            texture: Some(self.tx_handle),
         });
 
         // Gradient segments forming an X
@@ -447,6 +475,7 @@ impl State {
             x_clip: clip_x,
             y_clip: clip_y,
             dash_length: Some(8.0),
+            texture: Some(self.tx_handle),
         });
         self.renderer.draw_segment(Segment {
             start: [370.0, 540.0],
@@ -461,6 +490,7 @@ impl State {
             x_clip: clip_x,
             y_clip: clip_y,
             dash_length: None,
+            texture: Some(self.tx_handle),
         });
 
         // Square grid
@@ -474,6 +504,7 @@ impl State {
             grid_type: GridType::Square,
             x_clip: clip_x,
             y_clip: clip_y,
+            texture: Some(self.tx_handle),
         });
 
         // Hexagonal grid
@@ -487,6 +518,7 @@ impl State {
             grid_type: GridType::Hexagonal,
             x_clip: clip_x,
             y_clip: clip_y,
+            texture: Some(self.tx_handle),
         });
 
         self.renderer.draw_text_box(&self.text_box3);

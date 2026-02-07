@@ -12,8 +12,14 @@ struct BoxData {
     float4 color_end;
     uint gradient_type; // 0=solid, 1=linear
     uint rounded_corners; // bitflags: 1=top-left, 2=top-right, 4=bottom-left, 8=bottom-right
+    float2 texture_uv_origin; // pixel coords in atlas (top-left corner)
+    float2 texture_uv_size;   // pixel dimensions in atlas
+    uint texture_page;        // atlas layer, 0xFFFFFFFF = no texture
     float pad0;
     float pad1;
+    float pad2;
+    float pad3;
+    float pad4;
 }
 
 struct CircleData {
@@ -26,9 +32,11 @@ struct CircleData {
     float4 color_start;
     float4 color_end;
     uint gradient_type; // 0=solid, 1=linear, 2=radial
-    float _pad0;
-    float _pad1;
-    float _pad2;
+    uint texture_page;        // atlas layer, 0xFFFFFFFF = no texture
+    float2 texture_uv_origin; // pixel coords in atlas (top-left corner)
+    float2 texture_uv_size;   // pixel dimensions in atlas
+    float pad0;
+    float pad1;
 }
 
 struct SegmentData {
@@ -40,9 +48,11 @@ struct SegmentData {
     float4 color_end;
     float4 thickness_dash;
     uint gradient_type; // 0=solid, 1=linear along segment
+    uint texture_page;        // atlas layer, 0xFFFFFFFF = no texture
+    float2 texture_uv_origin; // pixel coords in atlas (top-left corner)
+    float2 texture_uv_size;   // pixel dimensions in atlas
     float pad0;
     float pad1;
-    float pad2;
 }
 
 struct GridData {
@@ -55,8 +65,11 @@ struct GridData {
     float line_thickness;
     float4 color;
     uint grid_type; // 0=square, 1=hex
+    uint texture_page;        // atlas layer, 0xFFFFFFFF = no texture
+    float2 texture_uv_origin; // pixel coords in atlas (top-left corner)
+    float2 texture_uv_size;   // pixel dimensions in atlas
+    float pad0;
     float pad1;
-    float pad2;
 }
 
 struct TriangleData {
@@ -69,9 +82,11 @@ struct TriangleData {
     float4 color_start;
     float4 color_end;
     uint gradient_type; // 0=solid, 1=linear
+    uint texture_page;        // atlas layer, 0xFFFFFFFF = no texture
+    float2 texture_uv_origin; // pixel coords in atlas (top-left corner)
+    float2 texture_uv_size;   // pixel dimensions in atlas
     float pad0;
     float pad1;
-    float pad2;
 }
 
 struct Transform {
@@ -217,7 +232,7 @@ float4 box_fragment(uint primitiveIndex, float2 uv, float2 screen_pos, bool surf
         (box.rounded_corners & 8u) != 0u ? r : 0.0,
         (box.rounded_corners & 2u) != 0u ? r : 0.0,
         (box.rounded_corners & 1u) != 0u ? r : 0.0,
-        (box.rounded_corners & 4u) != 0u ? r : 0.0 
+        (box.rounded_corners & 4u) != 0u ? r : 0.0
     );
 
     float2 half_size = box.size * 0.5;
@@ -236,7 +251,7 @@ float4 box_fragment(uint primitiveIndex, float2 uv, float2 screen_pos, bool surf
         discard;
     }
 
-    // Calculate gradient color
+    // Calculate gradient/solid color
     float4 color;
     if (box.gradient_type == 1) {
         // Linear gradient
@@ -247,6 +262,27 @@ float4 box_fragment(uint primitiveIndex, float2 uv, float2 screen_pos, bool surf
     } else {
         // Solid color (gradient_type == 0)
         color = box.color_start;
+    }
+
+    // Sample texture if enabled (texture_page != 0xFFFFFFFF)
+    if (box.texture_page != 0xFFFFFFFFu) {
+        // Get atlas dimensions
+        uint atlas_width, atlas_height, atlas_elements;
+        shapes.atlas_texture.GetDimensions(atlas_width, atlas_height, atlas_elements);
+        float2 atlas_size = float2(float(atlas_width), float(atlas_height));
+
+        // Calculate UV in atlas space (uv is 0-1 across the box)
+        float2 tex_uv = (box.texture_uv_origin + box.texture_uv_size * uv) / atlas_size;
+
+        // Sample texture
+        float4 tex_color = shapes.atlas_texture.SampleLevel(
+            shapes.atlas_sampler,
+            float3(tex_uv, float(box.texture_page)),
+            0.0
+        );
+
+        // Multiply texture color with fill color (tinting)
+        color = tex_color * color;
     }
 
     if (surface_is_srgb) {
@@ -380,6 +416,27 @@ float4 circle_fragment(uint primitiveIndex, float2 uv, float2 screen_pos, bool s
         color = circle.color_start;
     }
 
+    // Sample texture if enabled (texture_page != 0xFFFFFFFF)
+    if (circle.texture_page != 0xFFFFFFFFu) {
+        // Get atlas dimensions
+        uint atlas_width, atlas_height, atlas_elements;
+        shapes.atlas_texture.GetDimensions(atlas_width, atlas_height, atlas_elements);
+        float2 atlas_size = float2(float(atlas_width), float(atlas_height));
+
+        // Calculate UV in atlas space (uv is 0-1 across the bounding box)
+        float2 tex_uv = (circle.texture_uv_origin + circle.texture_uv_size * uv) / atlas_size;
+
+        // Sample texture
+        float4 tex_color = shapes.atlas_texture.SampleLevel(
+            shapes.atlas_sampler,
+            float3(tex_uv, float(circle.texture_page)),
+            0.0
+        );
+
+        // Multiply texture color with fill color (tinting)
+        color = tex_color * color;
+    }
+
     return float4(color.rgb, alpha * color.a);
 }
 
@@ -482,6 +539,20 @@ float4 segment_fragment(uint primitiveIndex, float2 uv, float2 screen_pos, bool 
         color = seg.color_start;
     }
 
+    // Sample texture if enabled (texture_page != 0xFFFFFFFF)
+    if (seg.texture_page != 0xFFFFFFFFu) {
+        uint atlas_width, atlas_height, atlas_elements;
+        shapes.atlas_texture.GetDimensions(atlas_width, atlas_height, atlas_elements);
+        float2 atlas_size = float2(float(atlas_width), float(atlas_height));
+        float2 tex_uv = (seg.texture_uv_origin + seg.texture_uv_size * uv) / atlas_size;
+        float4 tex_color = shapes.atlas_texture.SampleLevel(
+            shapes.atlas_sampler,
+            float3(tex_uv, float(seg.texture_page)),
+            0.0
+        );
+        color = tex_color * color;
+    }
+
     return float4(color.rgb, alpha * color.a);
 }
 
@@ -555,6 +626,20 @@ float4 grid_fragment(uint primitiveIndex, float2 uv, float2 screen_pos, bool sur
     }
 
     float4 color = grid.color;
+
+    // Sample texture if enabled (texture_page != 0xFFFFFFFF)
+    if (grid.texture_page != 0xFFFFFFFFu) {
+        uint atlas_width, atlas_height, atlas_elements;
+        shapes.atlas_texture.GetDimensions(atlas_width, atlas_height, atlas_elements);
+        float2 atlas_size = float2(float(atlas_width), float(atlas_height));
+        float2 tex_uv = (grid.texture_uv_origin + grid.texture_uv_size * uv) / atlas_size;
+        float4 tex_color = shapes.atlas_texture.SampleLevel(
+            shapes.atlas_sampler,
+            float3(tex_uv, float(grid.texture_page)),
+            0.0
+        );
+        color = tex_color * color;
+    }
 
     return float4(color.rgb, color.a * alpha);
 }
@@ -659,6 +744,27 @@ float4 triangle_fragment(uint primitiveIndex, float2 uv, float2 screen_pos, bool
     } else {
         // Solid color (gradient_type == 0)
         color = tri.color_start;
+    }
+
+    // Sample texture if enabled (texture_page != 0xFFFFFFFF)
+    if (tri.texture_page != 0xFFFFFFFFu) {
+        // Get atlas dimensions
+        uint atlas_width, atlas_height, atlas_elements;
+        shapes.atlas_texture.GetDimensions(atlas_width, atlas_height, atlas_elements);
+        float2 atlas_size = float2(float(atlas_width), float(atlas_height));
+
+        // Calculate UV in atlas space (uv is 0-1 across the bounding box)
+        float2 tex_uv = (tri.texture_uv_origin + tri.texture_uv_size * uv) / atlas_size;
+
+        // Sample texture
+        float4 tex_color = shapes.atlas_texture.SampleLevel(
+            shapes.atlas_sampler,
+            float3(tex_uv, float(tri.texture_page)),
+            0.0
+        );
+
+        // Multiply texture color with fill color (tinting)
+        color = tex_color * color;
     }
 
     if (surface_is_srgb) {

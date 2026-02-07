@@ -70,7 +70,7 @@ pub enum Fill {
 }
 
 /// Parameters for drawing a box/rectangle
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct Box {
     pub top_left: [f32; 2],
     pub size: [f32; 2],
@@ -80,20 +80,22 @@ pub struct Box {
     pub fill: Fill,
     pub x_clip: [f32; 2],
     pub y_clip: [f32; 2],
+    pub texture: Option<LoadedImage>,
 }
 
 /// Parameters for drawing a circle
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct Circle {
     pub center: [f32; 2],
     pub radius: f32,
     pub fill: Fill,
     pub x_clip: [f32; 2],
     pub y_clip: [f32; 2],
+    pub texture: Option<LoadedImage>,
 }
 
 /// Parameters for drawing a ring (hollow circle)
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct Ring {
     pub center: [f32; 2],
     pub inner_radius: f32,
@@ -101,10 +103,11 @@ pub struct Ring {
     pub fill: Fill,
     pub x_clip: [f32; 2],
     pub y_clip: [f32; 2],
+    pub texture: Option<LoadedImage>,
 }
 
 /// Parameters for drawing an arc
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct CircleArc {
     pub center: [f32; 2],
     pub radius: f32,
@@ -114,10 +117,11 @@ pub struct CircleArc {
     pub fill: Fill,
     pub x_clip: [f32; 2],
     pub y_clip: [f32; 2],
+    pub texture: Option<LoadedImage>,
 }
 
 /// Parameters for drawing a pie slice
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct CirclePie {
     pub center: [f32; 2],
     pub radius: f32,
@@ -126,10 +130,11 @@ pub struct CirclePie {
     pub fill: Fill,
     pub x_clip: [f32; 2],
     pub y_clip: [f32; 2],
+    pub texture: Option<LoadedImage>,
 }
 
 /// Parameters for drawing a line segment
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct Segment {
     pub start: [f32; 2],
     pub end: [f32; 2],
@@ -138,6 +143,7 @@ pub struct Segment {
     pub x_clip: [f32; 2],
     pub y_clip: [f32; 2],
     pub dash_length: Option<f32>,
+    pub texture: Option<LoadedImage>,
 }
 
 /// Grid type for the grid primitive
@@ -148,7 +154,7 @@ pub enum GridType {
 }
 
 /// Parameters for drawing a grid
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct Grid {
     pub top_left: [f32; 2],
     pub size: [f32; 2],
@@ -159,10 +165,11 @@ pub struct Grid {
     pub grid_type: GridType,
     pub x_clip: [f32; 2],
     pub y_clip: [f32; 2],
+    pub texture: Option<LoadedImage>,
 }
 
 /// Parameters for drawing a triangle
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct Triangle {
     pub p0: [f32; 2],
     pub p1: [f32; 2],
@@ -170,6 +177,28 @@ pub struct Triangle {
     pub fill: Fill,
     pub x_clip: [f32; 2],
     pub y_clip: [f32; 2],
+    pub texture: Option<LoadedImage>,
+}
+
+fn fill_gpu(fill: Fill) -> ([f32; 2], [f32; 4], [f32; 4], u32) {
+    match fill {
+        Fill::Solid(color) => ([1.0, 0.0], color, color, 0),
+        Fill::Gradient { color_start, color_end, gradient_type, angle } => {
+            ([angle.cos(), angle.sin()], color_start, color_end, gradient_type as u32)
+        }
+    }
+}
+
+fn texture_gpu(texture: Option<LoadedImage>) -> ([f32; 2], [f32; 2], u32) {
+    let (texture_uv_origin, texture_uv_size, texture_page) = match texture {
+        Some(image) => (
+            [image.alloc.rectangle.min.x as f32, image.alloc.rectangle.min.y as f32],
+            [image.width as f32, image.height as f32],
+            image.page as u32,
+        ),
+        None => ([0.0, 0.0], [0.0, 0.0], u32::MAX),
+    };
+    return (texture_uv_origin, texture_uv_size, texture_page);
 }
 
 /// A screen-space rectangle in pixel coordinates.
@@ -261,16 +290,6 @@ struct Instance {
 }
 
 impl Renderer {
-    /// Extract fill parameters for shapes that support gradient direction
-    fn extract_fill_params(&self, fill: Fill) -> ([f32; 2], [f32; 4], [f32; 4], u32) {
-        match fill {
-            Fill::Solid(color) => ([1.0, 0.0], color, color, 0),
-            Fill::Gradient { color_start, color_end, gradient_type, angle } => {
-                ([angle.cos(), angle.sin()], color_start, color_end, gradient_type as u32)
-            }
-        }
-    }
-
     pub fn new(
         device: wgpu::Device,
         queue: wgpu::Queue,
@@ -530,8 +549,9 @@ impl Renderer {
 
     // Shape drawing methods
     pub fn draw_box(&mut self, params: Box) {
-        let (gradient_direction, color_start, color_end, gradient_type) =
-            self.extract_fill_params(params.fill);
+        let (gradient_direction, color_start, color_end, gradient_type) = fill_gpu(params.fill);
+
+        let (texture_uv_origin, texture_uv_size, texture_page) = texture_gpu(params.texture);
 
         let index = self.shapes.boxes.len();
         self.shapes.boxes.push(shapes::BoxGpu {
@@ -546,7 +566,10 @@ impl Renderer {
             color_end,
             gradient_type,
             rounded_corners: params.rounded_corners.bits(),
-            pad: [0.0, 0.0],
+            texture_uv_origin,
+            texture_uv_size,
+            texture_page,
+            pad: [0.0; 5],
         });
         self.instances.push(Instance {
             p_type: primitive::BOX,
@@ -557,8 +580,9 @@ impl Renderer {
     }
 
     pub fn draw_circle(&mut self, params: Circle) {
-        let (gradient_direction, color_start, color_end, gradient_type) =
-            self.extract_fill_params(params.fill);
+        let (gradient_direction, color_start, color_end, gradient_type) = fill_gpu(params.fill);
+
+        let (texture_uv_origin, texture_uv_size, texture_page) = texture_gpu(params.texture);
 
         let index = self.shapes.circles.len();
         self.shapes.circles.push(shapes::CircleGpu {
@@ -571,7 +595,10 @@ impl Renderer {
             color_start,
             color_end,
             gradient_type,
-            _padding: [0.0, 0.0, 0.0],
+            texture_page,
+            texture_uv_origin,
+            texture_uv_size,
+            pad: [0.0; 2],
         });
         self.instances.push(Instance {
             p_type: primitive::CIRCLE,
@@ -582,8 +609,9 @@ impl Renderer {
     }
 
     pub fn draw_ring(&mut self, params: Ring) {
-        let (gradient_direction, color_start, color_end, gradient_type) =
-            self.extract_fill_params(params.fill);
+        let (gradient_direction, color_start, color_end, gradient_type) = fill_gpu(params.fill);
+
+        let (texture_uv_origin, texture_uv_size, texture_page) = texture_gpu(params.texture);
 
         let index = self.shapes.circles.len();
         self.shapes.circles.push(shapes::CircleGpu {
@@ -596,7 +624,10 @@ impl Renderer {
             color_start,
             color_end,
             gradient_type,
-            _padding: [0.0, 0.0, 0.0],
+            texture_page,
+            texture_uv_origin,
+            texture_uv_size,
+            pad: [0.0; 2],
         });
         self.instances.push(Instance {
             p_type: primitive::CIRCLE,
@@ -607,8 +638,9 @@ impl Renderer {
     }
 
     pub fn draw_arc(&mut self, params: CircleArc) {
-        let (gradient_direction, color_start, color_end, gradient_type) =
-            self.extract_fill_params(params.fill);
+        let (gradient_direction, color_start, color_end, gradient_type) = fill_gpu(params.fill);
+
+        let (texture_uv_origin, texture_uv_size, texture_page) = texture_gpu(params.texture);
 
         let index = self.shapes.circles.len();
         self.shapes.circles.push(shapes::CircleGpu {
@@ -621,7 +653,10 @@ impl Renderer {
             color_start,
             color_end,
             gradient_type,
-            _padding: [0.0, 0.0, 0.0],
+            texture_page,
+            texture_uv_origin,
+            texture_uv_size,
+            pad: [0.0; 2],
         });
         self.instances.push(Instance {
             p_type: primitive::CIRCLE,
@@ -632,8 +667,9 @@ impl Renderer {
     }
 
     pub fn draw_pie(&mut self, params: CirclePie) {
-        let (gradient_direction, color_start, color_end, gradient_type) =
-            self.extract_fill_params(params.fill);
+        let (gradient_direction, color_start, color_end, gradient_type) = fill_gpu(params.fill);
+
+        let (texture_uv_origin, texture_uv_size, texture_page) = texture_gpu(params.texture);
 
         let index = self.shapes.circles.len();
         self.shapes.circles.push(shapes::CircleGpu {
@@ -646,7 +682,10 @@ impl Renderer {
             color_start,
             color_end,
             gradient_type,
-            _padding: [0.0, 0.0, 0.0],
+            texture_page,
+            texture_uv_origin,
+            texture_uv_size,
+            pad: [0.0; 2],
         });
         self.instances.push(Instance {
             p_type: primitive::CIRCLE,
@@ -660,10 +699,11 @@ impl Renderer {
         let (color_start, color_end, gradient_type) = match params.fill {
             Fill::Solid(color) => (color, color, 0),
             Fill::Gradient { color_start, color_end, .. } => {
-                // For segments, gradient is always along the segment direction (angle is ignored)
                 (color_start, color_end, 1)
             }
         };
+
+        let (texture_uv_origin, texture_uv_size, texture_page) = texture_gpu(params.texture);
 
         let index = self.shapes.segments.len();
         self.shapes.segments.push(shapes::SegmentGpu {
@@ -675,7 +715,10 @@ impl Renderer {
             color_end,
             thickness_dash: [params.thickness, params.dash_length.unwrap_or(0.0), 1.0, 1.0],
             gradient_type,
-            pad: [0.0, 0.0, 0.0],
+            texture_page,
+            texture_uv_origin,
+            texture_uv_size,
+            pad: [0.0; 2],
         });
         self.instances.push(Instance {
             p_type: primitive::SEGMENT,
@@ -686,6 +729,8 @@ impl Renderer {
     }
 
     pub fn draw_grid(&mut self, params: Grid) {
+        let (texture_uv_origin, texture_uv_size, texture_page) = texture_gpu(params.texture);
+
         let index = self.shapes.grids.len();
         self.shapes.grids.push(shapes::GridGpu {
             top_left: params.top_left,
@@ -697,7 +742,10 @@ impl Renderer {
             line_thickness: params.line_thickness,
             color: params.color,
             grid_type: params.grid_type as u32,
-            pad: [0.0, 0.0, 0.0],
+            texture_page,
+            texture_uv_origin,
+            texture_uv_size,
+            pad: [0.0, 0.0],
         });
         self.instances.push(Instance {
             p_type: primitive::GRID,
@@ -708,8 +756,9 @@ impl Renderer {
     }
 
     pub fn draw_triangle(&mut self, params: Triangle) {
-        let (gradient_direction, color_start, color_end, gradient_type) =
-            self.extract_fill_params(params.fill);
+        let (gradient_direction, color_start, color_end, gradient_type) = fill_gpu(params.fill);
+
+        let (texture_uv_origin, texture_uv_size, texture_page) = texture_gpu(params.texture);
 
         let index = self.shapes.triangles.len();
         self.shapes.triangles.push(shapes::TriangleGpu {
@@ -722,7 +771,10 @@ impl Renderer {
             color_start,
             color_end,
             gradient_type,
-            pad: [0.0, 0.0, 0.0],
+            texture_page,
+            texture_uv_origin,
+            texture_uv_size,
+            pad: [0.0; 2],
         });
         self.instances.push(Instance {
             p_type: primitive::TRIANGLE,

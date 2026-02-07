@@ -23,7 +23,7 @@ pub struct ImageQuad {
 }
 
 /// A loaded image stored in the atlas.
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct LoadedImage {
     pub page: u16,
     pub alloc: Allocation,
@@ -197,18 +197,18 @@ impl ImageRenderer {
     /// Load a raster image from raw RGBA8 bytes, returning the loaded image.
     ///
     /// Returns None if the image couldn't be stored in the atlas.
-    pub fn load_image(&mut self, rgba_data: &[u8], width: u32, height: u32) -> Option<LoadedImage> {
+    pub fn load_rgba8_image(&mut self, rgba_data: &[u8], width: u32, height: u32) -> Option<LoadedImage> {
         self.store_image_data(rgba_data, width, height)
     }
 
     /// Load a raster image from encoded bytes (PNG, JPEG, etc.), returning the loaded image.
     ///
     /// Returns None if the image couldn't be decoded or stored.
-    pub fn load_image_from_bytes(&mut self, image_data: &[u8]) -> Option<LoadedImage> {
+    pub fn load_encoded_image(&mut self, image_data: &[u8]) -> Option<LoadedImage> {
         let img = image::load_from_memory(image_data).ok()?;
         let rgba = img.to_rgba8();
         let (width, height) = rgba.dimensions();
-        self.load_image(rgba.as_raw(), width, height)
+        self.load_rgba8_image(rgba.as_raw(), width, height)
     }
 
     /// Draw a previously loaded raster image

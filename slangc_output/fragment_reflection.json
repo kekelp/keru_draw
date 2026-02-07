@@ -177,12 +177,44 @@
                                             "binding": {"kind": "uniform", "offset": 84, "size": 4, "elementStride": 0}
                                         },
                                         {
+                                            "name": "texture_uv_origin",
+                                            "type": {
+                                                "kind": "vector",
+                                                "elementCount": 2,
+                                                "elementType": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                }
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 88, "size": 8, "elementStride": 4}
+                                        },
+                                        {
+                                            "name": "texture_uv_size",
+                                            "type": {
+                                                "kind": "vector",
+                                                "elementCount": 2,
+                                                "elementType": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                }
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 96, "size": 8, "elementStride": 4}
+                                        },
+                                        {
+                                            "name": "texture_page",
+                                            "type": {
+                                                "kind": "scalar",
+                                                "scalarType": "uint32"
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 104, "size": 4, "elementStride": 0}
+                                        },
+                                        {
                                             "name": "pad0",
                                             "type": {
                                                 "kind": "scalar",
                                                 "scalarType": "float32"
                                             },
-                                            "binding": {"kind": "uniform", "offset": 88, "size": 4, "elementStride": 0}
+                                            "binding": {"kind": "uniform", "offset": 108, "size": 4, "elementStride": 0}
                                         },
                                         {
                                             "name": "pad1",
@@ -190,7 +222,31 @@
                                                 "kind": "scalar",
                                                 "scalarType": "float32"
                                             },
-                                            "binding": {"kind": "uniform", "offset": 92, "size": 4, "elementStride": 0}
+                                            "binding": {"kind": "uniform", "offset": 112, "size": 4, "elementStride": 0}
+                                        },
+                                        {
+                                            "name": "pad2",
+                                            "type": {
+                                                "kind": "scalar",
+                                                "scalarType": "float32"
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 116, "size": 4, "elementStride": 0}
+                                        },
+                                        {
+                                            "name": "pad3",
+                                            "type": {
+                                                "kind": "scalar",
+                                                "scalarType": "float32"
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 120, "size": 4, "elementStride": 0}
+                                        },
+                                        {
+                                            "name": "pad4",
+                                            "type": {
+                                                "kind": "scalar",
+                                                "scalarType": "float32"
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 124, "size": 4, "elementStride": 0}
                                         }
                                     ]
                                 }
@@ -311,28 +367,52 @@
                                             "binding": {"kind": "uniform", "offset": 80, "size": 4, "elementStride": 0}
                                         },
                                         {
-                                            "name": "_pad0",
+                                            "name": "texture_page",
                                             "type": {
                                                 "kind": "scalar",
-                                                "scalarType": "float32"
+                                                "scalarType": "uint32"
                                             },
                                             "binding": {"kind": "uniform", "offset": 84, "size": 4, "elementStride": 0}
                                         },
                                         {
-                                            "name": "_pad1",
+                                            "name": "texture_uv_origin",
                                             "type": {
-                                                "kind": "scalar",
-                                                "scalarType": "float32"
+                                                "kind": "vector",
+                                                "elementCount": 2,
+                                                "elementType": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                }
                                             },
-                                            "binding": {"kind": "uniform", "offset": 88, "size": 4, "elementStride": 0}
+                                            "binding": {"kind": "uniform", "offset": 88, "size": 8, "elementStride": 4}
                                         },
                                         {
-                                            "name": "_pad2",
+                                            "name": "texture_uv_size",
+                                            "type": {
+                                                "kind": "vector",
+                                                "elementCount": 2,
+                                                "elementType": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                }
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 96, "size": 8, "elementStride": 4}
+                                        },
+                                        {
+                                            "name": "pad0",
                                             "type": {
                                                 "kind": "scalar",
                                                 "scalarType": "float32"
                                             },
-                                            "binding": {"kind": "uniform", "offset": 92, "size": 4, "elementStride": 0}
+                                            "binding": {"kind": "uniform", "offset": 104, "size": 4, "elementStride": 0}
+                                        },
+                                        {
+                                            "name": "pad1",
+                                            "type": {
+                                                "kind": "scalar",
+                                                "scalarType": "float32"
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 108, "size": 4, "elementStride": 0}
                                         }
                                     ]
                                 }
@@ -441,12 +521,44 @@
                                             "binding": {"kind": "uniform", "offset": 80, "size": 4, "elementStride": 0}
                                         },
                                         {
+                                            "name": "texture_page",
+                                            "type": {
+                                                "kind": "scalar",
+                                                "scalarType": "uint32"
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 84, "size": 4, "elementStride": 0}
+                                        },
+                                        {
+                                            "name": "texture_uv_origin",
+                                            "type": {
+                                                "kind": "vector",
+                                                "elementCount": 2,
+                                                "elementType": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                }
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 88, "size": 8, "elementStride": 4}
+                                        },
+                                        {
+                                            "name": "texture_uv_size",
+                                            "type": {
+                                                "kind": "vector",
+                                                "elementCount": 2,
+                                                "elementType": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                }
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 96, "size": 8, "elementStride": 4}
+                                        },
+                                        {
                                             "name": "pad0",
                                             "type": {
                                                 "kind": "scalar",
                                                 "scalarType": "float32"
                                             },
-                                            "binding": {"kind": "uniform", "offset": 84, "size": 4, "elementStride": 0}
+                                            "binding": {"kind": "uniform", "offset": 104, "size": 4, "elementStride": 0}
                                         },
                                         {
                                             "name": "pad1",
@@ -454,15 +566,7 @@
                                                 "kind": "scalar",
                                                 "scalarType": "float32"
                                             },
-                                            "binding": {"kind": "uniform", "offset": 88, "size": 4, "elementStride": 0}
-                                        },
-                                        {
-                                            "name": "pad2",
-                                            "type": {
-                                                "kind": "scalar",
-                                                "scalarType": "float32"
-                                            },
-                                            "binding": {"kind": "uniform", "offset": 92, "size": 4, "elementStride": 0}
+                                            "binding": {"kind": "uniform", "offset": 108, "size": 4, "elementStride": 0}
                                         }
                                     ]
                                 }
@@ -575,20 +679,52 @@
                                             "binding": {"kind": "uniform", "offset": 64, "size": 4, "elementStride": 0}
                                         },
                                         {
+                                            "name": "texture_page",
+                                            "type": {
+                                                "kind": "scalar",
+                                                "scalarType": "uint32"
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 68, "size": 4, "elementStride": 0}
+                                        },
+                                        {
+                                            "name": "texture_uv_origin",
+                                            "type": {
+                                                "kind": "vector",
+                                                "elementCount": 2,
+                                                "elementType": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                }
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 72, "size": 8, "elementStride": 4}
+                                        },
+                                        {
+                                            "name": "texture_uv_size",
+                                            "type": {
+                                                "kind": "vector",
+                                                "elementCount": 2,
+                                                "elementType": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                }
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 80, "size": 8, "elementStride": 4}
+                                        },
+                                        {
+                                            "name": "pad0",
+                                            "type": {
+                                                "kind": "scalar",
+                                                "scalarType": "float32"
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 88, "size": 4, "elementStride": 0}
+                                        },
+                                        {
                                             "name": "pad1",
                                             "type": {
                                                 "kind": "scalar",
                                                 "scalarType": "float32"
                                             },
-                                            "binding": {"kind": "uniform", "offset": 68, "size": 4, "elementStride": 0}
-                                        },
-                                        {
-                                            "name": "pad2",
-                                            "type": {
-                                                "kind": "scalar",
-                                                "scalarType": "float32"
-                                            },
-                                            "binding": {"kind": "uniform", "offset": 72, "size": 4, "elementStride": 0}
+                                            "binding": {"kind": "uniform", "offset": 92, "size": 4, "elementStride": 0}
                                         }
                                     ]
                                 }
@@ -709,12 +845,44 @@
                                             "binding": {"kind": "uniform", "offset": 80, "size": 4, "elementStride": 0}
                                         },
                                         {
+                                            "name": "texture_page",
+                                            "type": {
+                                                "kind": "scalar",
+                                                "scalarType": "uint32"
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 84, "size": 4, "elementStride": 0}
+                                        },
+                                        {
+                                            "name": "texture_uv_origin",
+                                            "type": {
+                                                "kind": "vector",
+                                                "elementCount": 2,
+                                                "elementType": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                }
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 88, "size": 8, "elementStride": 4}
+                                        },
+                                        {
+                                            "name": "texture_uv_size",
+                                            "type": {
+                                                "kind": "vector",
+                                                "elementCount": 2,
+                                                "elementType": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                }
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 96, "size": 8, "elementStride": 4}
+                                        },
+                                        {
                                             "name": "pad0",
                                             "type": {
                                                 "kind": "scalar",
                                                 "scalarType": "float32"
                                             },
-                                            "binding": {"kind": "uniform", "offset": 84, "size": 4, "elementStride": 0}
+                                            "binding": {"kind": "uniform", "offset": 104, "size": 4, "elementStride": 0}
                                         },
                                         {
                                             "name": "pad1",
@@ -722,15 +890,7 @@
                                                 "kind": "scalar",
                                                 "scalarType": "float32"
                                             },
-                                            "binding": {"kind": "uniform", "offset": 88, "size": 4, "elementStride": 0}
-                                        },
-                                        {
-                                            "name": "pad2",
-                                            "type": {
-                                                "kind": "scalar",
-                                                "scalarType": "float32"
-                                            },
-                                            "binding": {"kind": "uniform", "offset": 92, "size": 4, "elementStride": 0}
+                                            "binding": {"kind": "uniform", "offset": 108, "size": 4, "elementStride": 0}
                                         }
                                     ]
                                 }
@@ -1130,12 +1290,44 @@
                                                 "binding": {"kind": "uniform", "offset": 84, "size": 4, "elementStride": 0}
                                             },
                                             {
+                                                "name": "texture_uv_origin",
+                                                "type": {
+                                                    "kind": "vector",
+                                                    "elementCount": 2,
+                                                    "elementType": {
+                                                        "kind": "scalar",
+                                                        "scalarType": "float32"
+                                                    }
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 88, "size": 8, "elementStride": 4}
+                                            },
+                                            {
+                                                "name": "texture_uv_size",
+                                                "type": {
+                                                    "kind": "vector",
+                                                    "elementCount": 2,
+                                                    "elementType": {
+                                                        "kind": "scalar",
+                                                        "scalarType": "float32"
+                                                    }
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 96, "size": 8, "elementStride": 4}
+                                            },
+                                            {
+                                                "name": "texture_page",
+                                                "type": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "uint32"
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 104, "size": 4, "elementStride": 0}
+                                            },
+                                            {
                                                 "name": "pad0",
                                                 "type": {
                                                     "kind": "scalar",
                                                     "scalarType": "float32"
                                                 },
-                                                "binding": {"kind": "uniform", "offset": 88, "size": 4, "elementStride": 0}
+                                                "binding": {"kind": "uniform", "offset": 108, "size": 4, "elementStride": 0}
                                             },
                                             {
                                                 "name": "pad1",
@@ -1143,7 +1335,31 @@
                                                     "kind": "scalar",
                                                     "scalarType": "float32"
                                                 },
-                                                "binding": {"kind": "uniform", "offset": 92, "size": 4, "elementStride": 0}
+                                                "binding": {"kind": "uniform", "offset": 112, "size": 4, "elementStride": 0}
+                                            },
+                                            {
+                                                "name": "pad2",
+                                                "type": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 116, "size": 4, "elementStride": 0}
+                                            },
+                                            {
+                                                "name": "pad3",
+                                                "type": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 120, "size": 4, "elementStride": 0}
+                                            },
+                                            {
+                                                "name": "pad4",
+                                                "type": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 124, "size": 4, "elementStride": 0}
                                             }
                                         ]
                                     }
@@ -1264,28 +1480,52 @@
                                                 "binding": {"kind": "uniform", "offset": 80, "size": 4, "elementStride": 0}
                                             },
                                             {
-                                                "name": "_pad0",
+                                                "name": "texture_page",
                                                 "type": {
                                                     "kind": "scalar",
-                                                    "scalarType": "float32"
+                                                    "scalarType": "uint32"
                                                 },
                                                 "binding": {"kind": "uniform", "offset": 84, "size": 4, "elementStride": 0}
                                             },
                                             {
-                                                "name": "_pad1",
+                                                "name": "texture_uv_origin",
                                                 "type": {
-                                                    "kind": "scalar",
-                                                    "scalarType": "float32"
+                                                    "kind": "vector",
+                                                    "elementCount": 2,
+                                                    "elementType": {
+                                                        "kind": "scalar",
+                                                        "scalarType": "float32"
+                                                    }
                                                 },
-                                                "binding": {"kind": "uniform", "offset": 88, "size": 4, "elementStride": 0}
+                                                "binding": {"kind": "uniform", "offset": 88, "size": 8, "elementStride": 4}
                                             },
                                             {
-                                                "name": "_pad2",
+                                                "name": "texture_uv_size",
+                                                "type": {
+                                                    "kind": "vector",
+                                                    "elementCount": 2,
+                                                    "elementType": {
+                                                        "kind": "scalar",
+                                                        "scalarType": "float32"
+                                                    }
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 96, "size": 8, "elementStride": 4}
+                                            },
+                                            {
+                                                "name": "pad0",
                                                 "type": {
                                                     "kind": "scalar",
                                                     "scalarType": "float32"
                                                 },
-                                                "binding": {"kind": "uniform", "offset": 92, "size": 4, "elementStride": 0}
+                                                "binding": {"kind": "uniform", "offset": 104, "size": 4, "elementStride": 0}
+                                            },
+                                            {
+                                                "name": "pad1",
+                                                "type": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 108, "size": 4, "elementStride": 0}
                                             }
                                         ]
                                     }
@@ -1394,12 +1634,44 @@
                                                 "binding": {"kind": "uniform", "offset": 80, "size": 4, "elementStride": 0}
                                             },
                                             {
+                                                "name": "texture_page",
+                                                "type": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "uint32"
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 84, "size": 4, "elementStride": 0}
+                                            },
+                                            {
+                                                "name": "texture_uv_origin",
+                                                "type": {
+                                                    "kind": "vector",
+                                                    "elementCount": 2,
+                                                    "elementType": {
+                                                        "kind": "scalar",
+                                                        "scalarType": "float32"
+                                                    }
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 88, "size": 8, "elementStride": 4}
+                                            },
+                                            {
+                                                "name": "texture_uv_size",
+                                                "type": {
+                                                    "kind": "vector",
+                                                    "elementCount": 2,
+                                                    "elementType": {
+                                                        "kind": "scalar",
+                                                        "scalarType": "float32"
+                                                    }
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 96, "size": 8, "elementStride": 4}
+                                            },
+                                            {
                                                 "name": "pad0",
                                                 "type": {
                                                     "kind": "scalar",
                                                     "scalarType": "float32"
                                                 },
-                                                "binding": {"kind": "uniform", "offset": 84, "size": 4, "elementStride": 0}
+                                                "binding": {"kind": "uniform", "offset": 104, "size": 4, "elementStride": 0}
                                             },
                                             {
                                                 "name": "pad1",
@@ -1407,15 +1679,7 @@
                                                     "kind": "scalar",
                                                     "scalarType": "float32"
                                                 },
-                                                "binding": {"kind": "uniform", "offset": 88, "size": 4, "elementStride": 0}
-                                            },
-                                            {
-                                                "name": "pad2",
-                                                "type": {
-                                                    "kind": "scalar",
-                                                    "scalarType": "float32"
-                                                },
-                                                "binding": {"kind": "uniform", "offset": 92, "size": 4, "elementStride": 0}
+                                                "binding": {"kind": "uniform", "offset": 108, "size": 4, "elementStride": 0}
                                             }
                                         ]
                                     }
@@ -1528,20 +1792,52 @@
                                                 "binding": {"kind": "uniform", "offset": 64, "size": 4, "elementStride": 0}
                                             },
                                             {
+                                                "name": "texture_page",
+                                                "type": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "uint32"
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 68, "size": 4, "elementStride": 0}
+                                            },
+                                            {
+                                                "name": "texture_uv_origin",
+                                                "type": {
+                                                    "kind": "vector",
+                                                    "elementCount": 2,
+                                                    "elementType": {
+                                                        "kind": "scalar",
+                                                        "scalarType": "float32"
+                                                    }
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 72, "size": 8, "elementStride": 4}
+                                            },
+                                            {
+                                                "name": "texture_uv_size",
+                                                "type": {
+                                                    "kind": "vector",
+                                                    "elementCount": 2,
+                                                    "elementType": {
+                                                        "kind": "scalar",
+                                                        "scalarType": "float32"
+                                                    }
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 80, "size": 8, "elementStride": 4}
+                                            },
+                                            {
+                                                "name": "pad0",
+                                                "type": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 88, "size": 4, "elementStride": 0}
+                                            },
+                                            {
                                                 "name": "pad1",
                                                 "type": {
                                                     "kind": "scalar",
                                                     "scalarType": "float32"
                                                 },
-                                                "binding": {"kind": "uniform", "offset": 68, "size": 4, "elementStride": 0}
-                                            },
-                                            {
-                                                "name": "pad2",
-                                                "type": {
-                                                    "kind": "scalar",
-                                                    "scalarType": "float32"
-                                                },
-                                                "binding": {"kind": "uniform", "offset": 72, "size": 4, "elementStride": 0}
+                                                "binding": {"kind": "uniform", "offset": 92, "size": 4, "elementStride": 0}
                                             }
                                         ]
                                     }
@@ -1662,12 +1958,44 @@
                                                 "binding": {"kind": "uniform", "offset": 80, "size": 4, "elementStride": 0}
                                             },
                                             {
+                                                "name": "texture_page",
+                                                "type": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "uint32"
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 84, "size": 4, "elementStride": 0}
+                                            },
+                                            {
+                                                "name": "texture_uv_origin",
+                                                "type": {
+                                                    "kind": "vector",
+                                                    "elementCount": 2,
+                                                    "elementType": {
+                                                        "kind": "scalar",
+                                                        "scalarType": "float32"
+                                                    }
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 88, "size": 8, "elementStride": 4}
+                                            },
+                                            {
+                                                "name": "texture_uv_size",
+                                                "type": {
+                                                    "kind": "vector",
+                                                    "elementCount": 2,
+                                                    "elementType": {
+                                                        "kind": "scalar",
+                                                        "scalarType": "float32"
+                                                    }
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 96, "size": 8, "elementStride": 4}
+                                            },
+                                            {
                                                 "name": "pad0",
                                                 "type": {
                                                     "kind": "scalar",
                                                     "scalarType": "float32"
                                                 },
-                                                "binding": {"kind": "uniform", "offset": 84, "size": 4, "elementStride": 0}
+                                                "binding": {"kind": "uniform", "offset": 104, "size": 4, "elementStride": 0}
                                             },
                                             {
                                                 "name": "pad1",
@@ -1675,15 +2003,7 @@
                                                     "kind": "scalar",
                                                     "scalarType": "float32"
                                                 },
-                                                "binding": {"kind": "uniform", "offset": 88, "size": 4, "elementStride": 0}
-                                            },
-                                            {
-                                                "name": "pad2",
-                                                "type": {
-                                                    "kind": "scalar",
-                                                    "scalarType": "float32"
-                                                },
-                                                "binding": {"kind": "uniform", "offset": 92, "size": 4, "elementStride": 0}
+                                                "binding": {"kind": "uniform", "offset": 108, "size": 4, "elementStride": 0}
                                             }
                                         ]
                                     }
