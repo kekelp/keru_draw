@@ -105,7 +105,7 @@ pub struct Ring {
 
 /// Parameters for drawing an arc
 #[derive(Debug, Clone, Copy)]
-pub struct Arc {
+pub struct CircleArc {
     pub center: [f32; 2],
     pub radius: f32,
     pub start_angle: f32,
@@ -118,7 +118,7 @@ pub struct Arc {
 
 /// Parameters for drawing a pie slice
 #[derive(Debug, Clone, Copy)]
-pub struct Pie {
+pub struct CirclePie {
     pub center: [f32; 2],
     pub radius: f32,
     pub start_angle: f32,
@@ -606,7 +606,7 @@ impl Renderer {
         });
     }
 
-    pub fn draw_arc(&mut self, params: Arc) {
+    pub fn draw_arc(&mut self, params: CircleArc) {
         let (gradient_direction, color_start, color_end, gradient_type) =
             self.extract_fill_params(params.fill);
 
@@ -631,7 +631,7 @@ impl Renderer {
         });
     }
 
-    pub fn draw_pie(&mut self, params: Pie) {
+    pub fn draw_pie(&mut self, params: CirclePie) {
         let (gradient_direction, color_start, color_end, gradient_type) =
             self.extract_fill_params(params.fill);
 

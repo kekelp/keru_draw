@@ -76,9 +76,9 @@ pub struct ImageRenderer {
 const INITIAL_BUFFER_SIZE: u64 = 1024 * 4;
 
 impl ImageRenderer {
-    /// Create a new ImageRenderer with default atlas size of 2048x2048
+    /// Create a new ImageRenderer with default atlas size of 4096x4096
     pub fn new(device: &Device, _queue: &Queue, surface_format: TextureFormat) -> Self {
-        Self::new_with_atlas_size(device, _queue, surface_format, 2048)
+        Self::new_with_atlas_size(device, _queue, surface_format, 4096)
     }
 
     /// Create a new ImageRenderer with custom atlas size
@@ -363,6 +363,7 @@ impl ImageRenderer {
             return Some(self.store_in_atlas(rgba_data, alloc, new_page_idx, width, height, id));
         }
 
+        dbg!("Doesn't fit in atlas KEK");
         // Image too large even for new page
         None
     }
