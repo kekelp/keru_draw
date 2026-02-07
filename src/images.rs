@@ -1,26 +1,7 @@
 use etagere::{Allocation, BucketedAtlasAllocator, size2};
 use image::RgbaImage;
 use wgpu::*;
-use bytemuck::{Pod, Zeroable};
 use std::collections::HashMap;
-
-/// A quad for rendering an image instance (SVG or raster) on the GPU.
-#[repr(C)]
-#[derive(Clone, Copy, Debug, Zeroable, Pod)]
-pub struct ImageQuad {
-    pub pos_x: f32,
-    pub pos_y: f32,
-    pub width: f32,
-    pub height: f32,
-    pub uv_x: f32,
-    pub uv_y: f32,
-    pub uv_width: f32,
-    pub uv_height: f32,
-    pub page: u32,
-    pub depth: f32,
-    pub _padding0: u32,
-    pub _padding1: u32,
-}
 
 /// A loaded image stored in the atlas.
 #[derive(Clone, Copy, Debug)]
@@ -39,30 +20,15 @@ struct AtlasPage {
     dirty: bool,
 }
 
-#[repr(C)]
-#[derive(Clone, Copy, Debug, PartialEq, Pod, Zeroable)]
-struct Params {
-    screen_resolution_width: f32,
-    screen_resolution_height: f32,
-    _pad1: u32,
-    _pad2: u32,
-}
-
-/// Image renderer that handles both SVG files and raster images using texture atlases.
+/// Image renderer that manages texture atlases for SVG and raster images.
+/// Images are rendered by using them as textures on shapes (e.g., white boxes).
 pub struct ImageRenderer {
     atlas_size: u32,
     atlas_pages: Vec<AtlasPage>,
 
-    quads: Vec<ImageQuad>,
-
     pub(crate) texture_array: Texture,
     pub(crate) sampler: Sampler,
-    pub(crate) params_buffer: Buffer,
-    params: Params,
 
-    pub(crate) vertex_buffer: Buffer,
-
-    needs_gpu_sync: bool,
     needs_texture_array_rebuild: bool,
 
     surface_is_srgb: bool,
@@ -73,8 +39,6 @@ pub struct ImageRenderer {
     next_id: u64,
 }
 
-const INITIAL_BUFFER_SIZE: u64 = 1024 * 4;
-
 impl ImageRenderer {
     /// Create a new ImageRenderer with default atlas size of 4096x4096
     pub fn new(device: &Device, _queue: &Queue, surface_format: TextureFormat) -> Self {
@@ -84,22 +48,6 @@ impl ImageRenderer {
     /// Create a new ImageRenderer with custom atlas size
     pub fn new_with_atlas_size(device: &Device, _queue: &Queue, surface_format: TextureFormat, atlas_size: u32) -> Self {
         let surface_is_srgb = surface_format.is_srgb();
-
-        let params = Params {
-            screen_resolution_width: 800.0,
-            screen_resolution_height: 600.0,
-            _pad1: 0,
-            _pad2: 0,
-        };
-
-        let params_buffer = device.create_buffer(&BufferDescriptor {
-            label: Some("Image Params Buffer"),
-            size: std::mem::size_of::<Params>() as u64,
-            usage: BufferUsages::UNIFORM | BufferUsages::COPY_DST,
-            mapped_at_creation: false,
-        });
-
-        let vertex_buffer = create_vertex_buffer(device, INITIAL_BUFFER_SIZE);
 
         // Create initial texture array with 1 layer
         let texture_array = create_texture_array(device, atlas_size, 1, surface_is_srgb);
@@ -125,30 +73,13 @@ impl ImageRenderer {
         Self {
             atlas_size,
             atlas_pages,
-            quads: Vec::new(),
             texture_array,
             sampler,
-            params_buffer,
-            params,
-            vertex_buffer,
-            needs_gpu_sync: false,
             needs_texture_array_rebuild: false,
             surface_is_srgb,
             svg_data_cache: HashMap::new(),
             next_id: 1,
         }
-    }
-
-    /// Update the screen resolution
-    pub fn update_resolution(&mut self, width: f32, height: f32) {
-        self.params.screen_resolution_width = width;
-        self.params.screen_resolution_height = height;
-    }
-
-    /// Clear all quads for the next frame
-    pub fn clear(&mut self) {
-        self.quads.clear();
-        self.needs_gpu_sync = true;
     }
 
     /// Load and rasterize an SVG, returning the loaded image.
@@ -158,31 +89,31 @@ impl ImageRenderer {
         self.rasterize_and_store(svg_data, width, height)
     }
 
-    /// Draw a previously loaded SVG.
+    /// Rerasterize an SVG at a new size if needed.
     ///
-    /// If `rerasterize` is true, the SVG will be rerasterized if the desired size
-    /// (width x height) differs from the currently stored rasterization size.
-    pub fn draw_svg(&mut self, loaded: &mut LoadedImage, x: f32, y: f32, width: f32, height: f32, depth: f32, rerasterize: bool) {
-        // Check if rerasterization is needed
-        if rerasterize && loaded.id != 0 {
-            let desired_width = width.round() as u32;
-            let desired_height = height.round() as u32;
+    /// Returns true if rerasterization occurred.
+    pub fn rerasterize_svg_if_needed(&mut self, loaded: &mut LoadedImage, width: u32, height: u32) -> bool {
+        if loaded.id == 0 {
+            return false; // Not an SVG
+        }
 
-            if desired_width != loaded.width || desired_height != loaded.height {
-                // Get the cached SVG data
-                if let Some(svg_data) = self.svg_data_cache.get(&loaded.id).cloned() {
-                    // Deallocate old texture space
-                    self.atlas_pages[loaded.page as usize].packer.deallocate(loaded.alloc.id);
+        if width == loaded.width && height == loaded.height {
+            return false; // Already at desired size
+        }
 
-                    // Rerasterize at new size
-                    if let Some(new_loaded) = self.rasterize_and_store_with_id(&svg_data, desired_width, desired_height, loaded.id) {
-                        *loaded = new_loaded;
-                    }
-                }
+        // Get the cached SVG data
+        if let Some(svg_data) = self.svg_data_cache.get(&loaded.id).cloned() {
+            // Deallocate old texture space
+            self.atlas_pages[loaded.page as usize].packer.deallocate(loaded.alloc.id);
+
+            // Rerasterize at new size
+            if let Some(new_loaded) = self.rasterize_and_store_with_id(&svg_data, width, height, loaded.id) {
+                *loaded = new_loaded;
+                return true;
             }
         }
 
-        self.add_quad_from_loaded_image(loaded, x, y, width, height, depth);
+        false
     }
 
     /// Remove a loaded SVG and free its atlas space.
@@ -211,88 +142,30 @@ impl ImageRenderer {
         self.load_rgba8_image(rgba.as_raw(), width, height)
     }
 
-    /// Draw a previously loaded raster image
-    pub fn draw_image(&mut self, loaded: &LoadedImage, x: f32, y: f32, width: f32, height: f32, depth: f32) {
-        self.add_quad_from_loaded_image(loaded, x, y, width, height, depth);
-    }
-
     /// Remove a loaded image and free its atlas space
     pub fn unload_image(&mut self, loaded: &LoadedImage) {
         self.atlas_pages[loaded.page as usize].packer.deallocate(loaded.alloc.id);
     }
 
-    /// Get the quads for external rendering
-    pub fn quads(&self) -> &[ImageQuad] {
-        &self.quads
-    }
-
-    /// Upload all quads and textures to GPU
+    /// Upload textures to GPU. Returns true if the texture array was rebuilt.
     pub(crate) fn load_to_gpu(&mut self, device: &Device, queue: &Queue) -> bool {
-        if !self.needs_gpu_sync && !self.needs_texture_array_rebuild {
+        if !self.needs_texture_array_rebuild && !self.atlas_pages.iter().any(|p| p.dirty) {
             return false;
         }
-
-        // Update params buffer
-        let bytes: &[u8] = bytemuck::cast_slice(std::slice::from_ref(&self.params));
-        queue.write_buffer(&self.params_buffer, 0, bytes);
 
         // Rebuild or update texture array
         if self.needs_texture_array_rebuild {
             self.rebuild_texture_array(device, queue);
             self.needs_texture_array_rebuild = false;
+            return true;
         } else {
             self.update_texture_array(queue);
         }
 
-        // Update vertex buffer
-        let required_size = (self.quads.len() * std::mem::size_of::<ImageQuad>()) as u64;
-        if self.vertex_buffer.size() < required_size {
-            let new_size = (required_size * 3 / 2).max(INITIAL_BUFFER_SIZE);
-            self.vertex_buffer = create_vertex_buffer(device, new_size);
-        }
-
-        if !self.quads.is_empty() {
-            let bytes: &[u8] = bytemuck::cast_slice(&self.quads);
-            queue.write_buffer(&self.vertex_buffer, 0, bytes);
-        }
-
-        self.needs_gpu_sync = false;
-        self.needs_texture_array_rebuild
+        false
     }
 
     // Internal methods
-
-    fn add_quad_from_loaded_image(
-        &mut self,
-        loaded: &LoadedImage,
-        x: f32,
-        y: f32,
-        width: f32,
-        height: f32,
-        depth: f32,
-    ) {
-        let uv_x = loaded.alloc.rectangle.min.x as f32;
-        let uv_y = loaded.alloc.rectangle.min.y as f32;
-        let uv_width = loaded.width as f32;
-        let uv_height = loaded.height as f32;
-
-        self.quads.push(ImageQuad {
-            pos_x: x,
-            pos_y: y,
-            width,
-            height,
-            uv_x,
-            uv_y,
-            uv_width,
-            uv_height,
-            page: loaded.page as u32,
-            depth,
-            _padding0: 0,
-            _padding1: 0,
-        });
-
-        self.needs_gpu_sync = true;
-    }
 
     fn rasterize_and_store(&mut self, svg_data: &[u8], width: u32, height: u32) -> Option<LoadedImage> {
         // Generate unique ID and store SVG data
@@ -435,15 +308,6 @@ impl ImageRenderer {
             }
         }
     }
-}
-
-fn create_vertex_buffer(device: &Device, size: u64) -> Buffer {
-    device.create_buffer(&BufferDescriptor {
-        label: Some("Image Vertex Buffer"),
-        size,
-        usage: BufferUsages::VERTEX | BufferUsages::STORAGE | BufferUsages::COPY_DST,
-        mapped_at_creation: false,
-    })
 }
 
 fn create_texture_array(device: &Device, size: u32, layers: u32, surface_is_srgb: bool) -> Texture {

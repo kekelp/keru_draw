@@ -28,9 +28,8 @@ pub mod primitive {
     pub const CIRCLE: u32 = 1;
     pub const SEGMENT: u32 = 2;
     pub const TEXT: u32 = 3;
-    pub const IMAGE: u32 = 4;
-    pub const GRID: u32 = 5;
-    pub const TRIANGLE: u32 = 6;
+    pub const GRID: u32 = 4;
+    pub const TRIANGLE: u32 = 5;
 }
 
 bitflags::bitflags! {
@@ -443,6 +442,7 @@ impl Renderer {
     }
 
     fn create_shapes_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+        // todo: rewrite this
         let mut entries = vec![
             // Transforms buffer
             GpuVec::<Transform>::bind_group_layout_entry(0),
@@ -455,7 +455,7 @@ impl Renderer {
         }
         entries.extend(shapes_entries);
 
-        // Add image resources (bindings 6-9)
+        // Add image atlas resources (bindings 6-7)
         entries.extend_from_slice(&[
             // Image atlas texture array
             wgpu::BindGroupLayoutEntry {
@@ -473,28 +473,6 @@ impl Renderer {
                 binding: 7,
                 visibility: wgpu::ShaderStages::FRAGMENT,
                 ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
-                count: None,
-            },
-            // Params buffer
-            wgpu::BindGroupLayoutEntry {
-                binding: 8,
-                visibility: wgpu::ShaderStages::VERTEX.union(wgpu::ShaderStages::FRAGMENT),
-                ty: wgpu::BindingType::Buffer {
-                    ty: wgpu::BufferBindingType::Uniform,
-                    has_dynamic_offset: false,
-                    min_binding_size: None,
-                },
-                count: None,
-            },
-            // Quads buffer
-            wgpu::BindGroupLayoutEntry {
-                binding: 9,
-                visibility: wgpu::ShaderStages::VERTEX.union(wgpu::ShaderStages::FRAGMENT),
-                ty: wgpu::BindingType::Buffer {
-                    ty: wgpu::BufferBindingType::Storage { read_only: true },
-                    has_dynamic_offset: false,
-                    min_binding_size: None,
-                },
                 count: None,
             },
         ]);
@@ -535,14 +513,6 @@ impl Renderer {
                     binding: 7,
                     resource: wgpu::BindingResource::Sampler(&image_renderer.sampler),
                 },
-                wgpu::BindGroupEntry {
-                    binding: 8,
-                    resource: image_renderer.params_buffer.as_entire_binding(),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 9,
-                    resource: image_renderer.vertex_buffer.as_entire_binding(),
-                },
             ],
         })
     }
@@ -576,6 +546,31 @@ impl Renderer {
             p_index: index as u32,
             transform_index: *self.transform_stack.last().unwrap() as u32,
             _padding: 0,
+        });
+    }
+
+    /// Draw an image.
+    /// This is a convenience method equivalent to draw_box with white fill and the image as texture.
+    pub fn draw_image(
+        &mut self,
+        image: LoadedImage,
+        x: f32,
+        y: f32,
+        width: f32,
+        height: f32,
+        x_clip: [f32; 2],
+        y_clip: [f32; 2],
+    ) {
+        self.draw_box(Box {
+            top_left: [x, y],
+            size: [width, height],
+            corner_radius: 0.0,
+            rounded_corners: RoundedCorners::NONE,
+            border_thickness: 0.0,
+            fill: Fill::Solid([1.0, 1.0, 1.0, 1.0]),
+            x_clip,
+            y_clip,
+            texture: Some(image),
         });
     }
 
@@ -841,44 +836,8 @@ impl Renderer {
         }
     }
 
-    pub fn draw_image(
-        &mut self,
-        handle: &mut LoadedImage,
-        x: f32,
-        y: f32,
-        width: f32,
-        height: f32,
-        depth: f32,
-    ) {
-        self.draw_image_ex(handle, x, y, width, height, depth, false);
-    }
-
-    pub fn draw_image_ex(
-        &mut self,
-        handle: &mut LoadedImage,
-        x: f32,
-        y: f32,
-        width: f32,
-        height: f32,
-        depth: f32,
-        rerasterize: bool,
-    ) {
-        let start_idx = self.image_renderer.quads().len();
-        self.image_renderer.draw_svg(handle, x, y, width, height, depth, rerasterize);
-        let end_idx = self.image_renderer.quads().len();
-        for q in start_idx..end_idx {
-            self.instances.push(Instance {
-                p_type: primitive::IMAGE,
-                p_index: q as u32,
-                transform_index: *self.transform_stack.last().unwrap() as u32,
-                _padding: 0,
-            });
-        }
-    }
-
     pub fn clear(&mut self) {
         self.shapes.clear();
-        self.image_renderer.clear();
         self.instances.clear();
         self.text_renderer.clear();
         self.transforms.clear();
@@ -890,8 +849,6 @@ impl Renderer {
     pub fn begin_frame(&mut self, width: f32, height: f32) {
         // Update text renderer resolution
         self.text_renderer.update_resolution(width, height);
-        // Update SVG renderer resolution
-        self.image_renderer.update_resolution(width, height);
         // Clear all buffers
         self.clear();
     }
@@ -903,7 +860,6 @@ impl Renderer {
 
     pub fn resize(&mut self, width: u32, height: u32) {
         self.text_renderer.update_resolution(width as f32, height as f32);
-        self.image_renderer.update_resolution(width as f32, height as f32);
     }
 
     pub fn device(&self) -> &wgpu::Device {

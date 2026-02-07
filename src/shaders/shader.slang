@@ -8,9 +8,8 @@ enum PrimitiveType: uint {
     Circle = 1,
     Segment = 2,
     Text = 3,
-    Image = 4,
-    Grid = 5,
-    Triangle = 6,
+    Grid = 4,
+    Triangle = 5,
 }
 
 struct VertexOutput {
@@ -61,10 +60,6 @@ VertexOutput vertexMain(
         text_vertex(input.primitiveIndex, vertexIndex, resolution, output.position, output.uv);
         output.screen_pos = float2(0.0, 0.0); // Text doesn't use screen_pos for clipping
     }
-    else if (input.primitiveType == PrimitiveType::Image) {
-        image_vertex(input.primitiveIndex, vertexIndex, resolution, output.position, output.uv);
-        output.screen_pos = float2(0.0, 0.0); // Image doesn't use screen_pos for clipping
-    }
 
     // Apply transform
     // Textslabs quads are already aware of their transform
@@ -113,9 +108,6 @@ float4 fragmentMain(VertexOutput input): SV_Target {
     }
     else if (input.primitiveType == PrimitiveType::Text) {
         return text_fragment(input.primitiveIndex, input.uv, input.position);
-    }
-    else if (input.primitiveType == PrimitiveType::Image) {
-        return image_fragment(input.primitiveIndex, input.uv);
     }
 
     return float4(0.0, 1.0, 0.0, 1.0);  // Greenscreen for error
