@@ -127,15 +127,15 @@ float linearstep(float a, float b, float x) { return clamp(linear(a,b,x), 0.0, 1
 float srgb_to_linear(float x) {
     return x <= 0.04045 ? x / 12.92 : pow((x + 0.055) / 1.055, 2.4);
 }
-float3 srgb_to_linear(float3 srgb) {
+float3 srgb_to_linear3(float3 srgb) {
     return float3(
         srgb_to_linear(srgb.r),
         srgb_to_linear(srgb.g),
         srgb_to_linear(srgb.b)
     );
 }
-float4 srgb_to_linear(float4 srgba) {
-    return float4(srgb_to_linear(srgba.rgb), srgba.a);
+float4 srgb_to_linear4(float4 srgba) {
+    return float4(srgb_to_linear3(srgba.rgb), srgba.a);
 }
 
 // Oklab color space functions for perceptually uniform gradients
@@ -241,6 +241,11 @@ float4 box_fragment(uint primitiveIndex, float2 uv, float2 screen_pos, bool surf
         color = box.color_start;
     }
 
+    if (surface_is_srgb) {
+        color.rgb = srgb_to_linear3(color.rgb);
+    }
+
+    // Texture color doesn't need srgb adjustment, because the texture atlas is already with the same srgb-ness of the final surface.
     // Sample texture if enabled (texture_page != 0xFFFFFFFF)
     if (box.texture_page != 0xFFFFFFFFu) {
         // Get atlas dimensions
@@ -262,11 +267,7 @@ float4 box_fragment(uint primitiveIndex, float2 uv, float2 screen_pos, bool surf
         color = tex_color * color;
     }
 
-    if (surface_is_srgb) {
-        return srgb_to_linear(float4(color.rgb, color.a * alpha));
-    } else {
-        return float4(color.rgb, color.a * alpha);
-    }
+    return float4(color.rgb, color.a * alpha);
 }
 
 void circle_vertex(
@@ -745,7 +746,7 @@ float4 triangle_fragment(uint primitiveIndex, float2 uv, float2 screen_pos, bool
     }
 
     if (surface_is_srgb) {
-        return srgb_to_linear(float4(color.rgb, color.a * alpha));
+        return srgb_to_linear4(float4(color.rgb, color.a * alpha));
     } else {
         return float4(color.rgb, color.a * alpha);
     }
