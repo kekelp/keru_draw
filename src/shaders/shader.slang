@@ -95,16 +95,16 @@ float4 fragmentMain(VertexOutput input): SV_Target {
         return box_fragment(input.primitiveIndex, input.uv, input.screen_pos, srgb, input.transform_scale);
     }
     else if (input.primitiveType == PrimitiveType::Circle) {
-        return circle_fragment(input.primitiveIndex, input.uv, input.screen_pos, srgb);
+        return circle_fragment(input.primitiveIndex, input.uv, input.screen_pos, srgb, input.transform_scale);
     }
     else if (input.primitiveType == PrimitiveType::Segment) {
-        return segment_fragment(input.primitiveIndex, input.uv, input.screen_pos, srgb);
+        return segment_fragment(input.primitiveIndex, input.uv, input.screen_pos, srgb, input.transform_scale);
     }
     else if (input.primitiveType == PrimitiveType::Grid) {
         return grid_fragment(input.primitiveIndex, input.uv, input.screen_pos, srgb, input.transform_scale);
     }
     else if (input.primitiveType == PrimitiveType::Triangle) {
-        return triangle_fragment(input.primitiveIndex, input.uv, input.screen_pos, srgb);
+        return triangle_fragment(input.primitiveIndex, input.uv, input.screen_pos, srgb, input.transform_scale);
     }
     else if (input.primitiveType == PrimitiveType::Text) {
         return text_fragment(input.primitiveIndex, input.uv, input.position);

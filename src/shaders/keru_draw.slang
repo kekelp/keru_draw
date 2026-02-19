@@ -355,7 +355,7 @@ float sd_circle_variant(float2 p, CircleData circle) {
     }
 }
 
-float4 circle_fragment(uint primitiveIndex, float2 uv, float2 screen_pos, bool srgb): SV_Target {
+float4 circle_fragment(uint primitiveIndex, float2 uv, float2 screen_pos, bool srgb, float transform_scale): SV_Target {
     var circle: CircleData = shapes.circles[primitiveIndex];
 
     if (screen_pos.x < circle.x_clip.x || screen_pos.x > circle.x_clip.y ||
@@ -372,7 +372,9 @@ float4 circle_fragment(uint primitiveIndex, float2 uv, float2 screen_pos, bool s
 
     float dist = sd_circle_variant(p, circle);
 
-    float alpha = 1.0 - linearstep(-0.5, 0.5, dist);
+    // Scale antialiasing width based on transform zoom
+    float aa_width = 0.5 / max(transform_scale, 0.001);
+    float alpha = 1.0 - linearstep(-aa_width, aa_width, dist);
 
     if (alpha < 0.001) {
         discard;
@@ -448,7 +450,7 @@ float sd_segment(float2 p, float2 a, float2 b) {
     return length(pa - ba * h);
 }
 
-float4 segment_fragment(uint primitiveIndex, float2 uv, float2 screen_pos, bool srgb): SV_Target {
+float4 segment_fragment(uint primitiveIndex, float2 uv, float2 screen_pos, bool srgb, float transform_scale): SV_Target {
     var seg: SegmentData = shapes.segments[primitiveIndex];
 
     if (screen_pos.x < seg.x_clip.x || screen_pos.x > seg.x_clip.y ||
@@ -469,7 +471,9 @@ float4 segment_fragment(uint primitiveIndex, float2 uv, float2 screen_pos, bool 
     // Calculate distance to segment
     float dist = sd_segment(p, seg.start, seg.end) - half_thickness;
 
-    float alpha = 1.0 - linearstep(-0.5, 0.5, dist);
+    // Scale antialiasing width based on transform zoom
+    float aa_width = 0.5 / max(transform_scale, 0.001);
+    float alpha = 1.0 - linearstep(-aa_width, aa_width, dist);
 
     if (alpha < 0.001) {
         discard;
@@ -685,7 +689,7 @@ float sd_triangle(float2 p, float2 p0, float2 p1, float2 p2) {
     return -sqrt(d.x) * sign(d.y);
 }
 
-float4 triangle_fragment(uint primitiveIndex, float2 uv, float2 screen_pos, bool surface_is_srgb): SV_Target {
+float4 triangle_fragment(uint primitiveIndex, float2 uv, float2 screen_pos, bool surface_is_srgb, float transform_scale): SV_Target {
     var tri: TriangleData = shapes.triangles[primitiveIndex];
 
     if (screen_pos.x < tri.x_clip.x || screen_pos.x > tri.x_clip.y ||
@@ -703,7 +707,10 @@ float4 triangle_fragment(uint primitiveIndex, float2 uv, float2 screen_pos, bool
     // Calculate distance to triangle
     float dist = sd_triangle(p, tri.p0, tri.p1, tri.p2);
 
-    float alpha = 1.0 - linearstep(-0.5, 0.5, dist);
+    // Scale antialiasing width based on transform zoom
+    float aa_width = 0.5 / max(transform_scale, 0.001);
+    float alpha = 1.0 - linearstep(-aa_width, aa_width, dist);
+
 
     if (alpha < 0.001) {
         discard;
