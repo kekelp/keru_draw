@@ -59,7 +59,7 @@ impl ImageRenderer {
             address_mode_w: AddressMode::ClampToEdge,
             mag_filter: FilterMode::Linear,
             min_filter: FilterMode::Linear,
-            mipmap_filter: FilterMode::Nearest,
+            mipmap_filter: FilterMode::Linear,
             ..Default::default()
         });
 

@@ -396,6 +396,10 @@ float4 circle_fragment(uint primitiveIndex, float2 uv, float2 screen_pos, bool s
         color = circle.color_start;
     }
 
+    if (srgb) {
+        color.rgb = srgb_to_linear3(color.rgb);
+    }
+
     // Sample texture if enabled (texture_page != 0xFFFFFFFF)
     if (circle.texture_page != 0xFFFFFFFFu) {
         // Get atlas dimensions
@@ -521,6 +525,10 @@ float4 segment_fragment(uint primitiveIndex, float2 uv, float2 screen_pos, bool 
         color = seg.color_start;
     }
 
+    if (srgb) {
+        color.rgb = srgb_to_linear3(color.rgb);
+    }
+
     // Sample texture if enabled (texture_page != 0xFFFFFFFF)
     if (seg.texture_page != 0xFFFFFFFFu) {
         uint atlas_width, atlas_height, atlas_elements;
@@ -609,6 +617,10 @@ float4 grid_fragment(uint primitiveIndex, float2 uv, float2 screen_pos, bool sur
 
     float4 color = grid.color;
 
+    if (surface_is_srgb) {
+        color.rgb = srgb_to_linear3(color.rgb);
+    }
+
     // Sample texture if enabled (texture_page != 0xFFFFFFFF)
     if (grid.texture_page != 0xFFFFFFFFu) {
         uint atlas_width, atlas_height, atlas_elements;
@@ -645,26 +657,6 @@ void triangle_vertex(
 
     quad_vertex(top_left, size, vertexIndex, resolution, position, uv);
     screen_pos = top_left + uv * size;
-}
-
-// Compute barycentric coordinates for a point in a triangle
-float3 barycentric(float2 p, float2 a, float2 b, float2 c) {
-    float2 v0 = b - a;
-    float2 v1 = c - a;
-    float2 v2 = p - a;
-
-    float d00 = dot(v0, v0);
-    float d01 = dot(v0, v1);
-    float d11 = dot(v1, v1);
-    float d20 = dot(v2, v0);
-    float d21 = dot(v2, v1);
-
-    float denom = d00 * d11 - d01 * d01;
-    float v = (d11 * d20 - d01 * d21) / denom;
-    float w = (d00 * d21 - d01 * d20) / denom;
-    float u = 1.0 - v - w;
-
-    return float3(u, v, w);
 }
 
 // SDF for triangle - returns signed distance
@@ -731,6 +723,10 @@ float4 triangle_fragment(uint primitiveIndex, float2 uv, float2 screen_pos, bool
         color = tri.color_start;
     }
 
+    if (surface_is_srgb) {
+        color.rgb = srgb_to_linear3(color.rgb);
+    }
+
     // Sample texture if enabled (texture_page != 0xFFFFFFFF)
     if (tri.texture_page != 0xFFFFFFFFu) {
         // Get atlas dimensions
@@ -752,9 +748,5 @@ float4 triangle_fragment(uint primitiveIndex, float2 uv, float2 screen_pos, bool
         color = tex_color * color;
     }
 
-    if (surface_is_srgb) {
-        return srgb_to_linear4(float4(color.rgb, color.a * alpha));
-    } else {
-        return float4(color.rgb, color.a * alpha);
-    }
+    return float4(color.rgb, color.a * alpha);
 }
