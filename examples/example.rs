@@ -84,6 +84,7 @@ impl State {
 
         let style = renderer.text.add_style(
             TextStyle2 {
+                font_size: 18.0,
                 brush: ColorBrush([0, 0, 0, 255]),
                 font_stack: FontStack::Single(FontFamily::Named(Cow::Borrowed("sans-serif"))),
                 ..Default::default()
@@ -100,26 +101,26 @@ impl State {
 
         let text_box1 = renderer.text.add_text_box(
             "Using rotation or zoom on text and SVGs can look quite disappointing, because they are pre-rasterized on the CPU.".to_owned(),
-            (10.0, 530.0),
+            (0.0, 0.0),
             (200.0, 50.0),
             0.0,
         );
         renderer.text.get_text_box_mut(&text_box1).set_style(&style);
         renderer.text.get_text_box_mut(&text_box1).set_transform(Transform2D {
-            translation: (20.0, 530.0),
-            rotation: std::f32::consts::PI * -0.15,
-            scale: 1.5,
+            translation: (40.0, 630.0),
+            rotation: std::f32::consts::PI * -0.1,
+            scale: 1.2,
         });
 
         let text_box2 = renderer.text.add_text_box(
-            "90 degree rotation".to_owned(),
+            "90 degree rotations are fine.".to_owned(),
             (0.0, 0.0),
             (200.0, 60.0),
             0.0,
         );
         renderer.text.get_text_box_mut(&text_box2).set_style(&style);
         renderer.text.get_text_box_mut(&text_box2).set_transform(Transform2D {
-            translation: (400.0, 550.0),
+            translation: (400.0, 580.0),
             rotation: std::f32::consts::PI * 0.5,
             scale: 1.0,
         });
@@ -523,7 +524,7 @@ impl State {
 
         // Hexagons - solid filled
         self.renderer.draw_hexagon(Hexagon {
-            center: [520.0, 400.0],
+            center: [520.0, 400.0 + 100.0],
             size: 40.0,
             rotation: 0.0,
             fill: Fill::Solid([0.2, 0.7, 0.9, 1.0]),
@@ -535,7 +536,7 @@ impl State {
 
         // Hexagon - gradient filled
         self.renderer.draw_hexagon(Hexagon {
-            center: [620.0, 400.0],
+            center: [620.0, 400.0 + 100.0],
             size: 40.0,
             rotation: std::f32::consts::PI / 2.0,
             fill: Fill::Gradient {
@@ -552,7 +553,7 @@ impl State {
 
         // Hexagon - stroke only
         self.renderer.draw_hexagon(Hexagon {
-            center: [520.0, 500.0],
+            center: [520.0, 500.0 + 100.0],
             size: 40.0,
             rotation: 0.0,
             fill: Fill::Solid([0.9, 0.5, 0.2, 1.0]),
@@ -564,7 +565,7 @@ impl State {
 
         // Hexagon - rotated (pointy-top)
         self.renderer.draw_hexagon(Hexagon {
-            center: [620.0, 500.0],
+            center: [620.0, 500.0 + 100.0],
             size: 40.0,
             rotation: std::f32::consts::PI / 6.0, // 30 degrees for pointy-top
             fill: Fill::Solid([0.5, 0.9, 0.3, 1.0]),
@@ -576,7 +577,7 @@ impl State {
 
         // Hexagon with texture
         self.renderer.draw_hexagon(Hexagon {
-            center: [570.0, 600.0],
+            center: [570.0, 600.0 + 100.0],
             size: 50.0,
             rotation: 0.0,
             fill: Fill::Solid([1.0, 1.0, 1.0, 1.0]),
@@ -594,7 +595,7 @@ impl State {
         self.renderer.draw_image(self.svg_handle, 520.0, 150.0, 180.0, 180.0, clip_x, clip_y);
 
         // Rotated text
-        self.renderer.text.get_text_box_mut(&self.text_box1).set_screen_space_clip_rect(Some((0.0, 0.0, 100.0, 1000000.0)));
+        self.renderer.text.get_text_box_mut(&self.text_box1);
         self.renderer.draw_text_box(&self.text_box1);
 
         self.renderer.draw_text_box(&self.text_box2);
@@ -604,9 +605,6 @@ impl State {
             scale: 1.25,
             _padding: 0.0,
         });
-
-        // SVG with transform
-        self.renderer.draw_image(self.svg_handle, -50.0, -50.0, 100.0, 100.0, clip_x, clip_y);
 
         self.renderer.pop_transform();
         
