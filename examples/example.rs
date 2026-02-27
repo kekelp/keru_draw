@@ -511,7 +511,7 @@ impl State {
         self.renderer.draw_grid(Grid {
             top_left: [750.0, 250.0],
             size: [300.0, 300.0],
-            lattice_size: 30.0,
+            lattice_size: 50.0,
             offset: [0.0, 0.0],
             line_thickness: 2.0,
             color: [1.0, 0.0, 0.0, 0.5],
@@ -519,6 +519,71 @@ impl State {
             x_clip: clip_x,
             y_clip: clip_y,
             texture: None,
+        });
+
+        // Hexagons - solid filled
+        self.renderer.draw_hexagon(Hexagon {
+            center: [520.0, 400.0],
+            size: 40.0,
+            rotation: 0.0,
+            fill: Fill::Solid([0.2, 0.7, 0.9, 1.0]),
+            stroke_thickness: 0.0,
+            x_clip: clip_x,
+            y_clip: clip_y,
+            texture: None,
+        });
+
+        // Hexagon - gradient filled
+        self.renderer.draw_hexagon(Hexagon {
+            center: [620.0, 400.0],
+            size: 40.0,
+            rotation: std::f32::consts::PI / 2.0,
+            fill: Fill::Gradient {
+                color_start: [1.0, 0.3, 0.5, 1.0],
+                color_end: [0.5, 0.3, 1.0, 1.0],
+                gradient_type: GradientType::Linear,
+                angle: std::f32::consts::PI * 0.25,
+            },
+            stroke_thickness: 0.0,
+            x_clip: clip_x,
+            y_clip: clip_y,
+            texture: None,
+        });
+
+        // Hexagon - stroke only
+        self.renderer.draw_hexagon(Hexagon {
+            center: [520.0, 500.0],
+            size: 40.0,
+            rotation: 0.0,
+            fill: Fill::Solid([0.9, 0.5, 0.2, 1.0]),
+            stroke_thickness: 4.0,
+            x_clip: clip_x,
+            y_clip: clip_y,
+            texture: None,
+        });
+
+        // Hexagon - rotated (pointy-top)
+        self.renderer.draw_hexagon(Hexagon {
+            center: [620.0, 500.0],
+            size: 40.0,
+            rotation: std::f32::consts::PI / 6.0, // 30 degrees for pointy-top
+            fill: Fill::Solid([0.5, 0.9, 0.3, 1.0]),
+            stroke_thickness: 0.0,
+            x_clip: clip_x,
+            y_clip: clip_y,
+            texture: None,
+        });
+
+        // Hexagon with texture
+        self.renderer.draw_hexagon(Hexagon {
+            center: [570.0, 600.0],
+            size: 50.0,
+            rotation: 0.0,
+            fill: Fill::Solid([1.0, 1.0, 1.0, 1.0]),
+            stroke_thickness: 0.0,
+            x_clip: clip_x,
+            y_clip: clip_y,
+            texture: Some(self.texture_handle),
         });
 
         self.renderer.draw_text_box(&self.text_box3);

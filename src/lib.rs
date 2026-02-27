@@ -30,6 +30,7 @@ pub mod primitive {
     pub const TEXT: u32 = 3;
     pub const GRID: u32 = 4;
     pub const TRIANGLE: u32 = 5;
+    pub const HEXAGON: u32 = 6;
 }
 
 bitflags::bitflags! {
@@ -174,6 +175,19 @@ pub struct Triangle {
     pub p1: [f32; 2],
     pub p2: [f32; 2],
     pub fill: Fill,
+    pub x_clip: [f32; 2],
+    pub y_clip: [f32; 2],
+    pub texture: Option<LoadedImage>,
+}
+
+/// Parameters for drawing a hexagon
+#[derive(Debug, Clone)]
+pub struct Hexagon {
+    pub center: [f32; 2],
+    pub size: f32,              // distance from center to vertex
+    pub rotation: f32,          // rotation in radians (0 = flat-top)
+    pub fill: Fill,
+    pub stroke_thickness: f32,  // 0 = filled, >0 = stroke only
     pub x_clip: [f32; 2],
     pub y_clip: [f32; 2],
     pub texture: Option<LoadedImage>,
@@ -455,11 +469,11 @@ impl Renderer {
         }
         entries.extend(shapes_entries);
 
-        // Add image atlas resources (bindings 6-7)
+        // Add image atlas resources (bindings 7-8)
         entries.extend_from_slice(&[
             // Image atlas texture array
             wgpu::BindGroupLayoutEntry {
-                binding: 6,
+                binding: 7,
                 visibility: wgpu::ShaderStages::VERTEX.union(wgpu::ShaderStages::FRAGMENT),
                 ty: wgpu::BindingType::Texture {
                     sample_type: wgpu::TextureSampleType::Float { filterable: true },
@@ -470,7 +484,7 @@ impl Renderer {
             },
             // Sampler
             wgpu::BindGroupLayoutEntry {
-                binding: 7,
+                binding: 8,
                 visibility: wgpu::ShaderStages::FRAGMENT,
                 ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
                 count: None,
@@ -505,12 +519,13 @@ impl Renderer {
                 shapes.segments.bind_group_entry(3),
                 shapes.grids.bind_group_entry(4),
                 shapes.triangles.bind_group_entry(5),
+                shapes.hexagons.bind_group_entry(6),
                 wgpu::BindGroupEntry {
-                    binding: 6,
+                    binding: 7,
                     resource: wgpu::BindingResource::TextureView(&texture_view),
                 },
                 wgpu::BindGroupEntry {
-                    binding: 7,
+                    binding: 8,
                     resource: wgpu::BindingResource::Sampler(&image_renderer.sampler),
                 },
             ],
@@ -773,6 +788,37 @@ impl Renderer {
         });
         self.instances.push(Instance {
             p_type: primitive::TRIANGLE,
+            p_index: index as u32,
+            transform_index: *self.transform_stack.last().unwrap() as u32,
+            _padding: 0,
+        });
+    }
+
+    pub fn draw_hexagon(&mut self, params: Hexagon) {
+        let (gradient_direction, color_start, color_end, gradient_type) = fill_gpu(params.fill);
+
+        let (texture_uv_origin, texture_uv_size, texture_page) = texture_gpu(params.texture);
+
+        let index = self.shapes.hexagons.len();
+        self.shapes.hexagons.push(shapes::HexagonGpu {
+            center: params.center,
+            size: params.size,
+            rotation: params.rotation,
+            x_clip: params.x_clip,
+            y_clip: params.y_clip,
+            gradient_direction,
+            color_start,
+            color_end,
+            gradient_type,
+            stroke_thickness: params.stroke_thickness,
+            texture_page,
+            _pad1: 0.0,
+            texture_uv_origin,
+            texture_uv_size,
+            _pad2: [0.0; 2],
+        });
+        self.instances.push(Instance {
+            p_type: primitive::HEXAGON,
             p_index: index as u32,
             transform_index: *self.transform_stack.last().unwrap() as u32,
             _padding: 0,

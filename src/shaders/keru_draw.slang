@@ -89,6 +89,24 @@ struct TriangleData {
     float pad1;
 }
 
+struct HexagonData {
+    float2 center;
+    float size;                // distance from center to vertex
+    float rotation;            // rotation in radians
+    float2 x_clip;
+    float2 y_clip;
+    float2 gradient_direction; // normalized direction for linear gradient
+    float stroke_thickness;    // 0 = filled, >0 = stroke only
+    uint texture_page;         // atlas layer, 0xFFFFFFFF = no texture
+    float4 color_start;
+    float4 color_end;
+    uint gradient_type;        // 0=solid, 1=linear
+    float _pad1;               // alignment for float2
+    float2 texture_uv_origin;  // pixel coords in atlas (top-left corner)
+    float2 texture_uv_size;    // pixel dimensions in atlas
+    float2 _pad2;
+}
+
 struct Transform {
     float2 offset;
     float scale;
@@ -102,6 +120,7 @@ struct ShapesData {
     StructuredBuffer<SegmentData> segments;
     StructuredBuffer<GridData> grids;
     StructuredBuffer<TriangleData> triangles;
+    StructuredBuffer<HexagonData> hexagons;
     Texture2DArray<float4> atlas_texture;
     SamplerState atlas_sampler;
 }
@@ -581,8 +600,11 @@ float4 grid_fragment(uint primitiveIndex, float2 uv, float2 screen_pos, bool sur
         float2 dist_to_line = min(grid_pos, 1.0 - grid_pos);
         dist = min(dist_to_line.x, dist_to_line.y) * grid.lattice_size;
     } else {
+        const float COS30 = 0.8660254;
+        float lattice_size = grid.lattice_size * COS30;
+
         // Scale by lattice_size to work in normalized hex space
-        float2 p = p_pixels / grid.lattice_size;
+        float2 p = p_pixels / lattice_size;
         float2 s = float2(1.0, 1.7320508); // vec2(1, sqrt(3))
 
         // Two candidate hexagon centers
@@ -601,7 +623,7 @@ float4 grid_fragment(uint primitiveIndex, float2 uv, float2 screen_pos, bool sur
         float hexDist = max(dot(q, s * 0.5), q.x);
 
         // Distance to hex edge (edge is at hexDist = 0.5)
-        dist = abs(hexDist - 0.5) * grid.lattice_size;
+        dist = abs(hexDist - 0.5) * lattice_size;
     }
 
     // Apply line thickness and antialiasing
@@ -745,6 +767,106 @@ float4 triangle_fragment(uint primitiveIndex, float2 uv, float2 screen_pos, bool
         );
 
         // Multiply texture color with fill color (tinting)
+        color = tex_color * color;
+    }
+
+    return float4(color.rgb, color.a * alpha);
+}
+
+void hexagon_vertex(
+    uint instanceIndex,
+    uint vertexIndex,
+    float2 resolution,
+    out float4 position,
+    out float2 uv,
+    out float2 screen_pos,
+) {
+    var hex: HexagonData = shapes.hexagons[instanceIndex];
+
+    // Create bounding box for the hexagon
+    // For flat-top hex: width = 2 * r / cos(30°) = 2 * r * 1.1547, height = 2 * r
+    // Use a square that fits the rotated hexagon (worst case)
+    float extent = hex.size;
+    float2 top_left = hex.center - float2(extent, extent);
+    float2 size = float2(extent * 2.0, extent * 2.0);
+
+    quad_vertex(top_left, size, vertexIndex, resolution, position, uv);
+    screen_pos = top_left + uv * size;
+}
+
+// SDF for regular hexagon (flat-top orientation by default)
+// r = distance from center to edge
+float sd_hexagon(float2 p, float r) {
+    const float3 k = float3(-0.866025404, 0.5, 0.577350269);
+    p = abs(p);
+    p -= 2.0 * min(dot(k.xy, p), 0.0) * k.xy;
+    p -= float2(clamp(p.x, -k.z * r, k.z * r), r);
+    return length(p) * sign(p.y);
+}
+
+float4 hexagon_fragment(uint primitiveIndex, float2 uv, float2 screen_pos, bool surface_is_srgb, float transform_scale): SV_Target {
+    var hex: HexagonData = shapes.hexagons[primitiveIndex];
+
+    if (screen_pos.x < hex.x_clip.x || screen_pos.x > hex.x_clip.y ||
+        screen_pos.y < hex.y_clip.x || screen_pos.y > hex.y_clip.y) {
+        discard;
+    }
+
+    // Convert UV to position relative to hexagon center
+    float extent = hex.size * 1.1547;
+    float2 p = (uv - 0.5) * 2.0 * extent;
+
+    // Apply rotation
+    float cos_r = cos(hex.rotation);
+    float sin_r = sin(hex.rotation);
+    float2 rotated_p = float2(
+        p.x * cos_r - p.y * sin_r,
+        p.x * sin_r + p.y * cos_r
+    );
+
+    // Calculate distance to hexagon
+    float dist = sd_hexagon(rotated_p, hex.size);
+
+    // Handle stroke-only rendering when stroke_thickness > 0
+    if (hex.stroke_thickness > 0.001) {
+        dist = abs(dist + hex.stroke_thickness * 0.5) - hex.stroke_thickness * 0.5;
+    }
+
+    // Scale antialiasing width based on transform zoom
+    float aa_width = 0.5 / max(transform_scale, 0.001);
+    float alpha = 1.0 - linearstep(-aa_width, aa_width, dist);
+
+    if (alpha < 0.001) {
+        discard;
+    }
+
+    // Calculate gradient color
+    float4 color;
+    if (hex.gradient_type == 1) {
+        // Linear gradient
+        float t = dot(p, hex.gradient_direction) / hex.size;
+        t = t * 0.5 + 0.5; // Remap from [-1,1] to [0,1]
+        color = gradient_oklab(hex.color_start, hex.color_end, clamp(t, 0.0, 1.0));
+    } else {
+        // Solid color (gradient_type == 0)
+        color = hex.color_start;
+    }
+
+    if (surface_is_srgb) {
+        color.rgb = srgb_to_linear3(color.rgb);
+    }
+
+    // Sample texture if enabled (texture_page != 0xFFFFFFFF)
+    if (hex.texture_page != 0xFFFFFFFFu) {
+        uint atlas_width, atlas_height, atlas_elements;
+        shapes.atlas_texture.GetDimensions(atlas_width, atlas_height, atlas_elements);
+        float2 atlas_size = float2(float(atlas_width), float(atlas_height));
+        float2 tex_uv = (hex.texture_uv_origin + hex.texture_uv_size * uv) / atlas_size;
+        float4 tex_color = shapes.atlas_texture.SampleLevel(
+            shapes.atlas_sampler,
+            float3(tex_uv, float(hex.texture_page)),
+            0.0
+        );
         color = tex_color * color;
     }
 

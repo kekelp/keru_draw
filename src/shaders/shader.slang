@@ -10,6 +10,7 @@ enum PrimitiveType: uint {
     Text = 3,
     Grid = 4,
     Triangle = 5,
+    Hexagon = 6,
 }
 
 struct VertexOutput {
@@ -55,6 +56,9 @@ VertexOutput vertexMain(
     }
     else if (input.primitiveType == PrimitiveType::Triangle) {
         triangle_vertex(input.primitiveIndex, vertexIndex, resolution, output.position, output.uv, output.screen_pos);
+    }
+    else if (input.primitiveType == PrimitiveType::Hexagon) {
+        hexagon_vertex(input.primitiveIndex, vertexIndex, resolution, output.position, output.uv, output.screen_pos);
     }
     else if (input.primitiveType == PrimitiveType::Text) {
         text_vertex(input.primitiveIndex, vertexIndex, resolution, output.position, output.uv);
@@ -105,6 +109,9 @@ float4 fragmentMain(VertexOutput input): SV_Target {
     }
     else if (input.primitiveType == PrimitiveType::Triangle) {
         return triangle_fragment(input.primitiveIndex, input.uv, input.screen_pos, srgb, input.transform_scale);
+    }
+    else if (input.primitiveType == PrimitiveType::Hexagon) {
+        return hexagon_fragment(input.primitiveIndex, input.uv, input.screen_pos, srgb, input.transform_scale);
     }
     else if (input.primitiveType == PrimitiveType::Text) {
         return text_fragment(input.primitiveIndex, input.uv, input.position);

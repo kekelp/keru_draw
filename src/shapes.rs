@@ -91,12 +91,33 @@ pub struct TriangleGpu {
     pub pad: [f32; 2],               // padding to 112 bytes (16-byte aligned)
 }
 
+#[repr(C)]
+#[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
+pub struct HexagonGpu {
+    pub center: [f32; 2],
+    pub size: f32,
+    pub rotation: f32,
+    pub x_clip: [f32; 2],
+    pub y_clip: [f32; 2],
+    pub gradient_direction: [f32; 2],
+    pub stroke_thickness: f32,
+    pub texture_page: u32,
+    pub color_start: [f32; 4],
+    pub color_end: [f32; 4],
+    pub gradient_type: u32,
+    pub _pad1: f32,
+    pub texture_uv_origin: [f32; 2],
+    pub texture_uv_size: [f32; 2],
+    pub _pad2: [f32; 2],
+}
+
 pub struct Shapes {
     pub(crate) boxes: GpuVec<BoxGpu>,
     pub(crate) circles: GpuVec<CircleGpu>,
     pub(crate) segments: GpuVec<SegmentGpu>,
     pub(crate) grids: GpuVec<GridGpu>,
     pub(crate) triangles: GpuVec<TriangleGpu>,
+    pub(crate) hexagons: GpuVec<HexagonGpu>,
 }
 
 impl Shapes {
@@ -106,6 +127,7 @@ impl Shapes {
         let segments = GpuVec::new(device, 64, "keru_draw segments");
         let grids = GpuVec::new(device, 64, "keru_draw grids");
         let triangles = GpuVec::new(device, 64, "keru_draw triangles");
+        let hexagons = GpuVec::new(device, 64, "keru_draw hexagons");
 
         Self {
             boxes,
@@ -113,6 +135,7 @@ impl Shapes {
             segments,
             grids,
             triangles,
+            hexagons,
         }
     }
 
@@ -122,6 +145,7 @@ impl Shapes {
         self.segments.clear();
         self.grids.clear();
         self.triangles.clear();
+        self.hexagons.clear();
     }
 
     pub fn load_to_gpu(&mut self, device: &wgpu::Device, queue: &wgpu::Queue) -> bool {
@@ -130,8 +154,9 @@ impl Shapes {
         let segments_changed = self.segments.load_to_gpu(device, queue);
         let grids_changed = self.grids.load_to_gpu(device, queue);
         let triangles_changed = self.triangles.load_to_gpu(device, queue);
+        let hexagons_changed = self.hexagons.load_to_gpu(device, queue);
 
-        boxes_changed || circles_changed || segments_changed || grids_changed || triangles_changed
+        boxes_changed || circles_changed || segments_changed || grids_changed || triangles_changed || hexagons_changed
     }
 
     pub fn bind_group_layout_entries() -> Vec<wgpu::BindGroupLayoutEntry> {
@@ -141,6 +166,7 @@ impl Shapes {
             GpuVec::<SegmentGpu>::bind_group_layout_entry(2),
             GpuVec::<GridGpu>::bind_group_layout_entry(3),
             GpuVec::<TriangleGpu>::bind_group_layout_entry(4),
+            GpuVec::<HexagonGpu>::bind_group_layout_entry(5),
         ]
     }
 }
