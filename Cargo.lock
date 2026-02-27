@@ -1189,7 +1189,6 @@ dependencies = [
  "image",
  "pollster",
  "resvg",
- "slotmap",
  "textslabs",
  "tiny-skia",
  "usvg",
