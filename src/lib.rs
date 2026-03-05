@@ -182,6 +182,7 @@ pub struct CircleRing {
     pub y_clip: [f32; 2],
     pub texture: Option<LoadedImage>,
     pub dash_length: Option<f32>,
+    pub dash_offset: f32,
 }
 
 /// Parameters for drawing an arc
@@ -197,6 +198,7 @@ pub struct CircleArc {
     pub y_clip: [f32; 2],
     pub texture: Option<LoadedImage>,
     pub dash_length: Option<f32>,
+    pub dash_offset: f32,
 }
 
 /// Parameters for drawing a pie slice
@@ -222,6 +224,7 @@ pub struct Segment {
     pub x_clip: [f32; 2],
     pub y_clip: [f32; 2],
     pub dash_length: Option<f32>,
+    pub dash_offset: f32,
     pub texture: Option<LoadedImage>,
 }
 
@@ -714,7 +717,7 @@ impl Renderer {
             texture_uv_origin,
             texture_uv_size,
             dash_length: 0.0,
-            pad: 0.0,
+            dash_offset: 0.0,
         });
         self.instances.push(Instance {
             p_type: primitive::CIRCLE,
@@ -744,7 +747,7 @@ impl Renderer {
             texture_uv_origin,
             texture_uv_size,
             dash_length: params.dash_length.unwrap_or(0.0),
-            pad: 0.0,
+            dash_offset: params.dash_offset,
         });
         self.instances.push(Instance {
             p_type: primitive::CIRCLE,
@@ -774,7 +777,7 @@ impl Renderer {
             texture_uv_origin,
             texture_uv_size,
             dash_length: params.dash_length.unwrap_or(0.0),
-            pad: 0.0,
+            dash_offset: params.dash_offset,
         });
         self.instances.push(Instance {
             p_type: primitive::CIRCLE,
@@ -804,7 +807,7 @@ impl Renderer {
             texture_uv_origin,
             texture_uv_size,
             dash_length: 0.0,
-            pad: 0.0,
+            dash_offset: 0.0,
         });
         self.instances.push(Instance {
             p_type: primitive::CIRCLE,
@@ -832,7 +835,7 @@ impl Renderer {
             y_clip: params.y_clip,
             color_start,
             color_end,
-            thickness_dash: [params.thickness, params.dash_length.unwrap_or(0.0), 1.0, 1.0],
+            thickness_dash: [params.thickness, params.dash_length.unwrap_or(0.0), params.dash_offset, 0.0],
             gradient_type,
             texture_page,
             texture_uv_origin,
@@ -940,6 +943,7 @@ impl Renderer {
         let [w, h] = params.size;
         let r = params.corner_radius;
         let fill = ColorFill::Color(params.color);
+        let mut offset = 0.0f32;
 
         if r < 0.001 {
             // No rounded corners - just 4 segments
@@ -952,8 +956,10 @@ impl Renderer {
                 x_clip: params.x_clip,
                 y_clip: params.y_clip,
                 dash_length: Some(params.dash_length),
+                dash_offset: offset,
                 texture: None,
             });
+            offset += w;
             // Right edge
             self.draw_segment(Segment {
                 start: [x + w, y],
@@ -963,8 +969,10 @@ impl Renderer {
                 x_clip: params.x_clip,
                 y_clip: params.y_clip,
                 dash_length: Some(params.dash_length),
+                dash_offset: offset,
                 texture: None,
             });
+            offset += h;
             // Bottom edge
             self.draw_segment(Segment {
                 start: [x + w, y + h],
@@ -974,8 +982,10 @@ impl Renderer {
                 x_clip: params.x_clip,
                 y_clip: params.y_clip,
                 dash_length: Some(params.dash_length),
+                dash_offset: offset,
                 texture: None,
             });
+            offset += w;
             // Left edge
             self.draw_segment(Segment {
                 start: [x, y + h],
@@ -985,13 +995,16 @@ impl Renderer {
                 x_clip: params.x_clip,
                 y_clip: params.y_clip,
                 dash_length: Some(params.dash_length),
+                dash_offset: offset,
                 texture: None,
             });
         } else {
             // Rounded corners - 4 segments + 4 quarter arcs
             let pi = std::f32::consts::PI;
+            let quarter_arc = r * pi * 0.5; // length of quarter circle arc
 
             // Top edge (between top-left and top-right corners)
+            let top_len = w - 2.0 * r;
             self.draw_segment(Segment {
                 start: [x + r, y],
                 end: [x + w - r, y],
@@ -1000,8 +1013,10 @@ impl Renderer {
                 x_clip: params.x_clip,
                 y_clip: params.y_clip,
                 dash_length: Some(params.dash_length),
+                dash_offset: offset,
                 texture: None,
             });
+            offset += top_len;
             // Top-right corner arc
             self.draw_arc(CircleArc {
                 center: [x + w - r, y + r],
@@ -1014,8 +1029,11 @@ impl Renderer {
                 y_clip: params.y_clip,
                 texture: None,
                 dash_length: Some(params.dash_length),
+                dash_offset: offset,
             });
+            offset += quarter_arc;
             // Right edge
+            let right_len = h - 2.0 * r;
             self.draw_segment(Segment {
                 start: [x + w, y + r],
                 end: [x + w, y + h - r],
@@ -1024,8 +1042,10 @@ impl Renderer {
                 x_clip: params.x_clip,
                 y_clip: params.y_clip,
                 dash_length: Some(params.dash_length),
+                dash_offset: offset,
                 texture: None,
             });
+            offset += right_len;
             // Bottom-right corner arc
             self.draw_arc(CircleArc {
                 center: [x + w - r, y + h - r],
@@ -1038,7 +1058,9 @@ impl Renderer {
                 y_clip: params.y_clip,
                 texture: None,
                 dash_length: Some(params.dash_length),
+                dash_offset: offset,
             });
+            offset += quarter_arc;
             // Bottom edge
             self.draw_segment(Segment {
                 start: [x + w - r, y + h],
@@ -1048,8 +1070,10 @@ impl Renderer {
                 x_clip: params.x_clip,
                 y_clip: params.y_clip,
                 dash_length: Some(params.dash_length),
+                dash_offset: offset,
                 texture: None,
             });
+            offset += top_len;
             // Bottom-left corner arc
             self.draw_arc(CircleArc {
                 center: [x + r, y + h - r],
@@ -1062,7 +1086,9 @@ impl Renderer {
                 y_clip: params.y_clip,
                 texture: None,
                 dash_length: Some(params.dash_length),
+                dash_offset: offset,
             });
+            offset += quarter_arc;
             // Left edge
             self.draw_segment(Segment {
                 start: [x, y + h - r],
@@ -1072,8 +1098,10 @@ impl Renderer {
                 x_clip: params.x_clip,
                 y_clip: params.y_clip,
                 dash_length: Some(params.dash_length),
+                dash_offset: offset,
                 texture: None,
             });
+            offset += right_len;
             // Top-left corner arc
             self.draw_arc(CircleArc {
                 center: [x + r, y + r],
@@ -1086,6 +1114,7 @@ impl Renderer {
                 y_clip: params.y_clip,
                 texture: None,
                 dash_length: Some(params.dash_length),
+                dash_offset: offset,
             });
         }
     }
@@ -1105,6 +1134,10 @@ impl Renderer {
             ];
         }
 
+        // Edge length of regular hexagon = size (distance from center to vertex)
+        let edge_len = params.size;
+        let mut offset = 0.0f32;
+
         // Draw 6 segments connecting the vertices
         for i in 0..6 {
             let next = (i + 1) % 6;
@@ -1116,8 +1149,10 @@ impl Renderer {
                 x_clip: params.x_clip,
                 y_clip: params.y_clip,
                 dash_length: Some(params.dash_length),
+                dash_offset: offset,
                 texture: None,
             });
+            offset += edge_len;
         }
     }
 

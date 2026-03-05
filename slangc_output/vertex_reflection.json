@@ -407,7 +407,7 @@
                                             "binding": {"kind": "uniform", "offset": 104, "size": 4, "elementStride": 0}
                                         },
                                         {
-                                            "name": "pad0",
+                                            "name": "dash_offset",
                                             "type": {
                                                 "kind": "scalar",
                                                 "scalarType": "float32"
@@ -1499,7 +1499,7 @@
                                                 "binding": {"kind": "uniform", "offset": 104, "size": 4, "elementStride": 0}
                                             },
                                             {
-                                                "name": "pad0",
+                                                "name": "dash_offset",
                                                 "type": {
                                                     "kind": "scalar",
                                                     "scalarType": "float32"

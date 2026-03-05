@@ -36,7 +36,7 @@ struct CircleGpu {
     float2 texture_uv_origin; // pixel coords in atlas (top-left corner)
     float2 texture_uv_size;   // pixel dimensions in atlas
     float dash_length;        // 0 = no dashing, >0 = dash length in pixels
-    float pad0;
+    float dash_offset;        // offset for dash pattern alignment
 }
 
 struct SegmentGpu {
@@ -406,13 +406,12 @@ float4 circle_fragment(uint primitiveIndex, float2 uv, float2 screen_pos, bool s
         if (angle < 0.0) angle += 6.28318530718;
         angle = angle - circle.angles.x;
 
-        // Convert angle to arc length position
-        float arc_pos = angle * mid_radius;
+        // Convert angle to arc length position, apply dash offset
+        float arc_pos = angle * mid_radius + circle.dash_offset;
 
         // Apply dashing pattern (similar to segment)
         float dash_period = circle.dash_length * 2.0;
         float pos_in_period = fmod(arc_pos, dash_period);
-        // Handle negative angles
         if (pos_in_period < 0.0) pos_in_period += dash_period;
 
         float dist_to_start = pos_in_period;
@@ -533,15 +532,18 @@ float4 segment_fragment(uint primitiveIndex, float2 uv, float2 screen_pos, bool 
     // Handle dashed lines
     float dash_length = seg.thickness_dash[1];
     if (dash_length > 0.0001) {
+        float dash_offset = seg.thickness_dash[2];
         float2 seg_vec = seg.end - seg.start;
         float seg_len = length(seg_vec);
         float t = 0.0;
         if (seg_len > 0.001) {
             t = dot(p - seg.start, seg_vec) / seg_len;
         }
+        t += dash_offset;
 
         float dash_period = dash_length * 2.0;
         float pos_in_period = fmod(t, dash_period);
+        if (pos_in_period < 0.0) pos_in_period += dash_period;
 
         float dist_to_start = pos_in_period;
         float dist_to_end = dash_length - pos_in_period;

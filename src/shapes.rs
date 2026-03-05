@@ -36,7 +36,7 @@ pub struct CircleGpu {
     pub texture_uv_origin: [f32; 2], // pixel coords in atlas (top-left corner)
     pub texture_uv_size: [f32; 2],   // pixel dimensions in atlas
     pub dash_length: f32,            // 0 = no dashing, >0 = dash length in pixels
-    pub pad: f32,
+    pub dash_offset: f32,            // offset for dash pattern alignment
 }
 
 #[repr(C)]
@@ -48,7 +48,7 @@ pub struct SegmentGpu {
     pub y_clip: [f32; 2],
     pub color_start: [f32; 4],
     pub color_end: [f32; 4],
-    pub thickness_dash: [f32; 4], // [thickness, dash_length, unused, unused]
+    pub thickness_dash: [f32; 4], // [thickness, dash_length, dash_offset, unused]
     pub gradient_type: u32, // 0=solid, 1=linear along segment
     pub texture_page: u32,           // atlas layer, u32::MAX = no texture
     pub texture_uv_origin: [f32; 2], // pixel coords in atlas (top-left corner)

@@ -284,6 +284,7 @@ impl State {
             y_clip: clip_y,
             texture: None,
             dash_length: None,
+            dash_offset: 0.0,
         });
 
         self.renderer.draw_ring(CircleRing {
@@ -295,6 +296,7 @@ impl State {
             y_clip: clip_y,
             texture: None,
             dash_length: None,
+            dash_offset: 0.0,
         });
 
         self.renderer.draw_ring(CircleRing {
@@ -306,6 +308,7 @@ impl State {
             y_clip: clip_y,
             texture: None,
             dash_length: Some(15.0),  // dashed ring example
+            dash_offset: 0.0,
         });
 
         self.renderer.draw_arc(CircleArc {
@@ -319,6 +322,7 @@ impl State {
             y_clip: clip_y,
             texture: None,
             dash_length: None,
+            dash_offset: 0.0,
         });
 
         self.renderer.draw_arc(CircleArc {
@@ -332,6 +336,7 @@ impl State {
             y_clip: clip_y,
             texture: None,
             dash_length: None,
+            dash_offset: 0.0,
         });
 
         // dashed arc
@@ -346,6 +351,7 @@ impl State {
             y_clip: clip_y,
             texture: None,
             dash_length: Some(10.0),
+            dash_offset: 0.0,
         });
 
         self.renderer.draw_arc(CircleArc {
@@ -359,6 +365,7 @@ impl State {
             y_clip: clip_y,
             texture: None,
             dash_length: None,
+            dash_offset: 0.0,
         });
 
         self.renderer.draw_pie(CirclePie {
@@ -413,6 +420,7 @@ impl State {
             x_clip: clip_x,
             y_clip: clip_y,
             dash_length: None,
+            dash_offset: 0.0,
             texture: None,
         });
 
@@ -424,6 +432,7 @@ impl State {
             x_clip: clip_x,
             y_clip: clip_y,
             dash_length: Some(10.0),
+            dash_offset: 0.0,
             texture: None,
         });
 
@@ -435,6 +444,7 @@ impl State {
             x_clip: clip_x,
             y_clip: clip_y,
             dash_length: Some(15.0),
+            dash_offset: 0.0,
             texture: None,
         });
 
@@ -446,6 +456,7 @@ impl State {
             x_clip: clip_x,
             y_clip: clip_y,
             dash_length: Some(5.0),
+            dash_offset: 0.0,
             texture: None,
         });
 
@@ -458,6 +469,7 @@ impl State {
             x_clip: clip_x,
             y_clip: clip_y,
             dash_length: Some(8.0),
+            dash_offset: 0.0,
             texture: None,
         });
         self.renderer.draw_segment(Segment {
@@ -468,6 +480,7 @@ impl State {
             x_clip: clip_x,
             y_clip: clip_y,
             dash_length: None,
+            dash_offset: 0.0,
             texture: None,
         });
 
