@@ -35,8 +35,8 @@ struct CircleGpu {
     uint texture_page;        // atlas layer, 0xFFFFFFFF = no texture
     float2 texture_uv_origin; // pixel coords in atlas (top-left corner)
     float2 texture_uv_size;   // pixel dimensions in atlas
+    float dash_length;        // 0 = no dashing, >0 = dash length in pixels
     float pad0;
-    float pad1;
 }
 
 struct SegmentGpu {
@@ -394,6 +394,34 @@ float4 circle_fragment(uint primitiveIndex, float2 uv, float2 screen_pos, bool s
     // Scale antialiasing width based on transform zoom
     float aa_width = 0.5 / max(transform_scale, 0.001);
     float alpha = 1.0 - linearstep(-aa_width, aa_width, dist);
+
+    // dashed circle
+    if (circle.dash_length > 0.0001) {
+        // Use the middle radius for arc length calculation
+        float mid_radius = (circle.radii.x + circle.radii.y) * 0.5;
+        if (mid_radius < 0.001) mid_radius = circle.radii.y; // for filled circles, use outer radius
+
+        // Get angle in [0, 2π], then offset by start angle so dashes begin at arc start
+        float angle = atan2(p.y, p.x);
+        if (angle < 0.0) angle += 6.28318530718;
+        angle = angle - circle.angles.x;
+
+        // Convert angle to arc length position
+        float arc_pos = angle * mid_radius;
+
+        // Apply dashing pattern (similar to segment)
+        float dash_period = circle.dash_length * 2.0;
+        float pos_in_period = fmod(arc_pos, dash_period);
+        // Handle negative angles
+        if (pos_in_period < 0.0) pos_in_period += dash_period;
+
+        float dist_to_start = pos_in_period;
+        float dist_to_end = circle.dash_length - pos_in_period;
+        float dist_to_nearest_edge = min(dist_to_start, dist_to_end);
+
+        float dash_alpha = linearstep(-aa_width, aa_width, dist_to_nearest_edge);
+        alpha *= dash_alpha;
+    }
 
     if (alpha < 0.001) {
         discard;

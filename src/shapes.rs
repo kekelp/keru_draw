@@ -35,7 +35,8 @@ pub struct CircleGpu {
     pub texture_page: u32,           // atlas layer, u32::MAX = no texture
     pub texture_uv_origin: [f32; 2], // pixel coords in atlas (top-left corner)
     pub texture_uv_size: [f32; 2],   // pixel dimensions in atlas
-    pub pad: [f32; 2],               // padding to 112 bytes (16-byte aligned)
+    pub dash_length: f32,            // 0 = no dashing, >0 = dash length in pixels
+    pub pad: f32,
 }
 
 #[repr(C)]

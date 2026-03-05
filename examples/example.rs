@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, f32::consts::PI};
 
 use keru_draw::*;
 use textslabs::{ColorBrush, TextStyle2, Transform2D, parley::{FontFamily, FontStack}};
@@ -107,7 +107,7 @@ impl State {
         renderer.text.get_text_box_mut(&text_box1).set_style(&style);
         renderer.text.get_text_box_mut(&text_box1).set_transform(Transform2D {
             translation: (40.0, 630.0),
-            rotation: std::f32::consts::PI * -0.1,
+            rotation: PI * -0.1,
             scale: 1.2,
         });
 
@@ -120,7 +120,7 @@ impl State {
         renderer.text.get_text_box_mut(&text_box2).set_style(&style);
         renderer.text.get_text_box_mut(&text_box2).set_transform(Transform2D {
             translation: (400.0, 580.0),
-            rotation: std::f32::consts::PI * 0.5,
+            rotation: PI * 0.5,
             scale: 1.0,
         });
 
@@ -188,7 +188,7 @@ impl State {
             corner_radius: 5.0,
             rounded_corners: RoundedCorners::ALL,
             border_thickness: 0.0,
-            fill: ColorFill::Gradient(Gradient::linear([1.0, 0.5, 0.3, 1.0], [0.3, 1.0, 0.5, 1.0], std::f32::consts::PI * 0.25)),
+            fill: ColorFill::Gradient(Gradient::linear([1.0, 0.5, 0.3, 1.0], [0.3, 1.0, 0.5, 1.0], PI * 0.25)),
             x_clip: clip_x,
             y_clip: clip_y,
             texture: None,
@@ -260,7 +260,7 @@ impl State {
         self.renderer.draw_circle(Circle {
             center: [140.0, 150.0],
             radius: 30.0,
-            fill: ColorFill::Gradient(Gradient::linear([0.3, 0.7, 1.0, 1.0], [1.0, 0.3, 0.7, 1.0], std::f32::consts::PI * 0.5)),
+            fill: ColorFill::Gradient(Gradient::linear([0.3, 0.7, 1.0, 1.0], [1.0, 0.3, 0.7, 1.0], PI * 0.5)),
             x_clip: clip_x,
             y_clip: clip_y,
             texture: None,
@@ -275,7 +275,7 @@ impl State {
             texture: None,
         });
 
-        self.renderer.draw_ring(Ring {
+        self.renderer.draw_ring(CircleRing {
             center: [360.0, 150.0],
             inner_radius: 35.0,
             outer_radius: 40.0,
@@ -283,9 +283,10 @@ impl State {
             x_clip: clip_x,
             y_clip: clip_y,
             texture: None,
+            dash_length: None,
         });
 
-        self.renderer.draw_ring(Ring {
+        self.renderer.draw_ring(CircleRing {
             center: [460.0, 150.0],
             inner_radius: 30.0,
             outer_radius: 45.0,
@@ -293,9 +294,10 @@ impl State {
             x_clip: clip_x,
             y_clip: clip_y,
             texture: None,
+            dash_length: None,
         });
 
-        self.renderer.draw_ring(Ring {
+        self.renderer.draw_ring(CircleRing {
             center: [560.0, 150.0],
             inner_radius: 25.0,
             outer_radius: 50.0,
@@ -303,61 +305,67 @@ impl State {
             x_clip: clip_x,
             y_clip: clip_y,
             texture: None,
+            dash_length: Some(15.0),  // dashed ring example
         });
 
         self.renderer.draw_arc(CircleArc {
             center: [60.0, 280.0],
             radius: 40.0,
             start_angle: 0.0,
-            end_angle: std::f32::consts::PI * 0.5,
+            end_angle: PI * 0.5,
             thickness: 8.0,
             fill: ColorFill::Color([1.0, 0.3, 1.0, 1.0]),
             x_clip: clip_x,
             y_clip: clip_y,
             texture: None,
+            dash_length: None,
         });
 
         self.renderer.draw_arc(CircleArc {
             center: [170.0, 280.0],
             radius: 40.0,
             start_angle: 0.0,
-            end_angle: std::f32::consts::PI,
+            end_angle: PI,
             thickness: 8.0,
             fill: ColorFill::Color([0.8, 0.3, 1.0, 1.0]),
             x_clip: clip_x,
             y_clip: clip_y,
             texture: None,
+            dash_length: None,
         });
 
+        // dashed arc
         self.renderer.draw_arc(CircleArc {
             center: [280.0, 280.0],
             radius: 40.0,
             start_angle: 0.0,
-            end_angle: std::f32::consts::PI * 1.5,
+            end_angle: PI * 1.5,
             thickness: 8.0,
             fill: ColorFill::Color([0.6, 0.3, 1.0, 1.0]),
             x_clip: clip_x,
             y_clip: clip_y,
             texture: None,
+            dash_length: Some(10.0),
         });
 
         self.renderer.draw_arc(CircleArc {
             center: [390.0, 280.0],
             radius: 40.0,
-            start_angle: std::f32::consts::PI * 0.25,
-            end_angle: std::f32::consts::PI * 1.25,
+            start_angle: PI * 0.25,
+            end_angle: PI * 1.25,
             thickness: 8.0,
             fill: ColorFill::Color([0.4, 0.3, 1.0, 1.0]),
             x_clip: clip_x,
             y_clip: clip_y,
             texture: None,
+            dash_length: None,
         });
 
         self.renderer.draw_pie(CirclePie {
             center: [60.0, 400.0],
             radius: 45.0,
             start_angle: 0.0,
-            end_angle: std::f32::consts::PI * 0.25,
+            end_angle: PI * 0.25,
             fill: ColorFill::Color([0.3, 1.0, 1.0, 1.0]),
             x_clip: clip_x,
             y_clip: clip_y,
@@ -368,7 +376,7 @@ impl State {
             center: [170.0, 400.0],
             radius: 45.0,
             start_angle: 0.0,
-            end_angle: std::f32::consts::PI * 0.5,
+            end_angle: PI * 0.5,
             fill: ColorFill::Color([0.3, 1.0, 0.8, 1.0]),
             x_clip: clip_x,
             y_clip: clip_y,
@@ -379,7 +387,7 @@ impl State {
             center: [280.0, 400.0],
             radius: 45.0,
             start_angle: 0.0,
-            end_angle: std::f32::consts::PI,
+            end_angle: PI,
             fill: ColorFill::Color([0.3, 1.0, 0.6, 1.0]),
             x_clip: clip_x,
             y_clip: clip_y,
@@ -389,8 +397,8 @@ impl State {
         self.renderer.draw_pie(CirclePie {
             center: [390.0, 400.0],
             radius: 45.0,
-            start_angle: std::f32::consts::PI * 0.5,
-            end_angle: std::f32::consts::PI * 2.0,
+            start_angle: PI * 0.5,
+            end_angle: PI * 2.0,
             fill: ColorFill::Color([0.3, 1.0, 0.4, 1.0]),
             x_clip: clip_x,
             y_clip: clip_y,
@@ -507,8 +515,8 @@ impl State {
         self.renderer.draw_hexagon(Hexagon {
             center: [620.0, 400.0 + 100.0],
             size: 40.0,
-            rotation: std::f32::consts::PI / 2.0,
-            fill: ColorFill::Gradient(Gradient::linear([1.0, 0.3, 0.5, 1.0], [0.5, 0.3, 1.0, 1.0], std::f32::consts::PI * 0.25)),
+            rotation: PI / 2.0,
+            fill: ColorFill::Gradient(Gradient::linear([1.0, 0.3, 0.5, 1.0], [0.5, 0.3, 1.0, 1.0], PI * 0.25)),
             stroke_thickness: 0.0,
             x_clip: clip_x,
             y_clip: clip_y,
@@ -531,7 +539,7 @@ impl State {
         self.renderer.draw_hexagon(Hexagon {
             center: [620.0, 500.0 + 100.0],
             size: 40.0,
-            rotation: std::f32::consts::PI / 6.0, // 30 degrees for pointy-top
+            rotation: PI / 6.0, // 30 degrees for pointy-top
             fill: ColorFill::Color([0.5, 0.9, 0.3, 1.0]),
             stroke_thickness: 0.0,
             x_clip: clip_x,

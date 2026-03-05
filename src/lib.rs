@@ -173,7 +173,7 @@ pub struct Circle {
 
 /// Parameters for drawing a ring (hollow circle)
 #[derive(Debug, Clone)]
-pub struct Ring {
+pub struct CircleRing {
     pub center: [f32; 2],
     pub inner_radius: f32,
     pub outer_radius: f32,
@@ -181,6 +181,7 @@ pub struct Ring {
     pub x_clip: [f32; 2],
     pub y_clip: [f32; 2],
     pub texture: Option<LoadedImage>,
+    pub dash_length: Option<f32>,
 }
 
 /// Parameters for drawing an arc
@@ -195,6 +196,7 @@ pub struct CircleArc {
     pub x_clip: [f32; 2],
     pub y_clip: [f32; 2],
     pub texture: Option<LoadedImage>,
+    pub dash_length: Option<f32>,
 }
 
 /// Parameters for drawing a pie slice
@@ -685,7 +687,8 @@ impl Renderer {
             texture_page,
             texture_uv_origin,
             texture_uv_size,
-            pad: [0.0; 2],
+            dash_length: 0.0,
+            pad: 0.0,
         });
         self.instances.push(Instance {
             p_type: primitive::CIRCLE,
@@ -695,7 +698,7 @@ impl Renderer {
         });
     }
 
-    pub fn draw_ring(&mut self, params: Ring) {
+    pub fn draw_ring(&mut self, params: CircleRing) {
         let (gradient_direction, color_start, color_end, gradient_type) = fill_gpu(params.fill);
 
         let (texture_uv_origin, texture_uv_size, texture_page) = texture_gpu(params.texture);
@@ -714,7 +717,8 @@ impl Renderer {
             texture_page,
             texture_uv_origin,
             texture_uv_size,
-            pad: [0.0; 2],
+            dash_length: params.dash_length.unwrap_or(0.0),
+            pad: 0.0,
         });
         self.instances.push(Instance {
             p_type: primitive::CIRCLE,
@@ -743,7 +747,8 @@ impl Renderer {
             texture_page,
             texture_uv_origin,
             texture_uv_size,
-            pad: [0.0; 2],
+            dash_length: params.dash_length.unwrap_or(0.0),
+            pad: 0.0,
         });
         self.instances.push(Instance {
             p_type: primitive::CIRCLE,
@@ -772,7 +777,8 @@ impl Renderer {
             texture_page,
             texture_uv_origin,
             texture_uv_size,
-            pad: [0.0; 2],
+            dash_length: 0.0,
+            pad: 0.0,
         });
         self.instances.push(Instance {
             p_type: primitive::CIRCLE,
