@@ -559,6 +559,54 @@ impl State {
             texture: Some(self.texture_handle),
         });
 
+        // Dashed box outline (no rounded corners)
+        self.renderer.draw_dashed_box_outline(DashedBoxOutline {
+            top_left: [700.0, 100.0],
+            size: [80.0, 60.0],
+            corner_radius: 0.0,
+            thickness: 3.0,
+            color: [1.0, 0.5, 0.2, 1.0],
+            dash_length: 10.0,
+            x_clip: clip_x,
+            y_clip: clip_y,
+        });
+
+        // Dashed box outline (with rounded corners)
+        self.renderer.draw_dashed_box_outline(DashedBoxOutline {
+            top_left: [700.0, 180.0],
+            size: [80.0, 60.0],
+            corner_radius: 15.0,
+            thickness: 3.0,
+            color: [0.2, 0.8, 1.0, 1.0],
+            dash_length: 8.0,
+            x_clip: clip_x,
+            y_clip: clip_y,
+        });
+
+        // Dashed hexagon outline
+        self.renderer.draw_dashed_hexagon_outline(DashedHexagonOutline {
+            center: [740.0, 320.0],
+            size: 40.0,
+            rotation: 0.0,
+            thickness: 3.0,
+            color: [0.8, 0.3, 1.0, 1.0],
+            dash_length: 12.0,
+            x_clip: clip_x,
+            y_clip: clip_y,
+        });
+
+        // Dashed hexagon outline (rotated)
+        self.renderer.draw_dashed_hexagon_outline(DashedHexagonOutline {
+            center: [740.0, 420.0],
+            size: 40.0,
+            rotation: PI / 6.0,
+            thickness: 3.0,
+            color: [0.3, 1.0, 0.5, 1.0],
+            dash_length: 8.0,
+            x_clip: clip_x,
+            y_clip: clip_y,
+        });
+
         self.renderer.draw_text_box(&self.text_box3);
         
         self.renderer.draw_text_edit(&self.text_edit);

@@ -272,6 +272,32 @@ pub struct Hexagon {
     pub texture: Option<LoadedImage>,
 }
 
+/// Parameters for drawing a dashed box outline (composed of segments and corner arcs)
+#[derive(Debug, Clone)]
+pub struct DashedBoxOutline {
+    pub top_left: [f32; 2],
+    pub size: [f32; 2],
+    pub corner_radius: f32,
+    pub thickness: f32,
+    pub color: [f32; 4],
+    pub dash_length: f32,
+    pub x_clip: [f32; 2],
+    pub y_clip: [f32; 2],
+}
+
+/// Parameters for drawing a dashed hexagon outline (composed of segments)
+#[derive(Debug, Clone)]
+pub struct DashedHexagonOutline {
+    pub center: [f32; 2],
+    pub size: f32,              // distance from center to vertex
+    pub rotation: f32,          // rotation in radians (0 = flat-top)
+    pub thickness: f32,
+    pub color: [f32; 4],
+    pub dash_length: f32,
+    pub x_clip: [f32; 2],
+    pub y_clip: [f32; 2],
+}
+
 fn fill_gpu(fill: ColorFill) -> ([f32; 2], [f32; 4], [f32; 4], u32) {
     match fill {
         ColorFill::Color(color) => ([1.0, 0.0], color, color, 0),
@@ -906,6 +932,193 @@ impl Renderer {
             transform_index: *self.transform_stack.last().unwrap() as u32,
             _padding: 0,
         });
+    }
+
+    /// Draw a dashed box outline using segments and corner arcs.
+    pub fn draw_dashed_box_outline(&mut self, params: DashedBoxOutline) {
+        let [x, y] = params.top_left;
+        let [w, h] = params.size;
+        let r = params.corner_radius;
+        let fill = ColorFill::Color(params.color);
+
+        if r < 0.001 {
+            // No rounded corners - just 4 segments
+            // Top edge
+            self.draw_segment(Segment {
+                start: [x, y],
+                end: [x + w, y],
+                thickness: params.thickness,
+                fill,
+                x_clip: params.x_clip,
+                y_clip: params.y_clip,
+                dash_length: Some(params.dash_length),
+                texture: None,
+            });
+            // Right edge
+            self.draw_segment(Segment {
+                start: [x + w, y],
+                end: [x + w, y + h],
+                thickness: params.thickness,
+                fill,
+                x_clip: params.x_clip,
+                y_clip: params.y_clip,
+                dash_length: Some(params.dash_length),
+                texture: None,
+            });
+            // Bottom edge
+            self.draw_segment(Segment {
+                start: [x + w, y + h],
+                end: [x, y + h],
+                thickness: params.thickness,
+                fill,
+                x_clip: params.x_clip,
+                y_clip: params.y_clip,
+                dash_length: Some(params.dash_length),
+                texture: None,
+            });
+            // Left edge
+            self.draw_segment(Segment {
+                start: [x, y + h],
+                end: [x, y],
+                thickness: params.thickness,
+                fill,
+                x_clip: params.x_clip,
+                y_clip: params.y_clip,
+                dash_length: Some(params.dash_length),
+                texture: None,
+            });
+        } else {
+            // Rounded corners - 4 segments + 4 quarter arcs
+            let pi = std::f32::consts::PI;
+
+            // Top edge (between top-left and top-right corners)
+            self.draw_segment(Segment {
+                start: [x + r, y],
+                end: [x + w - r, y],
+                thickness: params.thickness,
+                fill,
+                x_clip: params.x_clip,
+                y_clip: params.y_clip,
+                dash_length: Some(params.dash_length),
+                texture: None,
+            });
+            // Top-right corner arc
+            self.draw_arc(CircleArc {
+                center: [x + w - r, y + r],
+                radius: r,
+                start_angle: -pi * 0.5,
+                end_angle: 0.0,
+                thickness: params.thickness,
+                fill,
+                x_clip: params.x_clip,
+                y_clip: params.y_clip,
+                texture: None,
+                dash_length: Some(params.dash_length),
+            });
+            // Right edge
+            self.draw_segment(Segment {
+                start: [x + w, y + r],
+                end: [x + w, y + h - r],
+                thickness: params.thickness,
+                fill,
+                x_clip: params.x_clip,
+                y_clip: params.y_clip,
+                dash_length: Some(params.dash_length),
+                texture: None,
+            });
+            // Bottom-right corner arc
+            self.draw_arc(CircleArc {
+                center: [x + w - r, y + h - r],
+                radius: r,
+                start_angle: 0.0,
+                end_angle: pi * 0.5,
+                thickness: params.thickness,
+                fill,
+                x_clip: params.x_clip,
+                y_clip: params.y_clip,
+                texture: None,
+                dash_length: Some(params.dash_length),
+            });
+            // Bottom edge
+            self.draw_segment(Segment {
+                start: [x + w - r, y + h],
+                end: [x + r, y + h],
+                thickness: params.thickness,
+                fill,
+                x_clip: params.x_clip,
+                y_clip: params.y_clip,
+                dash_length: Some(params.dash_length),
+                texture: None,
+            });
+            // Bottom-left corner arc
+            self.draw_arc(CircleArc {
+                center: [x + r, y + h - r],
+                radius: r,
+                start_angle: pi * 0.5,
+                end_angle: pi,
+                thickness: params.thickness,
+                fill,
+                x_clip: params.x_clip,
+                y_clip: params.y_clip,
+                texture: None,
+                dash_length: Some(params.dash_length),
+            });
+            // Left edge
+            self.draw_segment(Segment {
+                start: [x, y + h - r],
+                end: [x, y + r],
+                thickness: params.thickness,
+                fill,
+                x_clip: params.x_clip,
+                y_clip: params.y_clip,
+                dash_length: Some(params.dash_length),
+                texture: None,
+            });
+            // Top-left corner arc
+            self.draw_arc(CircleArc {
+                center: [x + r, y + r],
+                radius: r,
+                start_angle: pi,
+                end_angle: pi * 1.5,
+                thickness: params.thickness,
+                fill,
+                x_clip: params.x_clip,
+                y_clip: params.y_clip,
+                texture: None,
+                dash_length: Some(params.dash_length),
+            });
+        }
+    }
+
+    /// Draw a dashed hexagon outline using 6 segments.
+    pub fn draw_dashed_hexagon_outline(&mut self, params: DashedHexagonOutline) {
+        let fill = ColorFill::Color(params.color);
+        let pi = std::f32::consts::PI;
+
+        // Calculate the 6 vertices of the hexagon
+        let mut vertices = [[0.0f32; 2]; 6];
+        for i in 0..6 {
+            let angle = params.rotation + (i as f32) * pi / 3.0;
+            vertices[i] = [
+                params.center[0] + params.size * angle.cos(),
+                params.center[1] + params.size * angle.sin(),
+            ];
+        }
+
+        // Draw 6 segments connecting the vertices
+        for i in 0..6 {
+            let next = (i + 1) % 6;
+            self.draw_segment(Segment {
+                start: vertices[i],
+                end: vertices[next],
+                thickness: params.thickness,
+                fill,
+                x_clip: params.x_clip,
+                y_clip: params.y_clip,
+                dash_length: Some(params.dash_length),
+                texture: None,
+            });
+        }
     }
 
     /// Draw a text box.
