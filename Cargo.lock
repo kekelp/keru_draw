@@ -820,6 +820,7 @@ dependencies = [
 [[package]]
 name = "fontique"
 version = "0.7.0"
+source = "git+https://github.com/kekelp/parley#10fedab4bfd4254a227a1a0f9602b6218e1fe447"
 dependencies = [
  "bytemuck",
  "hashbrown 0.16.1",
@@ -1908,6 +1909,7 @@ dependencies = [
 [[package]]
 name = "parley"
 version = "0.7.0"
+source = "git+https://github.com/kekelp/parley#10fedab4bfd4254a227a1a0f9602b6218e1fe447"
 dependencies = [
  "fontique",
  "harfrust",

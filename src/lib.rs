@@ -4,6 +4,7 @@ pub mod gpu_vec;
 pub mod images;
 
 use gpu_vec::GpuVec;
+use std::hash::{Hash, Hasher};
 use std::time::Duration;
 
 #[derive(Debug, Clone, Copy)]
@@ -51,22 +52,49 @@ bitflags::bitflags! {
 }
 
 /// Gradient type for shapes
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum GradientType {
     Linear = 1,
     Radial = 2,
 }
 
 /// Fill style for shapes - solid color or gradient
-#[derive(Debug, Clone, Copy)]
-pub enum Fill {
-    Solid([f32; 4]),
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum ColorFill {
+    Color([f32; 4]),
     Gradient {
         color_start: [f32; 4],
         color_end: [f32; 4],
         gradient_type: GradientType,
         angle: f32,
     },
+}
+
+impl Hash for ColorFill {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        match self {
+            ColorFill::Color(color) => {
+                0u8.hash(state);
+                color[0].to_bits().hash(state);
+                color[1].to_bits().hash(state);
+                color[2].to_bits().hash(state);
+                color[3].to_bits().hash(state);
+            },
+            ColorFill::Gradient { color_start, color_end, gradient_type, angle } => {
+                1u8.hash(state);
+                color_start[0].to_bits().hash(state);
+                color_start[1].to_bits().hash(state);
+                color_start[2].to_bits().hash(state);
+                color_start[3].to_bits().hash(state);
+                color_end[0].to_bits().hash(state);
+                color_end[1].to_bits().hash(state);
+                color_end[2].to_bits().hash(state);
+                color_end[3].to_bits().hash(state);
+                gradient_type.hash(state);
+                angle.to_bits().hash(state);
+            },
+        }
+    }
 }
 
 /// Parameters for drawing a box/rectangle
@@ -77,7 +105,7 @@ pub struct Box {
     pub corner_radius: f32,
     pub rounded_corners: RoundedCorners,
     pub border_thickness: f32,
-    pub fill: Fill,
+    pub fill: ColorFill,
     pub x_clip: [f32; 2],
     pub y_clip: [f32; 2],
     pub texture: Option<LoadedImage>,
@@ -88,7 +116,7 @@ pub struct Box {
 pub struct Circle {
     pub center: [f32; 2],
     pub radius: f32,
-    pub fill: Fill,
+    pub fill: ColorFill,
     pub x_clip: [f32; 2],
     pub y_clip: [f32; 2],
     pub texture: Option<LoadedImage>,
@@ -100,7 +128,7 @@ pub struct Ring {
     pub center: [f32; 2],
     pub inner_radius: f32,
     pub outer_radius: f32,
-    pub fill: Fill,
+    pub fill: ColorFill,
     pub x_clip: [f32; 2],
     pub y_clip: [f32; 2],
     pub texture: Option<LoadedImage>,
@@ -114,7 +142,7 @@ pub struct CircleArc {
     pub start_angle: f32,
     pub end_angle: f32,
     pub thickness: f32,
-    pub fill: Fill,
+    pub fill: ColorFill,
     pub x_clip: [f32; 2],
     pub y_clip: [f32; 2],
     pub texture: Option<LoadedImage>,
@@ -127,7 +155,7 @@ pub struct CirclePie {
     pub radius: f32,
     pub start_angle: f32,
     pub end_angle: f32,
-    pub fill: Fill,
+    pub fill: ColorFill,
     pub x_clip: [f32; 2],
     pub y_clip: [f32; 2],
     pub texture: Option<LoadedImage>,
@@ -139,7 +167,7 @@ pub struct Segment {
     pub start: [f32; 2],
     pub end: [f32; 2],
     pub thickness: f32,
-    pub fill: Fill,
+    pub fill: ColorFill,
     pub x_clip: [f32; 2],
     pub y_clip: [f32; 2],
     pub dash_length: Option<f32>,
@@ -174,7 +202,7 @@ pub struct Triangle {
     pub p0: [f32; 2],
     pub p1: [f32; 2],
     pub p2: [f32; 2],
-    pub fill: Fill,
+    pub fill: ColorFill,
     pub x_clip: [f32; 2],
     pub y_clip: [f32; 2],
     pub texture: Option<LoadedImage>,
@@ -186,17 +214,17 @@ pub struct Hexagon {
     pub center: [f32; 2],
     pub size: f32,              // distance from center to vertex
     pub rotation: f32,          // rotation in radians (0 = flat-top)
-    pub fill: Fill,
+    pub fill: ColorFill,
     pub stroke_thickness: f32,  // 0 = filled, >0 = stroke only
     pub x_clip: [f32; 2],
     pub y_clip: [f32; 2],
     pub texture: Option<LoadedImage>,
 }
 
-fn fill_gpu(fill: Fill) -> ([f32; 2], [f32; 4], [f32; 4], u32) {
+fn fill_gpu(fill: ColorFill) -> ([f32; 2], [f32; 4], [f32; 4], u32) {
     match fill {
-        Fill::Solid(color) => ([1.0, 0.0], color, color, 0),
-        Fill::Gradient { color_start, color_end, gradient_type, angle } => {
+        ColorFill::Color(color) => ([1.0, 0.0], color, color, 0),
+        ColorFill::Gradient { color_start, color_end, gradient_type, angle } => {
             ([angle.cos(), angle.sin()], color_start, color_end, gradient_type as u32)
         }
     }
@@ -582,7 +610,7 @@ impl Renderer {
             corner_radius: 0.0,
             rounded_corners: RoundedCorners::NONE,
             border_thickness: 0.0,
-            fill: Fill::Solid([1.0, 1.0, 1.0, 1.0]),
+            fill: ColorFill::Color([1.0, 1.0, 1.0, 1.0]),
             x_clip,
             y_clip,
             texture: Some(image),
@@ -707,8 +735,8 @@ impl Renderer {
 
     pub fn draw_segment(&mut self, params: Segment) {
         let (color_start, color_end, gradient_type) = match params.fill {
-            Fill::Solid(color) => (color, color, 0),
-            Fill::Gradient { color_start, color_end, .. } => {
+            ColorFill::Color(color) => (color, color, 0),
+            ColorFill::Gradient { color_start, color_end, .. } => {
                 (color_start, color_end, 1)
             }
         };
