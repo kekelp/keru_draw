@@ -1,4 +1,5 @@
 use crate::gpu_vec::GpuVec;
+use crate::Color;
 
 #[repr(C)]
 #[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
@@ -10,8 +11,8 @@ pub struct BoxGpu {
     pub corner_radius: f32,
     pub border_thickness: f32,
     pub gradient_direction: [f32; 2],
-    pub color_start: [f32; 4],
-    pub color_end: [f32; 4],
+    pub color_start: Color,
+    pub color_end: Color,
     pub gradient_type: u32, // 0=solid, 1=linear
     pub rounded_corners: u32, // bitflags: 1=top-left, 2=top-right, 4=bottom-left, 8=bottom-right
     pub texture_uv_origin: [f32; 2], // pixel coords in atlas (top-left corner)
@@ -29,8 +30,8 @@ pub struct CircleGpu {
     pub x_clip: [f32; 2],
     pub y_clip: [f32; 2],
     pub gradient_direction: [f32; 2],
-    pub color_start: [f32; 4],
-    pub color_end: [f32; 4],
+    pub color_start: Color,
+    pub color_end: Color,
     pub gradient_type: u32, // 0=solid, 1=linear, 2=radial
     pub texture_page: u32,           // atlas layer, u32::MAX = no texture
     pub texture_uv_origin: [f32; 2], // pixel coords in atlas (top-left corner)
@@ -46,8 +47,8 @@ pub struct SegmentGpu {
     pub end: [f32; 2],
     pub x_clip: [f32; 2],
     pub y_clip: [f32; 2],
-    pub color_start: [f32; 4],
-    pub color_end: [f32; 4],
+    pub color_start: Color,
+    pub color_end: Color,
     pub thickness_dash: [f32; 4], // [thickness, dash_length, dash_offset, unused]
     pub gradient_type: u32, // 0=solid, 1=linear along segment
     pub texture_page: u32,           // atlas layer, u32::MAX = no texture
@@ -66,7 +67,7 @@ pub struct GridGpu {
     pub offset: [f32; 2],
     pub lattice_size: f32,
     pub line_thickness: f32,
-    pub color: [f32; 4],
+    pub color: Color,
     pub grid_type: u32, // 0=square, 1=hex
     pub texture_page: u32,           // atlas layer, u32::MAX = no texture
     pub texture_uv_origin: [f32; 2], // pixel coords in atlas (top-left corner)
@@ -83,8 +84,8 @@ pub struct TriangleGpu {
     pub x_clip: [f32; 2],
     pub y_clip: [f32; 2],
     pub gradient_direction: [f32; 2],
-    pub color_start: [f32; 4],
-    pub color_end: [f32; 4],
+    pub color_start: Color,
+    pub color_end: Color,
     pub gradient_type: u32, // 0=solid, 1=linear
     pub texture_page: u32,           // atlas layer, u32::MAX = no texture
     pub texture_uv_origin: [f32; 2], // pixel coords in atlas (top-left corner)
@@ -103,8 +104,8 @@ pub struct HexagonGpu {
     pub gradient_direction: [f32; 2],
     pub stroke_thickness: f32,
     pub texture_page: u32,
-    pub color_start: [f32; 4],
-    pub color_end: [f32; 4],
+    pub color_start: Color,
+    pub color_end: Color,
     pub gradient_type: u32,
     pub _pad1: f32,
     pub texture_uv_origin: [f32; 2],

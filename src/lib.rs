@@ -1,5 +1,7 @@
 pub mod shapes;
 pub use shapes::*;
+pub mod color;
+pub use color::*;
 pub mod gpu_vec;
 pub mod images;
 
@@ -61,14 +63,14 @@ pub enum GradientType {
 /// Gradient definition for shapes
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Gradient {
-    pub color_start: [f32; 4],
-    pub color_end: [f32; 4],
+    pub color_start: Color,
+    pub color_end: Color,
     pub gradient_type: GradientType,
     pub angle: f32,
 }
 
 impl Gradient {
-    pub const fn new(color_start: [f32; 4], color_end: [f32; 4]) -> Self {
+    pub const fn new(color_start: Color, color_end: Color) -> Self {
         Self {
             color_start,
             color_end,
@@ -87,7 +89,7 @@ impl Gradient {
         self
     }
 
-    pub const fn linear(color_start: [f32; 4], color_end: [f32; 4], angle: f32) -> Self {
+    pub const fn linear(color_start: Color, color_end: Color, angle: f32) -> Self {
         Self {
             color_start,
             color_end,
@@ -96,7 +98,7 @@ impl Gradient {
         }
     }
 
-    pub const fn radial(color_start: [f32; 4], color_end: [f32; 4]) -> Self {
+    pub const fn radial(color_start: Color, color_end: Color) -> Self {
         Self {
             color_start,
             color_end,
@@ -108,41 +110,16 @@ impl Gradient {
 
 impl std::hash::Hash for Gradient {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.color_start[0].to_bits().hash(state);
-        self.color_start[1].to_bits().hash(state);
-        self.color_start[2].to_bits().hash(state);
-        self.color_start[3].to_bits().hash(state);
-        self.color_end[0].to_bits().hash(state);
-        self.color_end[1].to_bits().hash(state);
-        self.color_end[2].to_bits().hash(state);
-        self.color_end[3].to_bits().hash(state);
+        self.color_start.r.to_bits().hash(state);
+        self.color_start.g.to_bits().hash(state);
+        self.color_start.g.to_bits().hash(state);
+        self.color_start.a.to_bits().hash(state);
+        self.color_end.r.to_bits().hash(state);
+        self.color_end.g.to_bits().hash(state);
+        self.color_end.g.to_bits().hash(state);
+        self.color_end.a.to_bits().hash(state);
         self.gradient_type.hash(state);
         self.angle.to_bits().hash(state);
-    }
-}
-
-/// Fill style for shapes - solid color or gradient
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub enum ColorFill {
-    Color([f32; 4]),
-    Gradient(Gradient),
-}
-
-impl Hash for ColorFill {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        match self {
-            ColorFill::Color(color) => {
-                0u8.hash(state);
-                color[0].to_bits().hash(state);
-                color[1].to_bits().hash(state);
-                color[2].to_bits().hash(state);
-                color[3].to_bits().hash(state);
-            },
-            ColorFill::Gradient(gradient) => {
-                1u8.hash(state);
-                gradient.hash(state);
-            },
-        }
     }
 }
 
@@ -243,7 +220,7 @@ pub struct Grid {
     pub lattice_size: f32,
     pub offset: [f32; 2],
     pub line_thickness: f32,
-    pub color: [f32; 4],
+    pub color: Color,
     pub grid_type: GridType,
     pub x_clip: [f32; 2],
     pub y_clip: [f32; 2],
@@ -282,7 +259,7 @@ pub struct DashedBoxOutline {
     pub size: [f32; 2],
     pub corner_radius: f32,
     pub thickness: f32,
-    pub color: [f32; 4],
+    pub color: Color,
     pub dash_length: f32,
     pub x_clip: [f32; 2],
     pub y_clip: [f32; 2],
@@ -295,13 +272,13 @@ pub struct DashedHexagonOutline {
     pub size: f32,              // distance from center to vertex
     pub rotation: f32,          // rotation in radians (0 = flat-top)
     pub thickness: f32,
-    pub color: [f32; 4],
+    pub color: Color,
     pub dash_length: f32,
     pub x_clip: [f32; 2],
     pub y_clip: [f32; 2],
 }
 
-fn fill_gpu(fill: ColorFill) -> ([f32; 2], [f32; 4], [f32; 4], u32) {
+fn fill_gpu(fill: ColorFill) -> ([f32; 2], Color, Color, u32) {
     match fill {
         ColorFill::Color(color) => ([1.0, 0.0], color, color, 0),
         ColorFill::Gradient(g) => {
@@ -690,7 +667,7 @@ impl Renderer {
             corner_radius: 0.0,
             rounded_corners: RoundedCorners::NONE,
             border_thickness: 0.0,
-            fill: ColorFill::Color([1.0, 1.0, 1.0, 1.0]),
+            fill: ColorFill::Color(Color::WHITE),
             x_clip,
             y_clip,
             texture: Some(image),
