@@ -7,7 +7,7 @@
                 "kind": "parameterBlock",
                 "elementType": {
                     "kind": "struct",
-                    "name": "ShapesData",
+                    "name": "ShapesGpu",
                     "fields": [
                         {
                             "name": "transforms",
@@ -58,7 +58,7 @@
                                 "baseShape": "structuredBuffer",
                                 "resultType": {
                                     "kind": "struct",
-                                    "name": "BoxData",
+                                    "name": "BoxGpu",
                                     "fields": [
                                         {
                                             "name": "top_left",
@@ -260,7 +260,7 @@
                                 "baseShape": "structuredBuffer",
                                 "resultType": {
                                     "kind": "struct",
-                                    "name": "CircleData",
+                                    "name": "CircleGpu",
                                     "fields": [
                                         {
                                             "name": "center",
@@ -426,7 +426,7 @@
                                 "baseShape": "structuredBuffer",
                                 "resultType": {
                                     "kind": "struct",
-                                    "name": "SegmentData",
+                                    "name": "SegmentGpu",
                                     "fields": [
                                         {
                                             "name": "start",
@@ -580,7 +580,7 @@
                                 "baseShape": "structuredBuffer",
                                 "resultType": {
                                     "kind": "struct",
-                                    "name": "GridData",
+                                    "name": "GridGpu",
                                     "fields": [
                                         {
                                             "name": "top_left",
@@ -738,7 +738,7 @@
                                 "baseShape": "structuredBuffer",
                                 "resultType": {
                                     "kind": "struct",
-                                    "name": "TriangleData",
+                                    "name": "TriangleGpu",
                                     "fields": [
                                         {
                                             "name": "p0",
@@ -904,7 +904,7 @@
                                 "baseShape": "structuredBuffer",
                                 "resultType": {
                                     "kind": "struct",
-                                    "name": "HexagonData",
+                                    "name": "HexagonGpu",
                                     "fields": [
                                         {
                                             "name": "center",
@@ -1099,7 +1099,7 @@
                 "elementVarLayout": {
                     "type": {
                         "kind": "struct",
-                        "name": "ShapesData",
+                        "name": "ShapesGpu",
                         "fields": [
                             {
                                 "name": "transforms",
@@ -1150,7 +1150,7 @@
                                     "baseShape": "structuredBuffer",
                                     "resultType": {
                                         "kind": "struct",
-                                        "name": "BoxData",
+                                        "name": "BoxGpu",
                                         "fields": [
                                             {
                                                 "name": "top_left",
@@ -1352,7 +1352,7 @@
                                     "baseShape": "structuredBuffer",
                                     "resultType": {
                                         "kind": "struct",
-                                        "name": "CircleData",
+                                        "name": "CircleGpu",
                                         "fields": [
                                             {
                                                 "name": "center",
@@ -1518,7 +1518,7 @@
                                     "baseShape": "structuredBuffer",
                                     "resultType": {
                                         "kind": "struct",
-                                        "name": "SegmentData",
+                                        "name": "SegmentGpu",
                                         "fields": [
                                             {
                                                 "name": "start",
@@ -1672,7 +1672,7 @@
                                     "baseShape": "structuredBuffer",
                                     "resultType": {
                                         "kind": "struct",
-                                        "name": "GridData",
+                                        "name": "GridGpu",
                                         "fields": [
                                             {
                                                 "name": "top_left",
@@ -1830,7 +1830,7 @@
                                     "baseShape": "structuredBuffer",
                                     "resultType": {
                                         "kind": "struct",
-                                        "name": "TriangleData",
+                                        "name": "TriangleGpu",
                                         "fields": [
                                             {
                                                 "name": "p0",
@@ -1996,7 +1996,7 @@
                                     "baseShape": "structuredBuffer",
                                     "resultType": {
                                         "kind": "struct",
-                                        "name": "HexagonData",
+                                        "name": "HexagonGpu",
                                         "fields": [
                                             {
                                                 "name": "center",

@@ -1,6 +1,6 @@
 import quad;
 
-struct BoxData {
+struct BoxGpu {
     float2 top_left;
     float2 size;
     float2 x_clip;
@@ -22,7 +22,7 @@ struct BoxData {
     float pad4;
 }
 
-struct CircleData {
+struct CircleGpu {
     float2 center;
     float2 radii;
     float2 angles;
@@ -39,7 +39,7 @@ struct CircleData {
     float pad1;
 }
 
-struct SegmentData {
+struct SegmentGpu {
     float2 start;
     float2 end;
     float2 x_clip;
@@ -55,7 +55,7 @@ struct SegmentData {
     float pad1;
 }
 
-struct GridData {
+struct GridGpu {
     float2 top_left;
     float2 size;
     float2 x_clip;
@@ -72,7 +72,7 @@ struct GridData {
     float pad1;
 }
 
-struct TriangleData {
+struct TriangleGpu {
     float2 p0;
     float2 p1;
     float2 p2;
@@ -89,7 +89,7 @@ struct TriangleData {
     float pad1;
 }
 
-struct HexagonData {
+struct HexagonGpu {
     float2 center;
     float size;                // distance from center to vertex
     float rotation;            // rotation in radians
@@ -113,19 +113,19 @@ struct Transform {
     float _padding;
 }
 
-struct ShapesData {
+struct ShapesGpu {
     StructuredBuffer<Transform> transforms;
-    StructuredBuffer<BoxData> boxes;
-    StructuredBuffer<CircleData> circles;
-    StructuredBuffer<SegmentData> segments;
-    StructuredBuffer<GridData> grids;
-    StructuredBuffer<TriangleData> triangles;
-    StructuredBuffer<HexagonData> hexagons;
+    StructuredBuffer<BoxGpu> boxes;
+    StructuredBuffer<CircleGpu> circles;
+    StructuredBuffer<SegmentGpu> segments;
+    StructuredBuffer<GridGpu> grids;
+    StructuredBuffer<TriangleGpu> triangles;
+    StructuredBuffer<HexagonGpu> hexagons;
     Texture2DArray<float4> atlas_texture;
     SamplerState atlas_sampler;
 }
 
-ParameterBlock<ShapesData> shapes;
+ParameterBlock<ShapesGpu> shapes;
 
 void box_vertex(
     uint instanceIndex,
@@ -135,7 +135,7 @@ void box_vertex(
     out float2 uv,
     out float2 screen_pos,
 ) {
-    var box: BoxData = shapes.boxes[instanceIndex];
+    var box: BoxGpu = shapes.boxes[instanceIndex];
     quad_vertex(box.top_left, box.size, vertexIndex, resolution, position, uv);
     screen_pos = box.top_left + uv * box.size;
 }
@@ -210,7 +210,7 @@ float sd_rounded_box(float2 p, float2 size, float4 r) {
 }
 
 float4 box_fragment(uint primitiveIndex, float2 uv, float2 screen_pos, bool surface_is_srgb, float transform_scale): SV_Target {
-    var box: BoxData = shapes.boxes[primitiveIndex];
+    var box: BoxGpu = shapes.boxes[primitiveIndex];
 
     if (screen_pos.x < box.x_clip.x || screen_pos.x > box.x_clip.y ||
         screen_pos.y < box.y_clip.x || screen_pos.y > box.y_clip.y) {
@@ -297,7 +297,7 @@ void circle_vertex(
     out float2 uv,
     out float2 screen_pos,
 ) {
-    var circle: CircleData = shapes.circles[instanceIndex];
+    var circle: CircleGpu = shapes.circles[instanceIndex];
 
     // Create bounding box for the circle
     float outer_radius = circle.radii.y;
@@ -331,7 +331,7 @@ bool is_in_arc(float angle, float start, float end) {
     }
 }
 
-float sd_circle_variant(float2 p, CircleData circle) {
+float sd_circle_variant(float2 p, CircleGpu circle) {
     const float TAU = 6.28318530718;
 
     float inner_radius = circle.radii.x;
@@ -375,7 +375,7 @@ float sd_circle_variant(float2 p, CircleData circle) {
 }
 
 float4 circle_fragment(uint primitiveIndex, float2 uv, float2 screen_pos, bool srgb, float transform_scale): SV_Target {
-    var circle: CircleData = shapes.circles[primitiveIndex];
+    var circle: CircleGpu = shapes.circles[primitiveIndex];
 
     if (screen_pos.x < circle.x_clip.x || screen_pos.x > circle.x_clip.y ||
         screen_pos.y < circle.y_clip.x || screen_pos.y > circle.y_clip.y) {
@@ -451,7 +451,7 @@ void segment_vertex(
     out float2 uv,
     out float2 screen_pos,
 ) {
-    var seg: SegmentData = shapes.segments[instanceIndex];
+    var seg: SegmentGpu = shapes.segments[instanceIndex];
 
     // Create bounding box for the segment
     float half_thickness = seg.thickness_dash[0] * 0.5;
@@ -474,7 +474,7 @@ float sd_segment(float2 p, float2 a, float2 b) {
 }
 
 float4 segment_fragment(uint primitiveIndex, float2 uv, float2 screen_pos, bool srgb, float transform_scale): SV_Target {
-    var seg: SegmentData = shapes.segments[primitiveIndex];
+    var seg: SegmentGpu = shapes.segments[primitiveIndex];
 
     if (screen_pos.x < seg.x_clip.x || screen_pos.x > seg.x_clip.y ||
         screen_pos.y < seg.y_clip.x || screen_pos.y > seg.y_clip.y) {
@@ -573,14 +573,14 @@ void grid_vertex(
     out float2 uv,
     out float2 screen_pos,
 ) {
-    var grid: GridData = shapes.grids[instanceIndex];
+    var grid: GridGpu = shapes.grids[instanceIndex];
     quad_vertex(grid.top_left, grid.size, vertexIndex, resolution, position, uv);
     screen_pos = grid.top_left + uv * grid.size;
 }
 
 // Thanks leftofzen. https://www.shadertoy.com/view/wtdSzX
 float4 grid_fragment(uint primitiveIndex, float2 uv, float2 screen_pos, bool surface_is_srgb, float transform_scale): SV_Target {
-    var grid: GridData = shapes.grids[primitiveIndex];
+    var grid: GridGpu = shapes.grids[primitiveIndex];
 
     // Apply clipping
     if (screen_pos.x < grid.x_clip.x || screen_pos.x > grid.x_clip.y ||
@@ -668,7 +668,7 @@ void triangle_vertex(
     out float2 uv,
     out float2 screen_pos,
 ) {
-    var tri: TriangleData = shapes.triangles[instanceIndex];
+    var tri: TriangleGpu = shapes.triangles[instanceIndex];
 
     // Create bounding box for the triangle
     float2 min_point = min(tri.p0, min(tri.p1, tri.p2));
@@ -704,7 +704,7 @@ float sd_triangle(float2 p, float2 p0, float2 p1, float2 p2) {
 }
 
 float4 triangle_fragment(uint primitiveIndex, float2 uv, float2 screen_pos, bool surface_is_srgb, float transform_scale): SV_Target {
-    var tri: TriangleData = shapes.triangles[primitiveIndex];
+    var tri: TriangleGpu = shapes.triangles[primitiveIndex];
 
     if (screen_pos.x < tri.x_clip.x || screen_pos.x > tri.x_clip.y ||
         screen_pos.y < tri.y_clip.x || screen_pos.y > tri.y_clip.y) {
@@ -781,7 +781,7 @@ void hexagon_vertex(
     out float2 uv,
     out float2 screen_pos,
 ) {
-    var hex: HexagonData = shapes.hexagons[instanceIndex];
+    var hex: HexagonGpu = shapes.hexagons[instanceIndex];
 
     // Create bounding box for the hexagon
     // For flat-top hex: width = 2 * r / cos(30°) = 2 * r * 1.1547, height = 2 * r
@@ -805,7 +805,7 @@ float sd_hexagon(float2 p, float r) {
 }
 
 float4 hexagon_fragment(uint primitiveIndex, float2 uv, float2 screen_pos, bool surface_is_srgb, float transform_scale): SV_Target {
-    var hex: HexagonData = shapes.hexagons[primitiveIndex];
+    var hex: HexagonGpu = shapes.hexagons[primitiveIndex];
 
     if (screen_pos.x < hex.x_clip.x || screen_pos.x > hex.x_clip.y ||
         screen_pos.y < hex.y_clip.x || screen_pos.y > hex.y_clip.y) {
