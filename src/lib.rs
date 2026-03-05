@@ -58,16 +58,74 @@ pub enum GradientType {
     Radial = 2,
 }
 
+/// Gradient definition for shapes
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Gradient {
+    pub color_start: [f32; 4],
+    pub color_end: [f32; 4],
+    pub gradient_type: GradientType,
+    pub angle: f32,
+}
+
+impl Gradient {
+    pub const fn new(color_start: [f32; 4], color_end: [f32; 4]) -> Self {
+        Self {
+            color_start,
+            color_end,
+            gradient_type: GradientType::Linear,
+            angle: 0.0,
+        }
+    }
+
+    pub const fn with_type(mut self, gradient_type: GradientType) -> Self {
+        self.gradient_type = gradient_type;
+        self
+    }
+
+    pub const fn with_angle(mut self, angle: f32) -> Self {
+        self.angle = angle;
+        self
+    }
+
+    pub const fn linear(color_start: [f32; 4], color_end: [f32; 4], angle: f32) -> Self {
+        Self {
+            color_start,
+            color_end,
+            gradient_type: GradientType::Linear,
+            angle,
+        }
+    }
+
+    pub const fn radial(color_start: [f32; 4], color_end: [f32; 4]) -> Self {
+        Self {
+            color_start,
+            color_end,
+            gradient_type: GradientType::Radial,
+            angle: 0.0,
+        }
+    }
+}
+
+impl std::hash::Hash for Gradient {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.color_start[0].to_bits().hash(state);
+        self.color_start[1].to_bits().hash(state);
+        self.color_start[2].to_bits().hash(state);
+        self.color_start[3].to_bits().hash(state);
+        self.color_end[0].to_bits().hash(state);
+        self.color_end[1].to_bits().hash(state);
+        self.color_end[2].to_bits().hash(state);
+        self.color_end[3].to_bits().hash(state);
+        self.gradient_type.hash(state);
+        self.angle.to_bits().hash(state);
+    }
+}
+
 /// Fill style for shapes - solid color or gradient
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum ColorFill {
     Color([f32; 4]),
-    Gradient {
-        color_start: [f32; 4],
-        color_end: [f32; 4],
-        gradient_type: GradientType,
-        angle: f32,
-    },
+    Gradient(Gradient),
 }
 
 impl Hash for ColorFill {
@@ -80,18 +138,9 @@ impl Hash for ColorFill {
                 color[2].to_bits().hash(state);
                 color[3].to_bits().hash(state);
             },
-            ColorFill::Gradient { color_start, color_end, gradient_type, angle } => {
+            ColorFill::Gradient(gradient) => {
                 1u8.hash(state);
-                color_start[0].to_bits().hash(state);
-                color_start[1].to_bits().hash(state);
-                color_start[2].to_bits().hash(state);
-                color_start[3].to_bits().hash(state);
-                color_end[0].to_bits().hash(state);
-                color_end[1].to_bits().hash(state);
-                color_end[2].to_bits().hash(state);
-                color_end[3].to_bits().hash(state);
-                gradient_type.hash(state);
-                angle.to_bits().hash(state);
+                gradient.hash(state);
             },
         }
     }
@@ -224,8 +273,8 @@ pub struct Hexagon {
 fn fill_gpu(fill: ColorFill) -> ([f32; 2], [f32; 4], [f32; 4], u32) {
     match fill {
         ColorFill::Color(color) => ([1.0, 0.0], color, color, 0),
-        ColorFill::Gradient { color_start, color_end, gradient_type, angle } => {
-            ([angle.cos(), angle.sin()], color_start, color_end, gradient_type as u32)
+        ColorFill::Gradient(g) => {
+            ([g.angle.cos(), g.angle.sin()], g.color_start, g.color_end, g.gradient_type as u32)
         }
     }
 }
@@ -736,8 +785,8 @@ impl Renderer {
     pub fn draw_segment(&mut self, params: Segment) {
         let (color_start, color_end, gradient_type) = match params.fill {
             ColorFill::Color(color) => (color, color, 0),
-            ColorFill::Gradient { color_start, color_end, .. } => {
-                (color_start, color_end, 1)
+            ColorFill::Gradient(g) => {
+                (g.color_start, g.color_end, 1)
             }
         };
 

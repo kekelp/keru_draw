@@ -175,12 +175,7 @@ impl State {
             corner_radius: 0.0,
             rounded_corners: RoundedCorners::ALL,
             border_thickness: 0.0,
-            fill: ColorFill::Gradient {
-                color_start: [1.0, 0.3, 0.3, 1.0],
-                color_end: [0.3, 0.3, 1.0, 1.0],
-                gradient_type: GradientType::Linear,
-                angle: 0.0,
-            },
+            fill: ColorFill::Gradient(Gradient::linear([1.0, 0.3, 0.3, 1.0], [0.3, 0.3, 1.0, 1.0], 0.0)),
             x_clip: clip_x,
             y_clip: clip_y,
             texture: Some(self.texture_handle)
@@ -193,12 +188,7 @@ impl State {
             corner_radius: 5.0,
             rounded_corners: RoundedCorners::ALL,
             border_thickness: 0.0,
-            fill: ColorFill::Gradient {
-                color_start: [1.0, 0.5, 0.3, 1.0],
-                color_end: [0.3, 1.0, 0.5, 1.0],
-                gradient_type: GradientType::Linear,
-                angle: std::f32::consts::PI * 0.25,
-            },
+            fill: ColorFill::Gradient(Gradient::linear([1.0, 0.5, 0.3, 1.0], [0.3, 1.0, 0.5, 1.0], std::f32::consts::PI * 0.25)),
             x_clip: clip_x,
             y_clip: clip_y,
             texture: None,
@@ -260,12 +250,7 @@ impl State {
         self.renderer.draw_circle(Circle {
             center: [50.0, 150.0],
             radius: 20.0,
-            fill: ColorFill::Gradient {
-                color_start: [1.0, 1.0, 0.3, 1.0],
-                color_end: [1.0, 0.3, 0.3, 1.0],
-                gradient_type: GradientType::Radial,
-                angle: 0.0,
-            },
+            fill: ColorFill::Gradient(Gradient::radial([1.0, 1.0, 0.3, 1.0], [1.0, 0.3, 0.3, 1.0])),
             x_clip: clip_x,
             y_clip: clip_y,
             texture: None,
@@ -275,12 +260,7 @@ impl State {
         self.renderer.draw_circle(Circle {
             center: [140.0, 150.0],
             radius: 30.0,
-            fill: ColorFill::Gradient {
-                color_start: [0.3, 0.7, 1.0, 1.0],
-                color_end: [1.0, 0.3, 0.7, 1.0],
-                gradient_type: GradientType::Linear,
-                angle: std::f32::consts::PI * 0.5,
-            },
+            fill: ColorFill::Gradient(Gradient::linear([0.3, 0.7, 1.0, 1.0], [1.0, 0.3, 0.7, 1.0], std::f32::consts::PI * 0.5)),
             x_clip: clip_x,
             y_clip: clip_y,
             texture: None,
@@ -466,12 +446,7 @@ impl State {
             start: [370.0, 500.0],
             end: [430.0, 540.0],
             thickness: 5.0,
-            fill: ColorFill::Gradient {
-                color_start: [1.0, 0.9, 0.2, 0.7],
-                color_end: [0.2, 0.9, 1.0, 0.7],
-                gradient_type: GradientType::Linear,
-                angle: 0.0, // angle is ignored for segments
-            },
+            fill: ColorFill::Gradient(Gradient::linear([1.0, 0.9, 0.2, 0.7], [0.2, 0.9, 1.0, 0.7], 0.0)), // angle is ignored for segments
             x_clip: clip_x,
             y_clip: clip_y,
             dash_length: Some(8.0),
@@ -481,12 +456,7 @@ impl State {
             start: [370.0, 540.0],
             end: [430.0, 500.0],
             thickness: 5.0,
-            fill: ColorFill::Gradient {
-                color_start: [1.0, 0.2, 0.9, 0.8],
-                color_end: [0.2, 1.0, 0.9, 0.8],
-                gradient_type: GradientType::Linear,
-                angle: 0.0, // angle is ignored for segments
-            },
+            fill: ColorFill::Gradient(Gradient::linear([1.0, 0.2, 0.9, 0.8], [0.2, 1.0, 0.9, 0.8], 0.0)), // angle is ignored for segments
             x_clip: clip_x,
             y_clip: clip_y,
             dash_length: None,
@@ -538,12 +508,7 @@ impl State {
             center: [620.0, 400.0 + 100.0],
             size: 40.0,
             rotation: std::f32::consts::PI / 2.0,
-            fill: ColorFill::Gradient {
-                color_start: [1.0, 0.3, 0.5, 1.0],
-                color_end: [0.5, 0.3, 1.0, 1.0],
-                gradient_type: GradientType::Linear,
-                angle: std::f32::consts::PI * 0.25,
-            },
+            fill: ColorFill::Gradient(Gradient::linear([1.0, 0.3, 0.5, 1.0], [0.5, 0.3, 1.0, 1.0], std::f32::consts::PI * 0.25)),
             stroke_thickness: 0.0,
             x_clip: clip_x,
             y_clip: clip_y,
