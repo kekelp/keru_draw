@@ -167,6 +167,7 @@ impl State {
         let clip_y = [0.0, height];
 
         self.renderer.begin_frame(width, height);
+        self.renderer.prepare_text();
 
         // Gradient box - horizontal
         self.renderer.draw_box(Box {
@@ -644,7 +645,7 @@ impl State {
 
         self.renderer.pop_transform();
         
-        self.renderer.prepare_text_decorations();
+        self.renderer.draw_text_decorations();
 
         self.renderer.autorender(&self.surface, wgpu::Color { r: 1.0, g: 1.0, b: 1.0, a: 1.0 });
 

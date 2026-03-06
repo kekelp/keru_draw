@@ -1146,8 +1146,6 @@ impl Renderer {
         let combined = combine_transforms(&current_euclid_transform, &retained);
         text_box_ref.transform = combined;
 
-        self.text_renderer.prepare_text_box_layout(text_box_ref);
-
         let QuadRanges { glyph_range, .. } = self.text.get_text_box(text_box).quad_range();
 
         for q in (glyph_range.0)..(glyph_range.1) {
@@ -1176,8 +1174,6 @@ impl Renderer {
         let combined = combine_transforms(&current_euclid_transform, &current_text_transform);
         text_edit_ref.set_transform(combined);
 
-        self.text_renderer.prepare_text_edit_layout(text_edit_ref);
-
         let QuadRanges { glyph_range, .. } = self.text.get_text_edit(text_edit).quad_range();
 
         for q in (glyph_range.0)..(glyph_range.1) {
@@ -1190,23 +1186,20 @@ impl Renderer {
         }
     }
 
-    pub fn clear(&mut self) {
+    pub fn begin_frame(&mut self, width: f32, height: f32) {
+        // clear immediate-mode shapes
         self.shapes.clear();
         self.instances.clear();
-        self.text_renderer.clear();
         self.transforms.clear();
         self.transforms.push(Transform::identity());
         self.transform_stack.clear();
         self.transform_stack.push(0);
-    }
-
-    pub fn begin_frame(&mut self, width: f32, height: f32) {
-        // Update text renderer resolution
         self.text_renderer.update_resolution(width, height);
-        // Clear all buffers
-        self.clear();
     }
 
+    pub fn prepare_text(&mut self) {
+        self.text.prepare_all(&mut self.text_renderer);
+    }
 
     pub fn text_renderer_mut(&mut self) -> &mut TextRenderer {
         &mut self.text_renderer
@@ -1282,8 +1275,8 @@ impl Renderer {
         render_pass.draw(0..4, 0..self.instances.len() as u32);
     }
 
-    pub fn prepare_text_decorations(&mut self) {
-        let decorations_range = self.text.prepare_decorations(&mut self.text_renderer);
+    pub fn draw_text_decorations(&mut self) {
+        let decorations_range = self.text.decorations_range();
         for q in (decorations_range.0)..(decorations_range.1) {
             self.instances.push(Instance {
                 p_type: primitive::TEXT,
