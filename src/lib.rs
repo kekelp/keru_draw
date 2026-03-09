@@ -15,7 +15,7 @@ pub struct InstanceRange { pub start: usize, pub end: usize }
 pub use textslabs;
 
 pub use textslabs::{
-    Text, TextRenderer, TextBoxHandle, TextEditHandle, QuadRanges,
+    Text, TextBoxHandle, TextEditHandle, QuadRanges,
     TextStyle2, StyleHandle, ColorBrush, with_clipboard, BoundingBox,
     parley,
 };
@@ -369,7 +369,6 @@ pub struct Renderer {
     render_pipeline: wgpu::RenderPipeline,
     pub image_renderer: ImageRenderer,
     pub text: Text,
-    text_renderer: TextRenderer,
     shapes: Shapes,
     transforms: GpuVec<Transform>,
     shapes_bind_group: wgpu::BindGroup,
@@ -409,8 +408,7 @@ impl Renderer {
             source: wgpu::util::make_spirv(fs_spirv),
         });
 
-        let text_renderer = TextRenderer::new(&device, &queue, surface_format);
-        let text = Text::new();
+        let text = Text::new(&device, &queue, surface_format);
 
         let shapes = Shapes::new(&device);
         let image_renderer = ImageRenderer::new(&device, &queue, surface_format);
@@ -439,7 +437,7 @@ impl Renderer {
                 // Binding order: shapes+images(0), textslabs(1)
                 bind_group_layouts: &[
                     &shapes_bind_group_layout,
-                    &text_renderer.bind_group_layout(),
+                    &text.bind_group_layout(),
                 ],
                 push_constant_ranges: &[],
             });
@@ -532,7 +530,6 @@ impl Renderer {
             transforms,
             image_renderer,
             text,
-            text_renderer,
             shapes_bind_group,
             instances,
             transform_stack: vec![0], // Start with identity transform at index 0
@@ -1140,11 +1137,11 @@ impl Renderer {
 
         // Combine keru_draw's transform with the text box's retained_transform
         let text_box_ref = self.text.get_text_box_mut(text_box);
-        let retained = text_box_ref.transform;
+        let retained = text_box_ref.transform();
 
         // Combine: first apply retained_transform, then keru_draw's transform
         let combined = combine_transforms(&current_euclid_transform, &retained);
-        text_box_ref.transform = combined;
+        text_box_ref.set_transform(combined);
 
         let QuadRanges { glyph_range, .. } = self.text.get_text_box(text_box).quad_range();
 
@@ -1194,19 +1191,10 @@ impl Renderer {
         self.transforms.push(Transform::identity());
         self.transform_stack.clear();
         self.transform_stack.push(0);
-        self.text_renderer.update_resolution(width, height);
     }
 
     pub fn prepare_text(&mut self) {
-        self.text.prepare_all(&mut self.text_renderer);
-    }
-
-    pub fn text_renderer_mut(&mut self) -> &mut TextRenderer {
-        &mut self.text_renderer
-    }
-
-    pub fn resize(&mut self, width: u32, height: u32) {
-        self.text_renderer.update_resolution(width as f32, height as f32);
+        self.text.prepare_all();
     }
 
     pub fn device(&self) -> &wgpu::Device {
@@ -1267,7 +1255,7 @@ impl Renderer {
             );
         }
 
-        self.text_renderer.load_to_gpu(&self.device, &self.queue);
+        self.text.load_to_gpu();
         self.instances.load_to_gpu(&self.device, &self.queue);
 
         self.set_pipeline_state(render_pass);
@@ -1305,7 +1293,7 @@ impl Renderer {
             );
         }
 
-        self.text_renderer.load_to_gpu(&self.device, &self.queue);
+        self.text.load_to_gpu();
         self.instances.load_to_gpu(&self.device, &self.queue);
     }
 
@@ -1315,7 +1303,7 @@ impl Renderer {
         // If there are issues, compile the shaders with the -reflection-json flag and see the parameterBlock fields.
         // Binding order: shapes+images(0), textslabs(1)
         render_pass.set_bind_group(0, &self.shapes_bind_group, &[]);
-        render_pass.set_bind_group(1, &self.text_renderer.bind_group(), &[]);
+        render_pass.set_bind_group(1, &self.text.bind_group(), &[]);
         render_pass.set_vertex_buffer(0, self.instances.buffer().slice(..));
     }
 
@@ -1337,7 +1325,7 @@ impl Renderer {
     }
 
     pub fn prepare_decorations(&mut self) {
-        self.text.prepare_decorations(&mut self.text_renderer);
+        self.text.prepare_decorations();
     }
 
     /// Convenience function that creates a render pass, renders into it, and presents to the screen.
@@ -1401,7 +1389,7 @@ impl Renderer {
 
 fn assert_imported_textslabs_shader_matches() {
     let imported_shader = include_str!("shaders/textslabs.slang");
-    let original_shader = textslabs::TextRenderer::composable_shader_source();
+    let original_shader = textslabs::Text::composable_shader_source();
     assert!(imported_shader == original_shader);
 }
 

@@ -156,7 +156,7 @@ impl State {
             self.config.width = new_size.width;
             self.config.height = new_size.height;
             self.surface.configure(self.renderer.device(), &self.config);
-            self.renderer.resize(new_size.width, new_size.height);
+            // self.renderer.resize(new_size.width, new_size.height);
         }
     }
 

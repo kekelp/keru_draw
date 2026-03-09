@@ -2405,7 +2405,7 @@
                                 "baseShape": "structuredBuffer",
                                 "resultType": {
                                     "kind": "struct",
-                                    "name": "BoxData",
+                                    "name": "BoxGpu",
                                     "fields": [
                                         {
                                             "name": "clip_rect_x",
@@ -2494,6 +2494,22 @@
                                                 }
                                             },
                                             "binding": {"kind": "uniform", "offset": 48, "size": 8, "elementStride": 4}
+                                        },
+                                        {
+                                            "name": "slab_metadata",
+                                            "type": {
+                                                "kind": "scalar",
+                                                "scalarType": "uint32"
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 56, "size": 4, "elementStride": 0}
+                                        },
+                                        {
+                                            "name": "_padding",
+                                            "type": {
+                                                "kind": "scalar",
+                                                "scalarType": "uint32"
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 60, "size": 4, "elementStride": 0}
                                         }
                                     ]
                                 }
@@ -2717,7 +2733,7 @@
                                     "baseShape": "structuredBuffer",
                                     "resultType": {
                                         "kind": "struct",
-                                        "name": "BoxData",
+                                        "name": "BoxGpu",
                                         "fields": [
                                             {
                                                 "name": "clip_rect_x",
@@ -2806,6 +2822,22 @@
                                                     }
                                                 },
                                                 "binding": {"kind": "uniform", "offset": 48, "size": 8, "elementStride": 4}
+                                            },
+                                            {
+                                                "name": "slab_metadata",
+                                                "type": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "uint32"
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 56, "size": 4, "elementStride": 0}
+                                            },
+                                            {
+                                                "name": "_padding",
+                                                "type": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "uint32"
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 60, "size": 4, "elementStride": 0}
                                             }
                                         ]
                                     }
