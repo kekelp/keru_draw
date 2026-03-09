@@ -1140,7 +1140,7 @@ impl Renderer {
 
         // Combine keru_draw's transform with the text box's retained_transform
         let text_box_ref = self.text.get_text_box_mut(text_box);
-        let retained = text_box_ref.retained_transform;
+        let retained = text_box_ref.transform;
 
         // Combine: first apply retained_transform, then keru_draw's transform
         let combined = combine_transforms(&current_euclid_transform, &retained);
@@ -1384,11 +1384,12 @@ impl Renderer {
 
         #[cfg(debug_assertions)]
         {
-            if let Some(profiling_data) = self.gpu_profiler.process_finished_frame(self.queue.get_timestamp_period()) {
+            let profiling_data = self.gpu_profiler.process_finished_frame(self.queue.get_timestamp_period());
+            if let Some(profiling_data) = profiling_data {
                 for p in profiling_data {
                     if let Some(time) = p.time {
                         let dur = Duration::from_secs_f64(time.end - time.start);
-                        println!("Gpu time ({}): {:?} s", p.label, dur);
+                        println!("Gpu time ({}): {:?}", p.label, dur);
                     }
                 }
             }

@@ -2408,32 +2408,40 @@
                                     "name": "BoxData",
                                     "fields": [
                                         {
-                                            "name": "clip_rect_packed",
+                                            "name": "clip_rect_x",
                                             "type": {
                                                 "kind": "vector",
                                                 "elementCount": 2,
                                                 "elementType": {
                                                     "kind": "scalar",
-                                                    "scalarType": "uint32"
+                                                    "scalarType": "float32"
                                                 }
                                             },
                                             "binding": {"kind": "uniform", "offset": 0, "size": 8, "elementStride": 4}
                                         },
                                         {
-                                            "name": "translation_x",
+                                            "name": "clip_rect_y",
                                             "type": {
-                                                "kind": "scalar",
-                                                "scalarType": "float32"
+                                                "kind": "vector",
+                                                "elementCount": 2,
+                                                "elementType": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                }
                                             },
-                                            "binding": {"kind": "uniform", "offset": 8, "size": 4, "elementStride": 0}
+                                            "binding": {"kind": "uniform", "offset": 8, "size": 8, "elementStride": 4}
                                         },
                                         {
-                                            "name": "translation_y",
+                                            "name": "translation",
                                             "type": {
-                                                "kind": "scalar",
-                                                "scalarType": "float32"
+                                                "kind": "vector",
+                                                "elementCount": 2,
+                                                "elementType": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                }
                                             },
-                                            "binding": {"kind": "uniform", "offset": 12, "size": 4, "elementStride": 0}
+                                            "binding": {"kind": "uniform", "offset": 16, "size": 8, "elementStride": 4}
                                         },
                                         {
                                             "name": "rotation",
@@ -2441,7 +2449,7 @@
                                                 "kind": "scalar",
                                                 "scalarType": "float32"
                                             },
-                                            "binding": {"kind": "uniform", "offset": 16, "size": 4, "elementStride": 0}
+                                            "binding": {"kind": "uniform", "offset": 24, "size": 4, "elementStride": 0}
                                         },
                                         {
                                             "name": "scale",
@@ -2449,39 +2457,31 @@
                                                 "kind": "scalar",
                                                 "scalarType": "float32"
                                             },
-                                            "binding": {"kind": "uniform", "offset": 20, "size": 4, "elementStride": 0}
-                                        },
-                                        {
-                                            "name": "screen_clip_min_x",
-                                            "type": {
-                                                "kind": "scalar",
-                                                "scalarType": "float32"
-                                            },
-                                            "binding": {"kind": "uniform", "offset": 24, "size": 4, "elementStride": 0}
-                                        },
-                                        {
-                                            "name": "screen_clip_min_y",
-                                            "type": {
-                                                "kind": "scalar",
-                                                "scalarType": "float32"
-                                            },
                                             "binding": {"kind": "uniform", "offset": 28, "size": 4, "elementStride": 0}
                                         },
                                         {
-                                            "name": "screen_clip_max_x",
+                                            "name": "screen_clip_x",
                                             "type": {
-                                                "kind": "scalar",
-                                                "scalarType": "float32"
+                                                "kind": "vector",
+                                                "elementCount": 2,
+                                                "elementType": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                }
                                             },
-                                            "binding": {"kind": "uniform", "offset": 32, "size": 4, "elementStride": 0}
+                                            "binding": {"kind": "uniform", "offset": 32, "size": 8, "elementStride": 4}
                                         },
                                         {
-                                            "name": "screen_clip_max_y",
+                                            "name": "screen_clip_y",
                                             "type": {
-                                                "kind": "scalar",
-                                                "scalarType": "float32"
+                                                "kind": "vector",
+                                                "elementCount": 2,
+                                                "elementType": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                }
                                             },
-                                            "binding": {"kind": "uniform", "offset": 36, "size": 4, "elementStride": 0}
+                                            "binding": {"kind": "uniform", "offset": 40, "size": 8, "elementStride": 4}
                                         }
                                     ]
                                 }
@@ -2708,32 +2708,40 @@
                                         "name": "BoxData",
                                         "fields": [
                                             {
-                                                "name": "clip_rect_packed",
+                                                "name": "clip_rect_x",
                                                 "type": {
                                                     "kind": "vector",
                                                     "elementCount": 2,
                                                     "elementType": {
                                                         "kind": "scalar",
-                                                        "scalarType": "uint32"
+                                                        "scalarType": "float32"
                                                     }
                                                 },
                                                 "binding": {"kind": "uniform", "offset": 0, "size": 8, "elementStride": 4}
                                             },
                                             {
-                                                "name": "translation_x",
+                                                "name": "clip_rect_y",
                                                 "type": {
-                                                    "kind": "scalar",
-                                                    "scalarType": "float32"
+                                                    "kind": "vector",
+                                                    "elementCount": 2,
+                                                    "elementType": {
+                                                        "kind": "scalar",
+                                                        "scalarType": "float32"
+                                                    }
                                                 },
-                                                "binding": {"kind": "uniform", "offset": 8, "size": 4, "elementStride": 0}
+                                                "binding": {"kind": "uniform", "offset": 8, "size": 8, "elementStride": 4}
                                             },
                                             {
-                                                "name": "translation_y",
+                                                "name": "translation",
                                                 "type": {
-                                                    "kind": "scalar",
-                                                    "scalarType": "float32"
+                                                    "kind": "vector",
+                                                    "elementCount": 2,
+                                                    "elementType": {
+                                                        "kind": "scalar",
+                                                        "scalarType": "float32"
+                                                    }
                                                 },
-                                                "binding": {"kind": "uniform", "offset": 12, "size": 4, "elementStride": 0}
+                                                "binding": {"kind": "uniform", "offset": 16, "size": 8, "elementStride": 4}
                                             },
                                             {
                                                 "name": "rotation",
@@ -2741,7 +2749,7 @@
                                                     "kind": "scalar",
                                                     "scalarType": "float32"
                                                 },
-                                                "binding": {"kind": "uniform", "offset": 16, "size": 4, "elementStride": 0}
+                                                "binding": {"kind": "uniform", "offset": 24, "size": 4, "elementStride": 0}
                                             },
                                             {
                                                 "name": "scale",
@@ -2749,39 +2757,31 @@
                                                     "kind": "scalar",
                                                     "scalarType": "float32"
                                                 },
-                                                "binding": {"kind": "uniform", "offset": 20, "size": 4, "elementStride": 0}
-                                            },
-                                            {
-                                                "name": "screen_clip_min_x",
-                                                "type": {
-                                                    "kind": "scalar",
-                                                    "scalarType": "float32"
-                                                },
-                                                "binding": {"kind": "uniform", "offset": 24, "size": 4, "elementStride": 0}
-                                            },
-                                            {
-                                                "name": "screen_clip_min_y",
-                                                "type": {
-                                                    "kind": "scalar",
-                                                    "scalarType": "float32"
-                                                },
                                                 "binding": {"kind": "uniform", "offset": 28, "size": 4, "elementStride": 0}
                                             },
                                             {
-                                                "name": "screen_clip_max_x",
+                                                "name": "screen_clip_x",
                                                 "type": {
-                                                    "kind": "scalar",
-                                                    "scalarType": "float32"
+                                                    "kind": "vector",
+                                                    "elementCount": 2,
+                                                    "elementType": {
+                                                        "kind": "scalar",
+                                                        "scalarType": "float32"
+                                                    }
                                                 },
-                                                "binding": {"kind": "uniform", "offset": 32, "size": 4, "elementStride": 0}
+                                                "binding": {"kind": "uniform", "offset": 32, "size": 8, "elementStride": 4}
                                             },
                                             {
-                                                "name": "screen_clip_max_y",
+                                                "name": "screen_clip_y",
                                                 "type": {
-                                                    "kind": "scalar",
-                                                    "scalarType": "float32"
+                                                    "kind": "vector",
+                                                    "elementCount": 2,
+                                                    "elementType": {
+                                                        "kind": "scalar",
+                                                        "scalarType": "float32"
+                                                    }
                                                 },
-                                                "binding": {"kind": "uniform", "offset": 36, "size": 4, "elementStride": 0}
+                                                "binding": {"kind": "uniform", "offset": 40, "size": 8, "elementStride": 4}
                                             }
                                         ]
                                     }
