@@ -2482,6 +2482,18 @@
                                                 }
                                             },
                                             "binding": {"kind": "uniform", "offset": 40, "size": 8, "elementStride": 4}
+                                        },
+                                        {
+                                            "name": "scroll_offset",
+                                            "type": {
+                                                "kind": "vector",
+                                                "elementCount": 2,
+                                                "elementType": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                }
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 48, "size": 8, "elementStride": 4}
                                         }
                                     ]
                                 }
@@ -2782,6 +2794,18 @@
                                                     }
                                                 },
                                                 "binding": {"kind": "uniform", "offset": 40, "size": 8, "elementStride": 4}
+                                            },
+                                            {
+                                                "name": "scroll_offset",
+                                                "type": {
+                                                    "kind": "vector",
+                                                    "elementCount": 2,
+                                                    "elementType": {
+                                                        "kind": "scalar",
+                                                        "scalarType": "float32"
+                                                    }
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 48, "size": 8, "elementStride": 4}
                                             }
                                         ]
                                     }
