@@ -1,7 +1,7 @@
 // The order of the imports has to match the binding indices in the Rust code!
 // If there are issues, compile the shaders with the -reflection-json flag and see the parameterBlock fields.
 import keru_draw;
-import textslabs;
+import keru_text;
 
 enum PrimitiveType: uint {
     Box = 0,
@@ -39,8 +39,8 @@ VertexOutput vertexMain(
     output.primitiveIndex = input.primitiveIndex;
     output.transform_scale = 1.0; // Default scale
 
-    // grab the screen resolution from textslabs
-    float2 resolution = textslabs.params.resolution;
+    // grab the screen resolution from keru_text
+    float2 resolution = keru_text.params.resolution;
 
     if (input.primitiveType == PrimitiveType::Box) {
         box_vertex(input.primitiveIndex, vertexIndex, resolution, output.position, output.uv, output.screen_pos);
@@ -66,7 +66,7 @@ VertexOutput vertexMain(
     }
 
     // Apply transform
-    // Textslabs quads are already aware of their transform
+    // keru_text quads are already aware of their transform
     if (input.primitiveType != PrimitiveType::Text) {
         // The position is currently in NDC, so convert back to screen space
         float2 screen_pos = (output.position.xy * float2(1.0, -1.0) + 1.0) * resolution * 0.5;
@@ -92,8 +92,8 @@ VertexOutput vertexMain(
 [shader("fragment")]
 float4 fragmentMain(VertexOutput input): SV_Target {
 
-    // grab the srgb flag from textslabs
-    bool srgb = textslabs.params.srgb != 0;
+    // grab the srgb flag from keru_text
+    bool srgb = keru_text.params.srgb != 0;
 
     if (input.primitiveType == PrimitiveType::Box) {
         return box_fragment(input.primitiveIndex, input.uv, input.screen_pos, srgb, input.transform_scale);

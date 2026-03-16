@@ -8,7 +8,7 @@ The main upgrade compared to `vger-rs` is that it can render real full-featured 
 
 The `keru_draw` text boxes are "retained mode" and fully interactive, including selection, copy-paste and IME input.
 
-It uses the `slang` shader language, which allows the megashader to have a degree of modularity/extensibility. This means that the text management is split into a [separate library](https://github.com/kekelp/textslabs) that can be used independently.
+It uses the `slang` shader language, which allows the megashader to have a degree of modularity/extensibility. This means that the text management is split into a [separate library](https://github.com/kekelp/keru_text) that can be used independently.
 
 The `slang` shaders are compiled into `spir-v` files that are committed in the repository, so the slang compiler is not needed to build and use this crate.
 

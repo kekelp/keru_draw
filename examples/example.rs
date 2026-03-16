@@ -1,7 +1,7 @@
 use std::{borrow::Cow, f32::consts::PI};
 
 use keru_draw::*;
-use textslabs::{ColorBrush, TextStyle2, Transform2D, parley::{FontFamily, FontStack}};
+use keru_text::{ColorBrush, TextStyle2, Transform2D, parley::{FontFamily, FontFamilyName}};
 use winit::{
     dpi::PhysicalSize, event::WindowEvent, event_loop::EventLoop, window::Window,
 };
@@ -85,7 +85,8 @@ impl State {
             TextStyle2 {
                 font_size: 18.0,
                 brush: ColorBrush([0, 0, 0, 255]),
-                font_stack: FontStack::Single(FontFamily::Named(Cow::Borrowed("sans-serif"))),
+                // font_family: FontFamily::Single(Cow::Borrowed("sans-serif")),
+                font_family: FontFamily::Single(FontFamilyName::Named(Cow::Borrowed("sans-serif"))),
                 ..Default::default()
             },
             None,
@@ -166,7 +167,7 @@ impl State {
         let clip_x = [0.0, width];
         let clip_y = [0.0, height];
 
-        self.renderer.begin_frame(width, height);
+        self.renderer.begin_frame();
         self.renderer.prepare_text();
 
         // Gradient box - horizontal
@@ -487,7 +488,7 @@ impl State {
 
         // Square grid
         self.renderer.draw_grid(Grid {
-            top_left: [750.0, 20.0],
+            top_left: [850.0, 20.0],
             size: [200.0, 200.0],
             lattice_size: 20.0,
             offset: [0.0, 0.0],
@@ -501,7 +502,7 @@ impl State {
 
         // Hexagonal grid
         self.renderer.draw_grid(Grid {
-            top_left: [750.0, 250.0],
+            top_left: [850.0, 250.0],
             size: [300.0, 300.0],
             lattice_size: 50.0,
             offset: [0.0, 0.0],
@@ -578,7 +579,7 @@ impl State {
 
         // Dashed box outline (no rounded corners)
         self.renderer.draw_dashed_box_outline(DashedBoxOutline {
-            top_left: [700.0, 100.0],
+            top_left: [735.0, 100.0],
             size: [80.0, 60.0],
             corner_radius: 0.0,
             thickness: 3.0,
@@ -590,7 +591,7 @@ impl State {
 
         // Dashed box outline (with rounded corners)
         self.renderer.draw_dashed_box_outline(DashedBoxOutline {
-            top_left: [700.0, 180.0],
+            top_left: [735.0, 180.0],
             size: [80.0, 60.0],
             corner_radius: 15.0,
             thickness: 3.0,
@@ -602,7 +603,7 @@ impl State {
 
         // Dashed hexagon outline
         self.renderer.draw_dashed_hexagon_outline(DashedHexagonOutline {
-            center: [740.0, 320.0],
+            center: [770.0, 320.0],
             size: 40.0,
             rotation: 0.0,
             thickness: 3.0,
@@ -614,7 +615,7 @@ impl State {
 
         // Dashed hexagon outline (rotated)
         self.renderer.draw_dashed_hexagon_outline(DashedHexagonOutline {
-            center: [740.0, 420.0],
+            center: [770.0, 420.0],
             size: 40.0,
             rotation: PI / 6.0,
             thickness: 3.0,
@@ -645,8 +646,6 @@ impl State {
 
         self.renderer.pop_transform();
         
-        self.renderer.draw_text_decorations();
-
         self.renderer.autorender(&self.surface, wgpu::Color { r: 1.0, g: 1.0, b: 1.0, a: 1.0 });
 
         Ok(())

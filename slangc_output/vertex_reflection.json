@@ -2190,13 +2190,13 @@
             }
         },
         {
-            "name": "textslabs",
+            "name": "keru_text",
             "binding": {"kind": "subElementRegisterSpace", "index": 1},
             "type": {
                 "kind": "parameterBlock",
                 "elementType": {
                     "kind": "struct",
-                    "name": "TextSlabs",
+                    "name": "Text",
                     "fields": [
                         {
                             "name": "mask_atlas_texture",
@@ -2281,20 +2281,12 @@
                                             "binding": {"kind": "uniform", "offset": 12, "size": 4, "elementStride": 0}
                                         },
                                         {
-                                            "name": "depth",
-                                            "type": {
-                                                "kind": "scalar",
-                                                "scalarType": "float32"
-                                            },
-                                            "binding": {"kind": "uniform", "offset": 16, "size": 4, "elementStride": 0}
-                                        },
-                                        {
                                             "name": "flags_and_page",
                                             "type": {
                                                 "kind": "scalar",
                                                 "scalarType": "uint32"
                                             },
-                                            "binding": {"kind": "uniform", "offset": 20, "size": 4, "elementStride": 0}
+                                            "binding": {"kind": "uniform", "offset": 16, "size": 4, "elementStride": 0}
                                         },
                                         {
                                             "name": "box_index",
@@ -2302,10 +2294,18 @@
                                                 "kind": "scalar",
                                                 "scalarType": "uint32"
                                             },
-                                            "binding": {"kind": "uniform", "offset": 24, "size": 4, "elementStride": 0}
+                                            "binding": {"kind": "uniform", "offset": 20, "size": 4, "elementStride": 0}
                                         },
                                         {
                                             "name": "_padding",
+                                            "type": {
+                                                "kind": "scalar",
+                                                "scalarType": "uint32"
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 24, "size": 4, "elementStride": 0}
+                                        },
+                                        {
+                                            "name": "_padding2",
                                             "type": {
                                                 "kind": "scalar",
                                                 "scalarType": "uint32"
@@ -2504,10 +2504,10 @@
                                             "binding": {"kind": "uniform", "offset": 56, "size": 4, "elementStride": 0}
                                         },
                                         {
-                                            "name": "_padding",
+                                            "name": "depth",
                                             "type": {
                                                 "kind": "scalar",
-                                                "scalarType": "uint32"
+                                                "scalarType": "float32"
                                             },
                                             "binding": {"kind": "uniform", "offset": 60, "size": 4, "elementStride": 0}
                                         }
@@ -2524,7 +2524,7 @@
                 "elementVarLayout": {
                     "type": {
                         "kind": "struct",
-                        "name": "TextSlabs",
+                        "name": "Text",
                         "fields": [
                             {
                                 "name": "mask_atlas_texture",
@@ -2609,20 +2609,12 @@
                                                 "binding": {"kind": "uniform", "offset": 12, "size": 4, "elementStride": 0}
                                             },
                                             {
-                                                "name": "depth",
-                                                "type": {
-                                                    "kind": "scalar",
-                                                    "scalarType": "float32"
-                                                },
-                                                "binding": {"kind": "uniform", "offset": 16, "size": 4, "elementStride": 0}
-                                            },
-                                            {
                                                 "name": "flags_and_page",
                                                 "type": {
                                                     "kind": "scalar",
                                                     "scalarType": "uint32"
                                                 },
-                                                "binding": {"kind": "uniform", "offset": 20, "size": 4, "elementStride": 0}
+                                                "binding": {"kind": "uniform", "offset": 16, "size": 4, "elementStride": 0}
                                             },
                                             {
                                                 "name": "box_index",
@@ -2630,10 +2622,18 @@
                                                     "kind": "scalar",
                                                     "scalarType": "uint32"
                                                 },
-                                                "binding": {"kind": "uniform", "offset": 24, "size": 4, "elementStride": 0}
+                                                "binding": {"kind": "uniform", "offset": 20, "size": 4, "elementStride": 0}
                                             },
                                             {
                                                 "name": "_padding",
+                                                "type": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "uint32"
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 24, "size": 4, "elementStride": 0}
+                                            },
+                                            {
+                                                "name": "_padding2",
                                                 "type": {
                                                     "kind": "scalar",
                                                     "scalarType": "uint32"
@@ -2832,10 +2832,10 @@
                                                 "binding": {"kind": "uniform", "offset": 56, "size": 4, "elementStride": 0}
                                             },
                                             {
-                                                "name": "_padding",
+                                                "name": "depth",
                                                 "type": {
                                                     "kind": "scalar",
-                                                    "scalarType": "uint32"
+                                                    "scalarType": "float32"
                                                 },
                                                 "binding": {"kind": "uniform", "offset": 60, "size": 4, "elementStride": 0}
                                             }
@@ -2994,7 +2994,7 @@
                     "binding": {"kind": "subElementRegisterSpace", "index": 0, "used": 0}
                 },
                 {
-                    "name": "textslabs",
+                    "name": "keru_text",
                     "binding": {"kind": "subElementRegisterSpace", "index": 1, "used": 0}
                 }
             ]

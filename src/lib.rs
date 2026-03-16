@@ -12,15 +12,15 @@ use std::time::Duration;
 #[derive(Debug, Clone, Copy)]
 pub struct InstanceRange { pub start: usize, pub end: usize }
 
-pub use textslabs;
+pub use keru_text;
 
-pub use textslabs::{
-    Text, TextBoxHandle, TextEditHandle, QuadRanges,
+pub use keru_text::{
+    Text, TextBoxHandle, TextEditHandle,
     TextStyle2, StyleHandle, ColorBrush, with_clipboard, BoundingBox,
     parley,
 };
 // Re-export font properties from parley
-pub use textslabs::parley::{FontWeight, FontStyle, LineHeight, FontStack};
+pub use keru_text::parley::{FontWeight, FontStyle, LineHeight};
 pub use images::{ImageRenderer, LoadedImage};
 use wgpu_profiler::{GpuProfiler, GpuProfilerSettings};
 
@@ -351,15 +351,15 @@ impl Transform {
     }
 }
 
-/// Combines a keru_draw Transform with a textslabs Transform2D.
-fn combine_transforms(keru_transform: &Transform, textslabs_transform: &textslabs::Transform2D) -> textslabs::Transform2D {
-    textslabs::Transform2D {
+/// Combines a keru_draw Transform with a keru_text Transform2D.
+fn combine_transforms(keru_transform: &Transform, keru_text_transform: &keru_text::Transform2D) -> keru_text::Transform2D {
+    keru_text::Transform2D {
         translation: (
-            textslabs_transform.translation.0 + keru_transform.offset[0],
-            textslabs_transform.translation.1 + keru_transform.offset[1],
+            keru_text_transform.translation.0 + keru_transform.offset[0],
+            keru_text_transform.translation.1 + keru_transform.offset[1],
         ),
-        rotation: textslabs_transform.rotation,
-        scale: textslabs_transform.scale * keru_transform.scale,
+        rotation: keru_text_transform.rotation,
+        scale: keru_text_transform.scale * keru_transform.scale,
     }
 }
 
@@ -393,7 +393,7 @@ impl Renderer {
         surface_format: wgpu::TextureFormat,
     ) -> Self {
         #[cfg(debug_assertions)] {
-            assert_imported_textslabs_shader_matches();
+            assert_imported_keru_text_shader_matches();
         }
 
         let vs_spirv = include_bytes!("../slangc_output/shader.vert.spv");
@@ -434,7 +434,7 @@ impl Renderer {
                 label: Some("Render Pipeline Layout"),
                 // The binding indices has to match the order in which the parameter blocks appear in the shader!
                 // If there are issues, compile the shaders with the -reflection-json flag and see the parameterBlock fields.
-                // Binding order: shapes+images(0), textslabs(1)
+                // Binding order: shapes+images(0), keru_text(1)
                 bind_group_layouts: &[
                     &shapes_bind_group_layout,
                     &text.bind_group_layout(),
@@ -1143,7 +1143,7 @@ impl Renderer {
         let combined = combine_transforms(&current_euclid_transform, &retained);
         text_box_ref.set_transform(combined);
 
-        let QuadRanges { glyph_range, .. } = self.text.get_text_box(text_box).quad_range();
+        let glyph_range = self.text.get_text_box(text_box).glyph_quad_range();
 
         for q in (glyph_range.0)..(glyph_range.1) {
             self.instances.push(Instance {
@@ -1171,7 +1171,7 @@ impl Renderer {
         let combined = combine_transforms(&current_euclid_transform, &current_text_transform);
         text_edit_ref.set_transform(combined);
 
-        let QuadRanges { glyph_range, .. } = self.text.get_text_edit(text_edit).quad_range();
+        let glyph_range = self.text.get_text_edit(text_edit).glyph_quad_range();
 
         for q in (glyph_range.0)..(glyph_range.1) {
             self.instances.push(Instance {
@@ -1183,7 +1183,7 @@ impl Renderer {
         }
     }
 
-    pub fn begin_frame(&mut self, width: f32, height: f32) {
+    pub fn begin_frame(&mut self) {
         // clear immediate-mode shapes
         self.shapes.clear();
         self.instances.clear();
@@ -1263,18 +1263,6 @@ impl Renderer {
         render_pass.draw(0..4, 0..self.instances.len() as u32);
     }
 
-    pub fn draw_text_decorations(&mut self) {
-        let decorations_range = self.text.decorations_range();
-        for q in (decorations_range.0)..(decorations_range.1) {
-            self.instances.push(Instance {
-                p_type: primitive::TEXT,
-                p_index: q as u32,
-                transform_index: *self.transform_stack.last().unwrap() as u32,
-                _padding: 0,
-            });
-        }
-    }
-
     pub fn load_to_gpu(&mut self) {
         // Upload resources to GPU
         let transforms_changed = self.transforms.load_to_gpu(&self.device, &self.queue);
@@ -1301,7 +1289,7 @@ impl Renderer {
         render_pass.set_pipeline(&self.render_pipeline);
         // The binding indices has to match the order in which the parameter blocks appear in the shader!
         // If there are issues, compile the shaders with the -reflection-json flag and see the parameterBlock fields.
-        // Binding order: shapes+images(0), textslabs(1)
+        // Binding order: shapes+images(0), keru_text(1)
         render_pass.set_bind_group(0, &self.shapes_bind_group, &[]);
         render_pass.set_bind_group(1, &self.text.bind_group(), &[]);
         render_pass.set_vertex_buffer(0, self.instances.buffer().slice(..));
@@ -1322,10 +1310,6 @@ impl Renderer {
 
         let real_end = range.end.min(self.instances.len());
         render_pass.draw(0..4, range.start as u32..real_end as u32);
-    }
-
-    pub fn prepare_decorations(&mut self) {
-        self.text.prepare_decorations();
     }
 
     /// Convenience function that creates a render pass, renders into it, and presents to the screen.
@@ -1387,9 +1371,9 @@ impl Renderer {
     }
 }
 
-fn assert_imported_textslabs_shader_matches() {
-    let imported_shader = include_str!("shaders/textslabs.slang");
-    let original_shader = textslabs::Text::composable_shader_source();
+fn assert_imported_keru_text_shader_matches() {
+    let imported_shader = include_str!("shaders/keru_text.slang");
+    let original_shader = keru_text::Text::composable_shader_source();
     assert!(imported_shader == original_shader);
 }
 
@@ -1398,6 +1382,6 @@ mod tests {
     use crate::*;
     #[test]
     fn test_imported_shaders() {
-        assert_imported_textslabs_shader_matches();
+        assert_imported_keru_text_shader_matches();
     }
 }
