@@ -12,6 +12,11 @@ use std::time::Duration;
 #[derive(Debug, Clone, Copy)]
 pub struct InstanceRange { pub start: usize, pub end: usize }
 
+/// A range of instances in the deferred buffer.
+/// Returned by `end_deferred_mode()` and used with `draw_deferred_elements()`.
+#[derive(Debug, Clone, Copy)]
+pub struct DeferredInstanceRange { start: usize, end: usize }
+
 pub use keru_text;
 
 pub use keru_text::{
@@ -375,6 +380,10 @@ pub struct Renderer {
     instances: GpuVec<Instance>,
     transform_stack: Vec<usize>,
     pub gpu_profiler: GpuProfiler,
+    // Deferred mode
+    deferred_mode: bool,
+    deferred_mode_start: usize,
+    deferred_instances: Vec<Instance>,
 }
 
 #[repr(C)]
@@ -534,6 +543,9 @@ impl Renderer {
             instances,
             transform_stack: vec![0], // Start with identity transform at index 0
             gpu_profiler,
+            deferred_mode: false,
+            deferred_mode_start: 0,
+            deferred_instances: Vec::new(),
         }
     }
 
@@ -638,7 +650,7 @@ impl Renderer {
             texture_page,
             pad: [0.0; 5],
         });
-        self.instances.push(Instance {
+        self.push_instance(Instance {
             p_type: primitive::BOX,
             p_index: index as u32,
             transform_index: *self.transform_stack.last().unwrap() as u32,
@@ -693,7 +705,7 @@ impl Renderer {
             dash_length: 0.0,
             dash_offset: 0.0,
         });
-        self.instances.push(Instance {
+        self.push_instance(Instance {
             p_type: primitive::CIRCLE,
             p_index: index as u32,
             transform_index: *self.transform_stack.last().unwrap() as u32,
@@ -723,7 +735,7 @@ impl Renderer {
             dash_length: params.dash_length.unwrap_or(0.0),
             dash_offset: params.dash_offset,
         });
-        self.instances.push(Instance {
+        self.push_instance(Instance {
             p_type: primitive::CIRCLE,
             p_index: index as u32,
             transform_index: *self.transform_stack.last().unwrap() as u32,
@@ -753,7 +765,7 @@ impl Renderer {
             dash_length: params.dash_length.unwrap_or(0.0),
             dash_offset: params.dash_offset,
         });
-        self.instances.push(Instance {
+        self.push_instance(Instance {
             p_type: primitive::CIRCLE,
             p_index: index as u32,
             transform_index: *self.transform_stack.last().unwrap() as u32,
@@ -783,7 +795,7 @@ impl Renderer {
             dash_length: 0.0,
             dash_offset: 0.0,
         });
-        self.instances.push(Instance {
+        self.push_instance(Instance {
             p_type: primitive::CIRCLE,
             p_index: index as u32,
             transform_index: *self.transform_stack.last().unwrap() as u32,
@@ -816,7 +828,7 @@ impl Renderer {
             texture_uv_size,
             pad: [0.0; 2],
         });
-        self.instances.push(Instance {
+        self.push_instance(Instance {
             p_type: primitive::SEGMENT,
             p_index: index as u32,
             transform_index: *self.transform_stack.last().unwrap() as u32,
@@ -843,7 +855,7 @@ impl Renderer {
             texture_uv_size,
             pad: [0.0, 0.0],
         });
-        self.instances.push(Instance {
+        self.push_instance(Instance {
             p_type: primitive::GRID,
             p_index: index as u32,
             transform_index: *self.transform_stack.last().unwrap() as u32,
@@ -872,7 +884,7 @@ impl Renderer {
             texture_uv_size,
             pad: [0.0; 2],
         });
-        self.instances.push(Instance {
+        self.push_instance(Instance {
             p_type: primitive::TRIANGLE,
             p_index: index as u32,
             transform_index: *self.transform_stack.last().unwrap() as u32,
@@ -903,7 +915,7 @@ impl Renderer {
             texture_uv_size,
             _pad2: [0.0; 2],
         });
-        self.instances.push(Instance {
+        self.push_instance(Instance {
             p_type: primitive::HEXAGON,
             p_index: index as u32,
             transform_index: *self.transform_stack.last().unwrap() as u32,
@@ -1146,7 +1158,7 @@ impl Renderer {
         let glyph_range = self.text.get_text_box(text_box).glyph_quad_range();
 
         for q in (glyph_range.0)..(glyph_range.1) {
-            self.instances.push(Instance {
+            self.push_instance(Instance {
                 p_type: primitive::TEXT,
                 p_index: q as u32,
                 transform_index: *self.transform_stack.last().unwrap() as u32,
@@ -1174,7 +1186,7 @@ impl Renderer {
         let glyph_range = self.text.get_text_edit(text_edit).glyph_quad_range();
 
         for q in (glyph_range.0)..(glyph_range.1) {
-            self.instances.push(Instance {
+            self.push_instance(Instance {
                 p_type: primitive::TEXT,
                 p_index: q as u32,
                 transform_index: *self.transform_stack.last().unwrap() as u32,
@@ -1191,6 +1203,10 @@ impl Renderer {
         self.transforms.push(Transform::identity());
         self.transform_stack.clear();
         self.transform_stack.push(0);
+        // clear deferred state
+        self.deferred_mode = false;
+        self.deferred_mode_start = 0;
+        self.deferred_instances.clear();
     }
 
     pub fn prepare_text(&mut self) {
@@ -1204,6 +1220,44 @@ impl Renderer {
     /// Returns the current number of instances that have been added so far.
     pub fn instance_count(&self) -> usize {
         self.instances.len()
+    }
+
+    /// Internal helper to push an instance to the correct buffer based on deferred mode.
+    fn push_instance(&mut self, instance: Instance) {
+        if self.deferred_mode {
+            self.deferred_instances.push(instance);
+        } else {
+            self.instances.push(instance);
+        }
+    }
+
+    /// Start deferred mode. While in deferred mode, draw calls will be recorded
+    /// but not added to the main instance buffer. Call `end_deferred_mode()` to
+    /// get a handle to the recorded instances, which can later be drawn with
+    /// `draw_deferred_elements()`.
+    pub fn start_deferred_mode(&mut self) {
+        self.deferred_mode = true;
+        self.deferred_mode_start = self.deferred_instances.len();
+    }
+
+    /// End deferred mode and return a handle to the recorded instances.
+    /// The returned [`DeferredInstanceRange`] can be used with `draw_deferred_elements()`
+    /// to copy the recorded instances to the main buffer at any time.
+    pub fn end_deferred_mode(&mut self) -> DeferredInstanceRange {
+        self.deferred_mode = false;
+        DeferredInstanceRange {
+            start: self.deferred_mode_start,
+            end: self.deferred_instances.len(),
+        }
+    }
+
+    /// Copy deferred instances to the main instance buffer.
+    /// This allows drawing primitives in a different order than they were created,
+    /// enabling painter's algorithm ordering.
+    pub fn draw_deferred_elements(&mut self, range: DeferredInstanceRange) {
+        for i in range.start..range.end {
+            self.instances.push(self.deferred_instances[i]);
+        }
     }
 
     /// Push a new transform onto the stack.
