@@ -107,6 +107,17 @@ struct HexagonGpu {
     float2 _pad2;
 }
 
+struct ParabolicSegmentGpu {
+    float2 p0;
+    float2 p1;
+    float2 p2;
+    float thickness;
+    float _pad0;
+    float2 x_clip;
+    float2 y_clip;
+    float4 color;
+}
+
 struct Transform {
     float2 offset;
     float scale;
@@ -121,6 +132,7 @@ struct ShapesGpu {
     StructuredBuffer<GridGpu> grids;
     StructuredBuffer<TriangleGpu> triangles;
     StructuredBuffer<HexagonGpu> hexagons;
+    StructuredBuffer<ParabolicSegmentGpu> parabolic_segments;
     Texture2DArray<float4> atlas_texture;
     SamplerState atlas_sampler;
 }
@@ -901,4 +913,100 @@ float4 hexagon_fragment(uint primitiveIndex, float2 uv, float2 screen_pos, bool 
     }
 
     return float4(color.rgb, color.a * alpha);
+}
+
+void parabolic_segment_vertex(
+    uint instanceIndex,
+    uint vertexIndex,
+    float2 resolution,
+    out float4 position,
+    out float2 uv,
+    out float2 screen_pos,
+) {
+    var seg: ParabolicSegmentGpu = shapes.parabolic_segments[instanceIndex];
+
+    // Create bounding box for the parabolic segment
+    float half_thickness = seg.thickness * 0.5;
+    float2 min_point = min(seg.p0, min(seg.p1, seg.p2)) - float2(half_thickness, half_thickness);
+    float2 max_point = max(seg.p0, max(seg.p1, seg.p2)) + float2(half_thickness, half_thickness);
+
+    float2 top_left = min_point;
+    float2 size = max_point - min_point;
+
+    quad_vertex(top_left, size, vertexIndex, resolution, position, uv);
+    screen_pos = top_left + uv * size;
+}
+
+// SDF for parabolic segment defined by 3 points
+// p0 and p2 are endpoints, p1 controls the curvature
+float sd_parabolic_segment(float2 p, float2 p0, float2 p1, float2 p2) {
+    // Build local frame along p0->p2 axis
+    float2 ex = normalize(p2 - p0);
+    float2 ey = float2(-ex.y, ex.x);
+
+    // Transform to local coordinates
+    float2 lp  = float2(dot(p - p0, ex), dot(p - p0, ey));
+    float2 lp1 = float2(dot(p1 - p0, ex), dot(p1 - p0, ey));
+
+    float L  = length(p2 - p0);
+    float x1 = lp1.x;
+    float y1 = lp1.y;
+
+    // Curvature from control point
+    float k = y1 / (x1 * (L - x1) + 0.0001);
+    k *= 0.5 + 0.5 * smoothstep(0.0, L, x1);
+
+    // Parabola and its derivative
+    float f  = k * lp.x * (L - lp.x);
+    float df = k * (L - 2.0 * lp.x);
+
+    // Distance to parabola curve
+    float dist = abs(lp.y - f) / sqrt(1.0 + df * df);
+
+    // Clip to segment bounds (x in [0, L])
+    if (lp.x < 0.0) {
+        dist = length(lp);
+    } else if (lp.x > L) {
+        dist = length(lp - float2(L, 0.0));
+    }
+
+    return dist;
+}
+
+float4 parabolic_segment_fragment(uint primitiveIndex, float2 uv, float2 screen_pos, bool srgb, float transform_scale): SV_Target {
+    var seg: ParabolicSegmentGpu = shapes.parabolic_segments[primitiveIndex];
+
+    if (screen_pos.x < seg.x_clip.x || screen_pos.x > seg.x_clip.y ||
+        screen_pos.y < seg.y_clip.x || screen_pos.y > seg.y_clip.y) {
+        discard;
+    }
+
+    // Convert UV to world position
+    float half_thickness = seg.thickness * 0.5;
+    float2 min_point = min(seg.p0, min(seg.p1, seg.p2)) - float2(half_thickness, half_thickness);
+    float2 max_point = max(seg.p0, max(seg.p1, seg.p2)) + float2(half_thickness, half_thickness);
+
+    float2 top_left = min_point;
+    float2 size = max_point - min_point;
+
+    float2 p = top_left + uv * size;
+
+    // Calculate distance to parabolic segment
+    float dist = sd_parabolic_segment(p, seg.p0, seg.p1, seg.p2) - half_thickness;
+
+    // Scale antialiasing width based on transform zoom
+    float aa_width = 0.5 / max(transform_scale, 0.001);
+    float alpha = 1.0 - linearstep(-aa_width, aa_width, dist);
+
+    if (alpha < 0.001) {
+        discard;
+    }
+
+    float4 color = seg.color;
+
+    if (srgb) {
+        color.rgb = srgb_to_linear3(color.rgb);
+    }
+
+    return float4(color.rgb, alpha * color.a);
 }

@@ -637,14 +637,6 @@ impl State {
         self.renderer.draw_text_box(&self.text_box1);
 
         self.renderer.draw_text_box(&self.text_box2);
-
-        self.renderer.push_transform(Transform {
-            offset: [600.0, 630.0],
-            scale: 1.25,
-            _padding: 0.0,
-        });
-
-        self.renderer.pop_transform();
         
         self.renderer.autorender(&self.surface, wgpu::Color { r: 1.0, g: 1.0, b: 1.0, a: 1.0 });
 

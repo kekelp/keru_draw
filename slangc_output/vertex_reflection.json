@@ -1068,6 +1068,108 @@
                             "binding": {"kind": "descriptorTableSlot", "index": 6}
                         },
                         {
+                            "name": "parabolic_segments",
+                            "type": {
+                                "kind": "resource",
+                                "baseShape": "structuredBuffer",
+                                "resultType": {
+                                    "kind": "struct",
+                                    "name": "ParabolicSegmentGpu",
+                                    "fields": [
+                                        {
+                                            "name": "p0",
+                                            "type": {
+                                                "kind": "vector",
+                                                "elementCount": 2,
+                                                "elementType": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                }
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 0, "size": 8, "elementStride": 4}
+                                        },
+                                        {
+                                            "name": "p1",
+                                            "type": {
+                                                "kind": "vector",
+                                                "elementCount": 2,
+                                                "elementType": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                }
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 8, "size": 8, "elementStride": 4}
+                                        },
+                                        {
+                                            "name": "p2",
+                                            "type": {
+                                                "kind": "vector",
+                                                "elementCount": 2,
+                                                "elementType": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                }
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 16, "size": 8, "elementStride": 4}
+                                        },
+                                        {
+                                            "name": "thickness",
+                                            "type": {
+                                                "kind": "scalar",
+                                                "scalarType": "float32"
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 24, "size": 4, "elementStride": 0}
+                                        },
+                                        {
+                                            "name": "_pad0",
+                                            "type": {
+                                                "kind": "scalar",
+                                                "scalarType": "float32"
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 28, "size": 4, "elementStride": 0}
+                                        },
+                                        {
+                                            "name": "x_clip",
+                                            "type": {
+                                                "kind": "vector",
+                                                "elementCount": 2,
+                                                "elementType": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                }
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 32, "size": 8, "elementStride": 4}
+                                        },
+                                        {
+                                            "name": "y_clip",
+                                            "type": {
+                                                "kind": "vector",
+                                                "elementCount": 2,
+                                                "elementType": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                }
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 40, "size": 8, "elementStride": 4}
+                                        },
+                                        {
+                                            "name": "color",
+                                            "type": {
+                                                "kind": "vector",
+                                                "elementCount": 4,
+                                                "elementType": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                }
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 48, "size": 16, "elementStride": 4}
+                                        }
+                                    ]
+                                }
+                            },
+                            "binding": {"kind": "descriptorTableSlot", "index": 7}
+                        },
+                        {
                             "name": "atlas_texture",
                             "type": {
                                 "kind": "resource",
@@ -1082,14 +1184,14 @@
                                     }
                                 }
                             },
-                            "binding": {"kind": "descriptorTableSlot", "index": 7}
+                            "binding": {"kind": "descriptorTableSlot", "index": 8}
                         },
                         {
                             "name": "atlas_sampler",
                             "type": {
                                 "kind": "samplerState"
                             },
-                            "binding": {"kind": "descriptorTableSlot", "index": 8}
+                            "binding": {"kind": "descriptorTableSlot", "index": 9}
                         }
                     ]
                 },
@@ -2160,6 +2262,108 @@
                                 "binding": {"kind": "descriptorTableSlot", "index": 6}
                             },
                             {
+                                "name": "parabolic_segments",
+                                "type": {
+                                    "kind": "resource",
+                                    "baseShape": "structuredBuffer",
+                                    "resultType": {
+                                        "kind": "struct",
+                                        "name": "ParabolicSegmentGpu",
+                                        "fields": [
+                                            {
+                                                "name": "p0",
+                                                "type": {
+                                                    "kind": "vector",
+                                                    "elementCount": 2,
+                                                    "elementType": {
+                                                        "kind": "scalar",
+                                                        "scalarType": "float32"
+                                                    }
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 0, "size": 8, "elementStride": 4}
+                                            },
+                                            {
+                                                "name": "p1",
+                                                "type": {
+                                                    "kind": "vector",
+                                                    "elementCount": 2,
+                                                    "elementType": {
+                                                        "kind": "scalar",
+                                                        "scalarType": "float32"
+                                                    }
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 8, "size": 8, "elementStride": 4}
+                                            },
+                                            {
+                                                "name": "p2",
+                                                "type": {
+                                                    "kind": "vector",
+                                                    "elementCount": 2,
+                                                    "elementType": {
+                                                        "kind": "scalar",
+                                                        "scalarType": "float32"
+                                                    }
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 16, "size": 8, "elementStride": 4}
+                                            },
+                                            {
+                                                "name": "thickness",
+                                                "type": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 24, "size": 4, "elementStride": 0}
+                                            },
+                                            {
+                                                "name": "_pad0",
+                                                "type": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 28, "size": 4, "elementStride": 0}
+                                            },
+                                            {
+                                                "name": "x_clip",
+                                                "type": {
+                                                    "kind": "vector",
+                                                    "elementCount": 2,
+                                                    "elementType": {
+                                                        "kind": "scalar",
+                                                        "scalarType": "float32"
+                                                    }
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 32, "size": 8, "elementStride": 4}
+                                            },
+                                            {
+                                                "name": "y_clip",
+                                                "type": {
+                                                    "kind": "vector",
+                                                    "elementCount": 2,
+                                                    "elementType": {
+                                                        "kind": "scalar",
+                                                        "scalarType": "float32"
+                                                    }
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 40, "size": 8, "elementStride": 4}
+                                            },
+                                            {
+                                                "name": "color",
+                                                "type": {
+                                                    "kind": "vector",
+                                                    "elementCount": 4,
+                                                    "elementType": {
+                                                        "kind": "scalar",
+                                                        "scalarType": "float32"
+                                                    }
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 48, "size": 16, "elementStride": 4}
+                                            }
+                                        ]
+                                    }
+                                },
+                                "binding": {"kind": "descriptorTableSlot", "index": 7}
+                            },
+                            {
                                 "name": "atlas_texture",
                                 "type": {
                                     "kind": "resource",
@@ -2174,18 +2378,18 @@
                                         }
                                     }
                                 },
-                                "binding": {"kind": "descriptorTableSlot", "index": 7}
+                                "binding": {"kind": "descriptorTableSlot", "index": 8}
                             },
                             {
                                 "name": "atlas_sampler",
                                 "type": {
                                     "kind": "samplerState"
                                 },
-                                "binding": {"kind": "descriptorTableSlot", "index": 8}
+                                "binding": {"kind": "descriptorTableSlot", "index": 9}
                             }
                         ]
                     },
-                    "binding": {"kind": "descriptorTableSlot", "index": 0, "count": 9}
+                    "binding": {"kind": "descriptorTableSlot", "index": 0, "count": 10}
                 }
             }
         },

@@ -46,6 +46,7 @@ pub mod primitive {
     pub const GRID: u32 = 4;
     pub const TRIANGLE: u32 = 5;
     pub const HEXAGON: u32 = 6;
+    pub const PARABOLIC_SEGMENT: u32 = 7;
 }
 
 bitflags::bitflags! {
@@ -262,6 +263,19 @@ pub struct Hexagon {
     pub x_clip: [f32; 2],
     pub y_clip: [f32; 2],
     pub texture: Option<LoadedImage>,
+}
+
+/// Parameters for drawing a parabolic segment defined by 3 control points.
+/// p0 and p2 are endpoints, p1 controls the curvature.
+#[derive(Debug, Clone)]
+pub struct ParabolicSegment {
+    pub p0: [f32; 2],
+    pub p1: [f32; 2],
+    pub p2: [f32; 2],
+    pub thickness: f32,
+    pub color: Color,
+    pub x_clip: [f32; 2],
+    pub y_clip: [f32; 2],
 }
 
 /// Parameters for drawing a dashed box outline (composed of segments and corner arcs)
@@ -596,11 +610,11 @@ impl Renderer {
         }
         entries.extend(shapes_entries);
 
-        // Add image atlas resources (bindings 7-8)
+        // Add image atlas resources (bindings 8-9)
         entries.extend_from_slice(&[
             // Image atlas texture array
             wgpu::BindGroupLayoutEntry {
-                binding: 7,
+                binding: 8,
                 visibility: wgpu::ShaderStages::VERTEX.union(wgpu::ShaderStages::FRAGMENT),
                 ty: wgpu::BindingType::Texture {
                     sample_type: wgpu::TextureSampleType::Float { filterable: true },
@@ -611,7 +625,7 @@ impl Renderer {
             },
             // Sampler
             wgpu::BindGroupLayoutEntry {
-                binding: 8,
+                binding: 9,
                 visibility: wgpu::ShaderStages::FRAGMENT,
                 ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
                 count: None,
@@ -647,12 +661,13 @@ impl Renderer {
                 shapes.grids.bind_group_entry(4),
                 shapes.triangles.bind_group_entry(5),
                 shapes.hexagons.bind_group_entry(6),
+                shapes.parabolic_segments.bind_group_entry(7),
                 wgpu::BindGroupEntry {
-                    binding: 7,
+                    binding: 8,
                     resource: wgpu::BindingResource::TextureView(&texture_view),
                 },
                 wgpu::BindGroupEntry {
-                    binding: 8,
+                    binding: 9,
                     resource: wgpu::BindingResource::Sampler(&image_renderer.sampler),
                 },
             ],
@@ -950,6 +965,26 @@ impl Renderer {
         });
         self.push_instance(Instance {
             p_type: primitive::HEXAGON,
+            p_index: index as u32,
+            transform_index: self.current_transform as u32,
+            _padding: 0,
+        });
+    }
+
+    pub fn draw_parabolic_segment(&mut self, params: ParabolicSegment) {
+        let index = self.shapes.parabolic_segments.len();
+        self.shapes.parabolic_segments.push(shapes::ParabolicSegmentGpu {
+            p0: params.p0,
+            p1: params.p1,
+            p2: params.p2,
+            thickness: params.thickness,
+            _pad0: 0.0,
+            x_clip: params.x_clip,
+            y_clip: params.y_clip,
+            color: params.color,
+        });
+        self.push_instance(Instance {
+            p_type: primitive::PARABOLIC_SEGMENT,
             p_index: index as u32,
             transform_index: self.current_transform as u32,
             _padding: 0,
