@@ -953,8 +953,12 @@ float sd_parabolic_segment(float2 p, float2 p0, float2 p1, float2 p2) {
     float y1 = lp1.y;
 
     // Curvature from control point
-    float k = y1 / (x1 * (L - x1) + 0.0001);
-    k *= 0.5 + 0.5 * smoothstep(0.0, L, x1);
+    // The denominator x1*(L-x1) approaches 0 when control point is near endpoints.
+    // Use symmetric blend to smoothly degenerate to a line segment in those cases.
+    float denom = x1 * (L - x1);
+    float max_denom = L * L * 0.25;  // maximum at x1 = L/2
+    float blend = smoothstep(0.0, max_denom * 0.1, denom);  // symmetric falloff
+    float k = blend * y1 / (denom + 0.0001);
 
     // Parabola and its derivative
     float f  = k * lp.x * (L - lp.x);
