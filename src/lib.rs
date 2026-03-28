@@ -17,6 +17,11 @@ pub struct InstanceRange { pub start: usize, pub end: usize }
 #[derive(Debug, Clone, Copy)]
 pub struct DeferredInstanceRange { start: usize, end: usize }
 
+/// An index into the transforms buffer.
+/// Use with `set_transform_at()` and `get_transform_at()` to modify transforms after creation.
+#[derive(Debug, Clone, Copy)]
+pub struct TransformIndex(usize);
+
 pub use keru_text;
 
 pub use keru_text::{
@@ -1278,6 +1283,27 @@ impl Renderer {
             panic!("Cannot pop the last transform from the stack");
         }
         self.transform_stack.pop();
+    }
+
+    /// Allocate a transform and push it onto the stack, returning its index.
+    /// The returned `TransformIndex` can be used with `set_transform_at()` to
+    /// modify the transform later, affecting all instances that use it.
+    pub fn push_transform_indexed(&mut self, transform: Transform) -> TransformIndex {
+        let index = self.transforms.len();
+        self.transforms.push(transform);
+        self.transform_stack.push(index);
+        TransformIndex(index)
+    }
+
+    /// Modify a previously allocated transform.
+    /// All instances using this transform will be affected.
+    pub fn set_transform_at(&mut self, index: TransformIndex, transform: Transform) {
+        self.transforms[index.0] = transform;
+    }
+
+    /// Get the value of a previously allocated transform.
+    pub fn get_transform_at(&self, index: TransformIndex) -> Transform {
+        self.transforms[index.0]
     }
 
     /// Get the current transform being used for draw calls.
