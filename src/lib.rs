@@ -407,7 +407,7 @@ pub struct Renderer {
     transforms_dirty: bool,
     shapes_bind_group: wgpu::BindGroup,
     instances: GpuVec<Instance>,
-    transform_stack: Vec<usize>,
+    current_transform: usize,
     pub gpu_profiler: GpuProfiler,
     // Deferred mode
     deferred_mode: bool,
@@ -574,7 +574,7 @@ impl Renderer {
             text,
             shapes_bind_group,
             instances,
-            transform_stack: vec![0], // Start with identity transform at index 0
+            current_transform: 0, // Identity transform is at index 0
             gpu_profiler,
             deferred_mode: false,
             deferred_mode_start: 0,
@@ -686,7 +686,7 @@ impl Renderer {
         self.push_instance(Instance {
             p_type: primitive::BOX,
             p_index: index as u32,
-            transform_index: *self.transform_stack.last().unwrap() as u32,
+            transform_index: self.current_transform as u32,
             _padding: 0,
         });
     }
@@ -741,7 +741,7 @@ impl Renderer {
         self.push_instance(Instance {
             p_type: primitive::CIRCLE,
             p_index: index as u32,
-            transform_index: *self.transform_stack.last().unwrap() as u32,
+            transform_index: self.current_transform as u32,
             _padding: 0,
         });
     }
@@ -771,7 +771,7 @@ impl Renderer {
         self.push_instance(Instance {
             p_type: primitive::CIRCLE,
             p_index: index as u32,
-            transform_index: *self.transform_stack.last().unwrap() as u32,
+            transform_index: self.current_transform as u32,
             _padding: 0,
         });
     }
@@ -801,7 +801,7 @@ impl Renderer {
         self.push_instance(Instance {
             p_type: primitive::CIRCLE,
             p_index: index as u32,
-            transform_index: *self.transform_stack.last().unwrap() as u32,
+            transform_index: self.current_transform as u32,
             _padding: 0,
         });
     }
@@ -831,7 +831,7 @@ impl Renderer {
         self.push_instance(Instance {
             p_type: primitive::CIRCLE,
             p_index: index as u32,
-            transform_index: *self.transform_stack.last().unwrap() as u32,
+            transform_index: self.current_transform as u32,
             _padding: 0,
         });
     }
@@ -864,7 +864,7 @@ impl Renderer {
         self.push_instance(Instance {
             p_type: primitive::SEGMENT,
             p_index: index as u32,
-            transform_index: *self.transform_stack.last().unwrap() as u32,
+            transform_index: self.current_transform as u32,
             _padding: 0,
         });
     }
@@ -891,7 +891,7 @@ impl Renderer {
         self.push_instance(Instance {
             p_type: primitive::GRID,
             p_index: index as u32,
-            transform_index: *self.transform_stack.last().unwrap() as u32,
+            transform_index: self.current_transform as u32,
             _padding: 0,
         });
     }
@@ -920,7 +920,7 @@ impl Renderer {
         self.push_instance(Instance {
             p_type: primitive::TRIANGLE,
             p_index: index as u32,
-            transform_index: *self.transform_stack.last().unwrap() as u32,
+            transform_index: self.current_transform as u32,
             _padding: 0,
         });
     }
@@ -951,7 +951,7 @@ impl Renderer {
         self.push_instance(Instance {
             p_type: primitive::HEXAGON,
             p_index: index as u32,
-            transform_index: *self.transform_stack.last().unwrap() as u32,
+            transform_index: self.current_transform as u32,
             _padding: 0,
         });
     }
@@ -1194,7 +1194,7 @@ impl Renderer {
             self.push_instance(Instance {
                 p_type: primitive::TEXT,
                 p_index: q as u32,
-                transform_index: *self.transform_stack.last().unwrap() as u32,
+                transform_index: self.current_transform as u32,
                 _padding: 0,
             });
         }
@@ -1222,7 +1222,7 @@ impl Renderer {
             self.push_instance(Instance {
                 p_type: primitive::TEXT,
                 p_index: q as u32,
-                transform_index: *self.transform_stack.last().unwrap() as u32,
+                transform_index: self.current_transform as u32,
                 _padding: 0,
             });
         }
@@ -1234,8 +1234,7 @@ impl Renderer {
         // during canvas_drawing() to persist through rebuild_render_data().
         // Note: transforms are retained (not cleared) - they persist until explicitly destroyed.
         self.instances.clear();
-        self.transform_stack.clear();
-        self.transform_stack.push(0); // Identity transform is always at index 0
+        self.current_transform = 0; // Reset to identity transform
         self.deferred_mode = false;
         self.deferred_mode_start = 0;
     }
@@ -1298,50 +1297,22 @@ impl Renderer {
         }
     }
 
-    /// Copy deferred instances to the main instance buffer using an existing transform handle.
-    /// All instances will use the given transform.
-    pub fn draw_deferred_elements_with_handle(&mut self, range: DeferredInstanceRange, handle: TransformHandle) {
-        for i in range.start..range.end {
-            let mut instance = self.deferred_instances[i];
-            instance.transform_index = handle.0 as u32;
-            self.instances.push(instance);
-        }
+    /// Set the current transform to an existing transform handle.
+    /// All subsequent draw calls will use this transform until `pop_current_transform` is called.
+    pub fn set_current_transform(&mut self, handle: TransformHandle) {
+        self.current_transform = handle.0;
     }
 
-    /// Push a new transform onto the stack.
-    /// The transform is applied in screen space after clipping.
-    pub fn push_transform(&mut self, transform: Transform) {
-        // Add the transform to the slab
-        let new_index = self.transforms.insert(transform);
-        self.transforms_dirty = true;
-
-        // Push the new index onto the stack
-        self.transform_stack.push(new_index);
+    /// Reset the current transform back to identity.
+    pub fn clear_current_transform(&mut self) {
+        self.current_transform = 0;
     }
 
-    /// Pop the current transform from the stack, returning to the previous transform.
-    /// Panics if trying to pop the last transform (the identity transform).
-    pub fn pop_transform(&mut self) {
-        if self.transform_stack.len() <= 1 {
-            panic!("Cannot pop the last transform from the stack");
-        }
-        self.transform_stack.pop();
-    }
-
-    /// Allocate a transform and push it onto the stack, returning a handle.
-    /// The returned `TransformHandle` can be used with `set_transform()` to
-    /// modify the transform later, affecting all instances that use it.
-    pub fn push_transform_retained(&mut self, transform: Transform) -> TransformHandle {
-        let index = self.transforms.insert(transform);
-        self.transforms_dirty = true;
-        self.transform_stack.push(index);
-        TransformHandle(index)
-    }
-
-    /// Create a retained transform without pushing it onto the stack.
-    /// The returned `TransformHandle` can be used with `set_transform()` and
-    /// `destroy_transform()`. The transform persists until explicitly destroyed.
-    pub fn create_transform(&mut self, transform: Transform) -> TransformHandle {
+    /// Create a retained transform.
+    /// The returned `TransformHandle` can be used with `push_current_transform()`,
+    /// `set_transform()`, and `destroy_transform()`.
+    /// The transform persists until explicitly destroyed.
+    pub fn insert_transform(&mut self, transform: Transform) -> TransformHandle {
         let index = self.transforms.insert(transform);
         self.transforms_dirty = true;
         TransformHandle(index)
@@ -1349,28 +1320,28 @@ impl Renderer {
 
     /// Modify a retained transform.
     /// All instances using this transform will be affected.
-    pub fn set_transform(&mut self, handle: TransformHandle, transform: Transform) {
-        *self.transforms.get_mut(handle.0) = transform;
+    pub fn get_transform_mut(&mut self, handle: TransformHandle) -> &mut Transform {
         self.transforms_dirty = true;
+        self.transforms.get_mut(handle.0)
     }
 
     /// Get the value of a retained transform.
-    pub fn get_transform(&self, handle: TransformHandle) -> Transform {
-        *self.transforms._get(handle.0)
+    pub fn get_transform(&self, handle: TransformHandle) -> &Transform {
+        self.transforms.get(handle.0)
     }
 
     /// Destroy a retained transform, freeing its slot in the slab.
     /// Using the handle after destruction will cause incorrect behavior.
-    pub fn destroy_transform(&mut self, handle: TransformHandle) {
+    pub fn remove_transform(&mut self, handle: TransformHandle) {
         self.transforms.remove(handle.0);
         self.transforms_dirty = true;
     }
 
     /// Get the current transform being used for draw calls.
     fn get_current_transform(&self) -> Transform {
-        let current_index = *self.transform_stack.last().unwrap();
+        let current_index = self.current_transform;
         if current_index < self.transforms.len() {
-            *self.transforms._get(current_index)
+            *self.transforms.get(current_index)
         } else {
             Transform::identity()
         }

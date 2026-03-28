@@ -48,7 +48,7 @@ impl<T: GpuSlabItem> GpuSlab<T> {
     }
 
     /// Get a reference to an item.
-    pub fn _get(&self, i: usize) -> &T {
+    pub fn get(&self, i: usize) -> &T {
         return self.items.get(i).unwrap();
     }
 
