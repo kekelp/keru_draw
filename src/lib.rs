@@ -3,9 +3,11 @@ pub use shapes::*;
 pub mod color;
 pub use color::*;
 pub mod gpu_vec;
+pub mod gpu_slab;
 pub mod images;
 
 use gpu_vec::GpuVec;
+use gpu_slab::{GpuSlab, GpuSlabItem};
 use std::hash::{Hash, Hasher};
 use std::time::Duration;
 
@@ -17,10 +19,10 @@ pub struct InstanceRange { pub start: usize, pub end: usize }
 #[derive(Debug, Clone, Copy)]
 pub struct DeferredInstanceRange { start: usize, end: usize }
 
-/// An index into the transforms buffer.
-/// Use with `set_transform_at()` and `get_transform_at()` to modify transforms after creation.
-#[derive(Debug, Clone, Copy)]
-pub struct TransformIndex(usize);
+/// A handle to a retained transform in the transforms slab.
+/// The handle remains valid until `destroy_transform()` is called.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct TransformHandle(usize);
 
 pub use keru_text;
 
@@ -361,6 +363,26 @@ impl Transform {
     }
 }
 
+// Use _padding to store the free list pointer for GpuSlab.
+// We encode Option<usize> as: u32::MAX = None, otherwise the index.
+impl GpuSlabItem for Transform {
+    fn next_free(&self) -> Option<usize> {
+        let bits = self._padding.to_bits();
+        if bits == u32::MAX {
+            None
+        } else {
+            Some(bits as usize)
+        }
+    }
+
+    fn set_next_free(&mut self, i: Option<usize>) {
+        self._padding = match i {
+            None => f32::from_bits(u32::MAX),
+            Some(idx) => f32::from_bits(idx as u32),
+        };
+    }
+}
+
 /// Combines a keru_draw Transform with a keru_text Transform2D.
 fn combine_transforms(keru_transform: &Transform, keru_text_transform: &keru_text::Transform2D) -> keru_text::Transform2D {
     keru_text::Transform2D {
@@ -380,7 +402,9 @@ pub struct Renderer {
     pub image_renderer: ImageRenderer,
     pub text: Text,
     shapes: Shapes,
-    transforms: GpuVec<Transform>,
+    transforms: GpuSlab<Transform>,
+    transforms_gpu: GpuVec<Transform>,
+    transforms_dirty: bool,
     shapes_bind_group: wgpu::BindGroup,
     instances: GpuVec<Instance>,
     transform_stack: Vec<usize>,
@@ -427,9 +451,11 @@ impl Renderer {
         let shapes = Shapes::new(&device);
         let image_renderer = ImageRenderer::new(&device, &queue, surface_format);
 
-        // Create transforms buffer with identity transform at index 0
-        let mut transforms = GpuVec::new(&device, 64, "keru_draw transforms");
-        transforms.push(Transform::identity());
+        // Create transforms slab with identity transform at index 0
+        let mut transforms = GpuSlab::with_capacity(64);
+        let identity_idx = transforms.insert(Transform::identity());
+        debug_assert_eq!(identity_idx, 0, "Identity transform must be at index 0");
+        let transforms_gpu = GpuVec::new(&device, 64, "keru_draw transforms");
 
         // Create merged bind group layout for shapes + images
         let shapes_bind_group_layout = Self::create_shapes_bind_group_layout(&device);
@@ -438,7 +464,7 @@ impl Renderer {
         let shapes_bind_group = Self::create_shapes_bind_group(
             &device,
             &shapes_bind_group_layout,
-            &transforms,
+            &transforms_gpu,
             &shapes,
             &image_renderer,
         );
@@ -542,6 +568,8 @@ impl Renderer {
             render_pipeline,
             shapes,
             transforms,
+            transforms_gpu,
+            transforms_dirty: true,
             image_renderer,
             text,
             shapes_bind_group,
@@ -1204,11 +1232,10 @@ impl Renderer {
         // Note: shapes is NOT cleared here - it's cleared in clear_for_new_frame(),
         // which is called at the start of the UI frame. This allows shapes created
         // during canvas_drawing() to persist through rebuild_render_data().
+        // Note: transforms are retained (not cleared) - they persist until explicitly destroyed.
         self.instances.clear();
-        self.transforms.clear();
-        self.transforms.push(Transform::identity());
         self.transform_stack.clear();
-        self.transform_stack.push(0);
+        self.transform_stack.push(0); // Identity transform is always at index 0
         self.deferred_mode = false;
         self.deferred_mode_start = 0;
     }
@@ -1271,18 +1298,12 @@ impl Renderer {
         }
     }
 
-    /// Copy deferred instances to the main instance buffer with a transform applied.
-    /// This allocates a new transform and patches all instances to use it.
-    /// Use this when the final transform is known only after layout.
-    pub fn draw_deferred_elements_with_transform(&mut self, range: DeferredInstanceRange, transform: Transform) {
-        // Allocate a new transform
-        let transform_index = self.transforms.len() as u32;
-        self.transforms.push(transform);
-
-        // Copy instances with the new transform index
+    /// Copy deferred instances to the main instance buffer using an existing transform handle.
+    /// All instances will use the given transform.
+    pub fn draw_deferred_elements_with_handle(&mut self, range: DeferredInstanceRange, handle: TransformHandle) {
         for i in range.start..range.end {
             let mut instance = self.deferred_instances[i];
-            instance.transform_index = transform_index;
+            instance.transform_index = handle.0 as u32;
             self.instances.push(instance);
         }
     }
@@ -1290,9 +1311,9 @@ impl Renderer {
     /// Push a new transform onto the stack.
     /// The transform is applied in screen space after clipping.
     pub fn push_transform(&mut self, transform: Transform) {
-        // Add the transform to the buffer
-        let new_index = self.transforms.len();
-        self.transforms.push(transform);
+        // Add the transform to the slab
+        let new_index = self.transforms.insert(transform);
+        self.transforms_dirty = true;
 
         // Push the new index onto the stack
         self.transform_stack.push(new_index);
@@ -1307,32 +1328,49 @@ impl Renderer {
         self.transform_stack.pop();
     }
 
-    /// Allocate a transform and push it onto the stack, returning its index.
-    /// The returned `TransformIndex` can be used with `set_transform_at()` to
+    /// Allocate a transform and push it onto the stack, returning a handle.
+    /// The returned `TransformHandle` can be used with `set_transform()` to
     /// modify the transform later, affecting all instances that use it.
-    pub fn push_transform_indexed(&mut self, transform: Transform) -> TransformIndex {
-        let index = self.transforms.len();
-        self.transforms.push(transform);
+    pub fn push_transform_retained(&mut self, transform: Transform) -> TransformHandle {
+        let index = self.transforms.insert(transform);
+        self.transforms_dirty = true;
         self.transform_stack.push(index);
-        TransformIndex(index)
+        TransformHandle(index)
     }
 
-    /// Modify a previously allocated transform.
+    /// Create a retained transform without pushing it onto the stack.
+    /// The returned `TransformHandle` can be used with `set_transform()` and
+    /// `destroy_transform()`. The transform persists until explicitly destroyed.
+    pub fn create_transform(&mut self, transform: Transform) -> TransformHandle {
+        let index = self.transforms.insert(transform);
+        self.transforms_dirty = true;
+        TransformHandle(index)
+    }
+
+    /// Modify a retained transform.
     /// All instances using this transform will be affected.
-    pub fn set_transform_at(&mut self, index: TransformIndex, transform: Transform) {
-        self.transforms[index.0] = transform;
+    pub fn set_transform(&mut self, handle: TransformHandle, transform: Transform) {
+        *self.transforms.get_mut(handle.0) = transform;
+        self.transforms_dirty = true;
     }
 
-    /// Get the value of a previously allocated transform.
-    pub fn get_transform_at(&self, index: TransformIndex) -> Transform {
-        self.transforms[index.0]
+    /// Get the value of a retained transform.
+    pub fn get_transform(&self, handle: TransformHandle) -> Transform {
+        *self.transforms._get(handle.0)
+    }
+
+    /// Destroy a retained transform, freeing its slot in the slab.
+    /// Using the handle after destruction will cause incorrect behavior.
+    pub fn destroy_transform(&mut self, handle: TransformHandle) {
+        self.transforms.remove(handle.0);
+        self.transforms_dirty = true;
     }
 
     /// Get the current transform being used for draw calls.
     fn get_current_transform(&self) -> Transform {
         let current_index = *self.transform_stack.last().unwrap();
         if current_index < self.transforms.len() {
-            self.transforms[current_index]
+            *self.transforms._get(current_index)
         } else {
             Transform::identity()
         }
@@ -1340,8 +1378,17 @@ impl Renderer {
 
     /// Render into a render pass.
     pub fn render(&mut self, render_pass: &mut wgpu::RenderPass) {
+        // Sync transforms slab to GPU buffer if dirty
+        let transforms_changed = if self.transforms_dirty {
+            self.transforms_gpu.clear();
+            self.transforms_gpu.vec_mut().extend_from_slice(self.transforms.as_slice());
+            self.transforms_dirty = false;
+            self.transforms_gpu.load_to_gpu(&self.device, &self.queue)
+        } else {
+            self.transforms_gpu.load_to_gpu(&self.device, &self.queue)
+        };
+
         // Upload resources to GPU
-        let transforms_changed = self.transforms.load_to_gpu(&self.device, &self.queue);
         let shapes_changed = self.shapes.load_to_gpu(&self.device, &self.queue);
         let images_changed = self.image_renderer.load_to_gpu(&self.device, &self.queue);
 
@@ -1351,7 +1398,7 @@ impl Renderer {
             self.shapes_bind_group = Self::create_shapes_bind_group(
                 &self.device,
                 &layout,
-                &self.transforms,
+                &self.transforms_gpu,
                 &self.shapes,
                 &self.image_renderer,
             );
@@ -1366,8 +1413,17 @@ impl Renderer {
     }
 
     pub fn load_to_gpu(&mut self) {
+        // Sync transforms slab to GPU buffer if dirty
+        let transforms_changed = if self.transforms_dirty {
+            self.transforms_gpu.clear();
+            self.transforms_gpu.vec_mut().extend_from_slice(self.transforms.as_slice());
+            self.transforms_dirty = false;
+            self.transforms_gpu.load_to_gpu(&self.device, &self.queue)
+        } else {
+            self.transforms_gpu.load_to_gpu(&self.device, &self.queue)
+        };
+
         // Upload resources to GPU
-        let transforms_changed = self.transforms.load_to_gpu(&self.device, &self.queue);
         let shapes_changed = self.shapes.load_to_gpu(&self.device, &self.queue);
         let images_changed = self.image_renderer.load_to_gpu(&self.device, &self.queue);
 
@@ -1377,7 +1433,7 @@ impl Renderer {
             self.shapes_bind_group = Self::create_shapes_bind_group(
                 &self.device,
                 &layout,
-                &self.transforms,
+                &self.transforms_gpu,
                 &self.shapes,
                 &self.image_renderer,
             );
