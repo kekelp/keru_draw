@@ -1201,16 +1201,22 @@ impl Renderer {
     }
 
     pub fn begin_frame(&mut self) {
-        // clear immediate-mode shapes
-        self.shapes.clear();
+        // Note: shapes is NOT cleared here - it's cleared in clear_for_new_frame(),
+        // which is called at the start of the UI frame. This allows shapes created
+        // during canvas_drawing() to persist through rebuild_render_data().
         self.instances.clear();
         self.transforms.clear();
         self.transforms.push(Transform::identity());
         self.transform_stack.clear();
         self.transform_stack.push(0);
-        // clear deferred state
         self.deferred_mode = false;
         self.deferred_mode_start = 0;
+    }
+
+    /// Clear shapes and deferred instances. Call this at the start of each UI frame,
+    /// before any canvas_drawing() calls.
+    pub fn clear_for_new_frame(&mut self) {
+        self.shapes.clear();
         self.deferred_instances.clear();
     }
 
@@ -1262,6 +1268,22 @@ impl Renderer {
     pub fn draw_deferred_elements(&mut self, range: DeferredInstanceRange) {
         for i in range.start..range.end {
             self.instances.push(self.deferred_instances[i]);
+        }
+    }
+
+    /// Copy deferred instances to the main instance buffer with a transform applied.
+    /// This allocates a new transform and patches all instances to use it.
+    /// Use this when the final transform is known only after layout.
+    pub fn draw_deferred_elements_with_transform(&mut self, range: DeferredInstanceRange, transform: Transform) {
+        // Allocate a new transform
+        let transform_index = self.transforms.len() as u32;
+        self.transforms.push(transform);
+
+        // Copy instances with the new transform index
+        for i in range.start..range.end {
+            let mut instance = self.deferred_instances[i];
+            instance.transform_index = transform_index;
+            self.instances.push(instance);
         }
     }
 
