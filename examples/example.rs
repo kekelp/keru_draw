@@ -625,6 +625,17 @@ impl State {
             y_clip: clip_y,
         });
 
+        // Quadratic bezier curve
+        self.renderer.draw_quadratic_bezier(QuadraticBezier {
+            p0: [720.0, 520.0],
+            p1: [770.0, 470.0],
+            p2: [820.0, 520.0],
+            thickness: 4.0,
+            color: Color { r: 0.9, g: 0.2, b: 0.6, a: 1.0 },
+            x_clip: clip_x,
+            y_clip: clip_y,
+        });
+
         self.renderer.draw_text_box(&self.text_box3);
         
         self.renderer.draw_text_edit(&self.text_edit);

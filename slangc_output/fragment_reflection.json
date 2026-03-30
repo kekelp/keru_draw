@@ -1068,13 +1068,13 @@
                             "binding": {"kind": "descriptorTableSlot", "index": 6}
                         },
                         {
-                            "name": "parabolic_segments",
+                            "name": "quadratic_beziers",
                             "type": {
                                 "kind": "resource",
                                 "baseShape": "structuredBuffer",
                                 "resultType": {
                                     "kind": "struct",
-                                    "name": "ParabolicSegmentGpu",
+                                    "name": "QuadraticBezierGpu",
                                     "fields": [
                                         {
                                             "name": "p0",
@@ -2262,13 +2262,13 @@
                                 "binding": {"kind": "descriptorTableSlot", "index": 6}
                             },
                             {
-                                "name": "parabolic_segments",
+                                "name": "quadratic_beziers",
                                 "type": {
                                     "kind": "resource",
                                     "baseShape": "structuredBuffer",
                                     "resultType": {
                                         "kind": "struct",
-                                        "name": "ParabolicSegmentGpu",
+                                        "name": "QuadraticBezierGpu",
                                         "fields": [
                                             {
                                                 "name": "p0",

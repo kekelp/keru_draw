@@ -107,7 +107,7 @@ struct HexagonGpu {
     float2 _pad2;
 }
 
-struct ParabolicSegmentGpu {
+struct QuadraticBezierGpu {
     float2 p0;
     float2 p1;
     float2 p2;
@@ -132,7 +132,7 @@ struct ShapesGpu {
     StructuredBuffer<GridGpu> grids;
     StructuredBuffer<TriangleGpu> triangles;
     StructuredBuffer<HexagonGpu> hexagons;
-    StructuredBuffer<ParabolicSegmentGpu> parabolic_segments;
+    StructuredBuffer<QuadraticBezierGpu> quadratic_beziers;
     Texture2DArray<float4> atlas_texture;
     SamplerState atlas_sampler;
 }
@@ -915,7 +915,7 @@ float4 hexagon_fragment(uint primitiveIndex, float2 uv, float2 screen_pos, bool 
     return float4(color.rgb, color.a * alpha);
 }
 
-void parabolic_segment_vertex(
+void quadratic_bezier_vertex(
     uint instanceIndex,
     uint vertexIndex,
     float2 resolution,
@@ -923,9 +923,9 @@ void parabolic_segment_vertex(
     out float2 uv,
     out float2 screen_pos,
 ) {
-    var seg: ParabolicSegmentGpu = shapes.parabolic_segments[instanceIndex];
+    var seg: QuadraticBezierGpu = shapes.quadratic_beziers[instanceIndex];
 
-    // Create bounding box for the parabolic segment
+    // Create bounding box for the quadratic bezier
     float half_thickness = seg.thickness * 0.5;
     float2 min_point = min(seg.p0, min(seg.p1, seg.p2)) - float2(half_thickness, half_thickness);
     float2 max_point = max(seg.p0, max(seg.p1, seg.p2)) + float2(half_thickness, half_thickness);
@@ -937,48 +937,70 @@ void parabolic_segment_vertex(
     screen_pos = top_left + uv * size;
 }
 
-// SDF for parabolic segment defined by 3 points
-// p0 and p2 are endpoints, p1 controls the curvature
-float sd_parabolic_segment(float2 p, float2 p0, float2 p1, float2 p2) {
-    // Build local frame along p0->p2 axis
-    float2 ex = normalize(p2 - p0);
-    float2 ey = float2(-ex.y, ex.x);
+// True quadratic Bezier SDF using analytic cubic solution
+// B(t) = (1-t)²·p0 + 2(1-t)t·p1 + t²·p2
+float sd_quadratic_bezier(float2 pos, float2 p0, float2 p1, float2 p2) {
+    float2 a = p1 - p0;
+    float2 b = p0 - 2.0 * p1 + p2;
+    float2 c = a * 2.0;
+    float2 d = p0 - pos;
 
-    // Transform to local coordinates
-    float2 lp  = float2(dot(p - p0, ex), dot(p - p0, ey));
-    float2 lp1 = float2(dot(p1 - p0, ex), dot(p1 - p0, ey));
+    // Cubic coefficients for closest point: dot(B'(t), B(t) - pos) = 0
+    float bb = dot(b, b);
 
-    float L  = length(p2 - p0);
-    float x1 = lp1.x;
-    float y1 = lp1.y;
-
-    // Curvature from control point
-    // The denominator x1*(L-x1) approaches 0 when control point is near endpoints.
-    // Use symmetric blend to smoothly degenerate to a line segment in those cases.
-    float denom = x1 * (L - x1);
-    float max_denom = L * L * 0.25;  // maximum at x1 = L/2
-    float blend = smoothstep(0.0, max_denom * 0.1, denom);  // symmetric falloff
-    float k = blend * y1 / (denom + 0.0001);
-
-    // Parabola and its derivative
-    float f  = k * lp.x * (L - lp.x);
-    float df = k * (L - 2.0 * lp.x);
-
-    // Distance to parabola curve
-    float dist = abs(lp.y - f) / sqrt(1.0 + df * df);
-
-    // Clip to segment bounds (x in [0, L])
-    if (lp.x < 0.0) {
-        dist = length(lp);
-    } else if (lp.x > L) {
-        dist = length(lp - float2(L, 0.0));
+    // Handle degenerate case (collinear points -> line segment)
+    if (bb < 0.0001) {
+        // Fallback to line segment p0 -> p2
+        float2 e = p2 - p0;
+        float t = clamp(dot(pos - p0, e) / (dot(e, e) + 0.0001), 0.0, 1.0);
+        return length(pos - (p0 + e * t));
     }
 
-    return dist;
+    float kk = 1.0 / bb;
+    float kx = kk * dot(a, b);
+    float ky = kk * (2.0 * dot(a, a) + dot(d, b)) / 3.0;
+    float kz = kk * dot(d, a);
+
+    float p = ky - kx * kx;
+    float q = kx * (2.0 * kx * kx - 3.0 * ky) + kz;
+    float p3 = p * p * p;
+    float h = q * q + 4.0 * p3;
+
+    float res;
+
+    if (h >= 0.0) {
+        // One real root
+        h = sqrt(h);
+        float2 x = (float2(h, -h) - q) * 0.5;
+        float2 uv = sign(x) * pow(abs(x), float2(1.0/3.0, 1.0/3.0));
+        float t = clamp(uv.x + uv.y - kx, 0.0, 1.0);
+        float2 qv = d + (c + b * t) * t;
+        res = dot(qv, qv);
+    } else {
+        // Three real roots - need to check all
+        float z = sqrt(-p);
+        float v = acos(q / (p * z * 2.0)) / 3.0;
+        float m = cos(v);
+        float n = sin(v) * 1.732050808; // sqrt(3)
+
+        float3 t = clamp(float3(m + m, -n - m, n - m) * z - kx, float3(0.0), float3(1.0));
+
+        float2 qx = d + (c + b * t.x) * t.x;
+        float2 qy = d + (c + b * t.y) * t.y;
+        float2 qz = d + (c + b * t.z) * t.z;
+
+        float dx = dot(qx, qx);
+        float dy = dot(qy, qy);
+        float dz = dot(qz, qz);
+
+        res = min(dx, min(dy, dz));
+    }
+
+    return sqrt(res);
 }
 
-float4 parabolic_segment_fragment(uint primitiveIndex, float2 uv, float2 screen_pos, bool srgb, float transform_scale): SV_Target {
-    var seg: ParabolicSegmentGpu = shapes.parabolic_segments[primitiveIndex];
+float4 quadratic_bezier_fragment(uint primitiveIndex, float2 uv, float2 screen_pos, bool srgb, float transform_scale): SV_Target {
+    var seg: QuadraticBezierGpu = shapes.quadratic_beziers[primitiveIndex];
 
     if (screen_pos.x < seg.x_clip.x || screen_pos.x > seg.x_clip.y ||
         screen_pos.y < seg.y_clip.x || screen_pos.y > seg.y_clip.y) {
@@ -995,8 +1017,8 @@ float4 parabolic_segment_fragment(uint primitiveIndex, float2 uv, float2 screen_
 
     float2 p = top_left + uv * size;
 
-    // Calculate distance to parabolic segment
-    float dist = sd_parabolic_segment(p, seg.p0, seg.p1, seg.p2) - half_thickness;
+    // Calculate distance to the curve
+    float dist = sd_quadratic_bezier(p, seg.p0, seg.p1, seg.p2) - half_thickness;
 
     // Scale antialiasing width based on transform zoom
     float aa_width = 0.5 / max(transform_scale, 0.001);

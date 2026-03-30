@@ -11,7 +11,7 @@ enum PrimitiveType: uint {
     Grid = 4,
     Triangle = 5,
     Hexagon = 6,
-    ParabolicSegment = 7,
+    QuadraticBezier = 7,
 }
 
 struct VertexOutput {
@@ -61,8 +61,8 @@ VertexOutput vertexMain(
     else if (input.primitiveType == PrimitiveType::Hexagon) {
         hexagon_vertex(input.primitiveIndex, vertexIndex, resolution, output.position, output.uv, output.screen_pos);
     }
-    else if (input.primitiveType == PrimitiveType::ParabolicSegment) {
-        parabolic_segment_vertex(input.primitiveIndex, vertexIndex, resolution, output.position, output.uv, output.screen_pos);
+    else if (input.primitiveType == PrimitiveType::QuadraticBezier) {
+        quadratic_bezier_vertex(input.primitiveIndex, vertexIndex, resolution, output.position, output.uv, output.screen_pos);
     }
     else if (input.primitiveType == PrimitiveType::Text) {
         text_vertex(input.primitiveIndex, vertexIndex, resolution, output.position, output.uv);
@@ -117,8 +117,8 @@ float4 fragmentMain(VertexOutput input): SV_Target {
     else if (input.primitiveType == PrimitiveType::Hexagon) {
         return hexagon_fragment(input.primitiveIndex, input.uv, input.screen_pos, srgb, input.transform_scale);
     }
-    else if (input.primitiveType == PrimitiveType::ParabolicSegment) {
-        return parabolic_segment_fragment(input.primitiveIndex, input.uv, input.screen_pos, srgb, input.transform_scale);
+    else if (input.primitiveType == PrimitiveType::QuadraticBezier) {
+        return quadratic_bezier_fragment(input.primitiveIndex, input.uv, input.screen_pos, srgb, input.transform_scale);
     }
     else if (input.primitiveType == PrimitiveType::Text) {
         return text_fragment(input.primitiveIndex, input.uv, input.position);

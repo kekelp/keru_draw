@@ -3,11 +3,9 @@ pub use shapes::*;
 pub mod color;
 pub use color::*;
 pub mod gpu_vec;
-pub mod gpu_slab;
 pub mod images;
 
 use gpu_vec::GpuVec;
-use gpu_slab::{GpuSlab, GpuSlabItem};
 use std::hash::{Hash, Hasher};
 use std::time::Duration;
 
@@ -46,7 +44,7 @@ pub mod primitive {
     pub const GRID: u32 = 4;
     pub const TRIANGLE: u32 = 5;
     pub const HEXAGON: u32 = 6;
-    pub const PARABOLIC_SEGMENT: u32 = 7;
+    pub const QUADRATIC_BEZIER: u32 = 7;
 }
 
 bitflags::bitflags! {
@@ -265,10 +263,11 @@ pub struct Hexagon {
     pub texture: Option<LoadedImage>,
 }
 
-/// Parameters for drawing a parabolic segment defined by 3 control points.
-/// p0 and p2 are endpoints, p1 controls the curvature.
+/// Parameters for drawing a quadratic bezier curve from `p0` to `p2`, with `p1` as a control point.
+/// 
+/// The curve is rendered analytically, solving the cubic distance equation in the fragment shader. This is not cheap, relatively speaking.
 #[derive(Debug, Clone)]
-pub struct ParabolicSegment {
+pub struct QuadraticBezier {
     pub p0: [f32; 2],
     pub p1: [f32; 2],
     pub p2: [f32; 2],
@@ -377,26 +376,6 @@ impl Transform {
     }
 }
 
-// Use _padding to store the free list pointer for GpuSlab.
-// We encode Option<usize> as: u32::MAX = None, otherwise the index.
-impl GpuSlabItem for Transform {
-    fn next_free(&self) -> Option<usize> {
-        let bits = self._padding.to_bits();
-        if bits == u32::MAX {
-            None
-        } else {
-            Some(bits as usize)
-        }
-    }
-
-    fn set_next_free(&mut self, i: Option<usize>) {
-        self._padding = match i {
-            None => f32::from_bits(u32::MAX),
-            Some(idx) => f32::from_bits(idx as u32),
-        };
-    }
-}
-
 /// Combines a keru_draw Transform with a keru_text Transform2D.
 fn combine_transforms(keru_transform: &Transform, keru_text_transform: &keru_text::Transform2D) -> keru_text::Transform2D {
     keru_text::Transform2D {
@@ -416,9 +395,7 @@ pub struct Renderer {
     pub image_renderer: ImageRenderer,
     pub text: Text,
     shapes: Shapes,
-    transforms: GpuSlab<Transform>,
-    transforms_gpu: GpuVec<Transform>,
-    transforms_dirty: bool,
+    transforms: GpuVec<Transform>,
     shapes_bind_group: wgpu::BindGroup,
     instances: GpuVec<Instance>,
     current_transform: usize,
@@ -465,11 +442,9 @@ impl Renderer {
         let shapes = Shapes::new(&device);
         let image_renderer = ImageRenderer::new(&device, &queue, surface_format);
 
-        // Create transforms slab with identity transform at index 0
-        let mut transforms = GpuSlab::with_capacity(64);
-        let identity_idx = transforms.insert(Transform::identity());
-        debug_assert_eq!(identity_idx, 0, "Identity transform must be at index 0");
-        let transforms_gpu = GpuVec::new(&device, 64, "keru_draw transforms");
+        // Create transforms with identity transform at index 0
+        let mut transforms = GpuVec::new(&device, 64, "keru_draw transforms");
+        transforms.push(Transform::identity());
 
         // Create merged bind group layout for shapes + images
         let shapes_bind_group_layout = Self::create_shapes_bind_group_layout(&device);
@@ -478,7 +453,7 @@ impl Renderer {
         let shapes_bind_group = Self::create_shapes_bind_group(
             &device,
             &shapes_bind_group_layout,
-            &transforms_gpu,
+            &transforms,
             &shapes,
             &image_renderer,
         );
@@ -582,8 +557,6 @@ impl Renderer {
             render_pipeline,
             shapes,
             transforms,
-            transforms_gpu,
-            transforms_dirty: true,
             image_renderer,
             text,
             shapes_bind_group,
@@ -661,7 +634,7 @@ impl Renderer {
                 shapes.grids.bind_group_entry(4),
                 shapes.triangles.bind_group_entry(5),
                 shapes.hexagons.bind_group_entry(6),
-                shapes.parabolic_segments.bind_group_entry(7),
+                shapes.quadratic_beziers.bind_group_entry(7),
                 wgpu::BindGroupEntry {
                     binding: 8,
                     resource: wgpu::BindingResource::TextureView(&texture_view),
@@ -971,9 +944,9 @@ impl Renderer {
         });
     }
 
-    pub fn draw_parabolic_segment(&mut self, params: ParabolicSegment) {
-        let index = self.shapes.parabolic_segments.len();
-        self.shapes.parabolic_segments.push(shapes::ParabolicSegmentGpu {
+    pub fn draw_quadratic_bezier(&mut self, params: QuadraticBezier) {
+        let index = self.shapes.quadratic_beziers.len();
+        self.shapes.quadratic_beziers.push(shapes::QuadraticBezierGpu {
             p0: params.p0,
             p1: params.p1,
             p2: params.p2,
@@ -984,7 +957,7 @@ impl Renderer {
             color: params.color,
         });
         self.push_instance(Instance {
-            p_type: primitive::PARABOLIC_SEGMENT,
+            p_type: primitive::QUADRATIC_BEZIER,
             p_index: index as u32,
             transform_index: self.current_transform as u32,
             _padding: 0,
@@ -1263,22 +1236,26 @@ impl Renderer {
         }
     }
 
+    /// Begin recording a new frame.
+    /// 
+    /// This only clears the main instance buffer, not the shape data, transforms, or deferred instances, so they can be reused.
+    /// 
+    /// To clear everything, call [`Renderer::clear_for_new_frame()`].
     pub fn begin_frame(&mut self) {
-        // Note: shapes is NOT cleared here - it's cleared in clear_for_new_frame(),
-        // which is called at the start of the UI frame. This allows shapes created
-        // during canvas_drawing() to persist through rebuild_render_data().
-        // Note: transforms are retained (not cleared) - they persist until explicitly destroyed.
         self.instances.clear();
         self.current_transform = 0; // Reset to identity transform
         self.deferred_mode = false;
         self.deferred_mode_start = 0;
     }
 
-    /// Clear shapes and deferred instances. Call this at the start of each UI frame,
-    /// before any canvas_drawing() calls.
+    /// Clear all the render data, including shapes, deferred instances, and transforms and begin a new frame from scratch.
     pub fn clear_for_new_frame(&mut self) {
+        self.instances.clear();
         self.shapes.clear();
         self.deferred_instances.clear();
+        // Reset transforms to just identity at index 0
+        self.transforms.clear();
+        self.transforms.push(Transform::identity());
     }
 
     pub fn prepare_text(&mut self) {
@@ -1343,40 +1320,31 @@ impl Renderer {
         self.current_transform = 0;
     }
 
-    /// Create a retained transform.
-    /// The returned `TransformHandle` can be used with `push_current_transform()`,
-    /// `set_transform()`, and `destroy_transform()`.
-    /// The transform persists until explicitly destroyed.
+    /// Create a transform for this frame.
+    /// The returned `TransformHandle` is valid until the next time [`Renderer::clear_for_new_frame()`] is called.
     pub fn insert_transform(&mut self, transform: Transform) -> TransformHandle {
-        let index = self.transforms.insert(transform);
-        self.transforms_dirty = true;
+        let index = self.transforms.len();
+        self.transforms.push(transform);
         TransformHandle(index)
     }
 
-    /// Modify a retained transform.
+    /// Modify a transform.
     /// All instances using this transform will be affected.
     pub fn get_transform_mut(&mut self, handle: TransformHandle) -> &mut Transform {
-        self.transforms_dirty = true;
-        self.transforms.get_mut(handle.0)
+        &mut self.transforms[handle.0]
     }
 
-    /// Get the value of a retained transform.
+    /// Get the value of a transform.
     pub fn get_transform(&self, handle: TransformHandle) -> &Transform {
-        self.transforms.get(handle.0)
+        &self.transforms[handle.0]
     }
 
-    /// Destroy a retained transform, freeing its slot in the slab.
-    /// Using the handle after destruction will cause incorrect behavior.
-    pub fn remove_transform(&mut self, handle: TransformHandle) {
-        self.transforms.remove(handle.0);
-        self.transforms_dirty = true;
-    }
 
     /// Get the current transform being used for draw calls.
     fn get_current_transform(&self) -> Transform {
         let current_index = self.current_transform;
         if current_index < self.transforms.len() {
-            *self.transforms.get(current_index)
+            self.transforms[current_index]
         } else {
             Transform::identity()
         }
@@ -1384,17 +1352,8 @@ impl Renderer {
 
     /// Render into a render pass.
     pub fn render(&mut self, render_pass: &mut wgpu::RenderPass) {
-        // Sync transforms slab to GPU buffer if dirty
-        let transforms_changed = if self.transforms_dirty {
-            self.transforms_gpu.clear();
-            self.transforms_gpu.vec_mut().extend_from_slice(self.transforms.as_slice());
-            self.transforms_dirty = false;
-            self.transforms_gpu.load_to_gpu(&self.device, &self.queue)
-        } else {
-            self.transforms_gpu.load_to_gpu(&self.device, &self.queue)
-        };
-
         // Upload resources to GPU
+        let transforms_changed = self.transforms.load_to_gpu(&self.device, &self.queue);
         let shapes_changed = self.shapes.load_to_gpu(&self.device, &self.queue);
         let images_changed = self.image_renderer.load_to_gpu(&self.device, &self.queue);
 
@@ -1404,7 +1363,7 @@ impl Renderer {
             self.shapes_bind_group = Self::create_shapes_bind_group(
                 &self.device,
                 &layout,
-                &self.transforms_gpu,
+                &self.transforms,
                 &self.shapes,
                 &self.image_renderer,
             );
@@ -1419,17 +1378,8 @@ impl Renderer {
     }
 
     pub fn load_to_gpu(&mut self) {
-        // Sync transforms slab to GPU buffer if dirty
-        let transforms_changed = if self.transforms_dirty {
-            self.transforms_gpu.clear();
-            self.transforms_gpu.vec_mut().extend_from_slice(self.transforms.as_slice());
-            self.transforms_dirty = false;
-            self.transforms_gpu.load_to_gpu(&self.device, &self.queue)
-        } else {
-            self.transforms_gpu.load_to_gpu(&self.device, &self.queue)
-        };
-
         // Upload resources to GPU
+        let transforms_changed = self.transforms.load_to_gpu(&self.device, &self.queue);
         let shapes_changed = self.shapes.load_to_gpu(&self.device, &self.queue);
         let images_changed = self.image_renderer.load_to_gpu(&self.device, &self.queue);
 
@@ -1439,7 +1389,7 @@ impl Renderer {
             self.shapes_bind_group = Self::create_shapes_bind_group(
                 &self.device,
                 &layout,
-                &self.transforms_gpu,
+                &self.transforms,
                 &self.shapes,
                 &self.image_renderer,
             );
