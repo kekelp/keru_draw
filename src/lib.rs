@@ -1290,8 +1290,7 @@ impl Renderer {
     }
 
     /// End deferred mode and return a handle to the recorded instances.
-    /// The returned [`DeferredInstanceRange`] can be used with `draw_deferred_elements()`
-    /// to copy the recorded instances to the main buffer at any time.
+    /// The returned [`DeferredInstanceRange`] can be used with `draw_deferred_elements()`to copy the recorded instances to the main buffer at any time.
     pub fn end_deferred_mode(&mut self) -> DeferredInstanceRange {
         self.deferred_mode = false;
         DeferredInstanceRange {
@@ -1301,12 +1300,10 @@ impl Renderer {
     }
 
     /// Copy deferred instances to the main instance buffer.
-    /// This allows drawing primitives in a different order than they were created,
-    /// enabling painter's algorithm ordering.
+    /// 
+    /// This allows drawing primitives in a different order than they were created.
     pub fn draw_deferred_elements(&mut self, range: DeferredInstanceRange) {
-        for i in range.start..range.end {
-            self.instances.push(self.deferred_instances[i]);
-        }
+        self.instances.vec_mut().extend_from_slice(&self.deferred_instances[range.start..range.end]);                                                         
     }
 
     /// Set the current transform to an existing transform handle.
