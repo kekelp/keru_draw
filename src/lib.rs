@@ -5,6 +5,9 @@ pub use color::*;
 pub mod gpu_vec;
 pub mod images;
 
+mod limited_hangout;
+pub use limited_hangout::*;
+
 use gpu_vec::GpuVec;
 use std::hash::{Hash, Hasher};
 use std::time::Duration;
@@ -1260,15 +1263,6 @@ impl Renderer {
 
     pub fn prepare_text(&mut self) {
         self.text.prepare_all();
-    }
-
-    pub fn device(&self) -> &wgpu::Device {
-        &self.device
-    }
-
-    /// Returns the current number of instances that have been added so far.
-    pub fn instance_count(&self) -> usize {
-        self.instances.len()
     }
 
     /// Internal helper to push an instance to the correct buffer based on deferred mode.
