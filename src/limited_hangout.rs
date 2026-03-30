@@ -10,7 +10,7 @@ impl Renderer {
 
 /// A context for custom drawing.
 /// 
-/// This is a limited version of the `keru_draw` [`Renderer`]
+/// This is a limited version of the `keru_draw` [`Renderer`] that exposes the methods for drawing, but not the internal ones like [`begin_new_frame`].
 pub struct DrawContext<'a> {
     renderer: &'a mut Renderer,
 }
@@ -99,5 +99,49 @@ impl<'a> DrawContext<'a> {
     /// Clear the current transform, resetting to identity.
     pub fn clear_transform(&mut self) {
         self.renderer.clear_current_transform();
+    }
+
+    /// Load and rasterize an SVG, returning the loaded image.
+    /// 
+    /// Must be unloaded manually with [`Self::unload_image()`].
+    pub fn load_svg(&mut self, svg_data: &[u8], width: u32, height: u32) -> Option<LoadedImage> {
+        self.renderer.image_renderer.load_svg(svg_data, width, height)
+    }
+
+    /// Rerasterize an SVG at a new size if needed.
+    pub fn rerasterize_svg_if_needed(&mut self, loaded: &mut LoadedImage, width: u32, height: u32) -> bool {
+        self.renderer.image_renderer.rerasterize_svg_if_needed(loaded, width, height)
+    }
+
+    /// Remove a loaded SVG and free its atlas space..
+    /// 
+    /// Must be unloaded manually with [`Self::unload_image()`].
+    pub fn unload_svg(&mut self, loaded: &LoadedImage) {
+        self.renderer.image_renderer.unload_svg(loaded);
+    }
+
+    /// Load a raster image from raw RGBA8 bytes.
+    /// 
+    /// Returns None if the image couldn't be stored in the atlas..
+    /// 
+    /// Must be unloaded manually with [`Self::unload_image()`].
+    pub fn load_rgba8_image(&mut self, rgba_data: &[u8], width: u32, height: u32) -> Option<LoadedImage> {
+        self.renderer.image_renderer.load_rgba8_image(rgba_data, width, height)
+    }
+
+    /// Load a raster image from encoded bytes (PNG, JPEG, etc.).
+    /// 
+    /// Returns None if the image couldn't be stored in the atlas..
+    /// 
+    /// Must be unloaded manually with [`Self::unload_image()`].
+    pub fn load_encoded_image(&mut self, image_data: &[u8]) -> Option<LoadedImage> {
+        self.renderer.image_renderer.load_encoded_image(image_data)
+    }
+
+    /// Remove a loaded image and free its atlas space..
+    /// 
+    /// Must be unloaded manually with [`Self::unload_image()`].
+    pub fn unload_image(&mut self, loaded: &LoadedImage) {
+        self.renderer.image_renderer.unload_image(loaded);
     }
 }
