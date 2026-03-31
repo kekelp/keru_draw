@@ -15,6 +15,7 @@ struct App {
 }
 
 struct State {
+    device: wgpu::Device,
     surface: wgpu::Surface<'static>,
     config: wgpu::SurfaceConfiguration,
     size: PhysicalSize<u32>,
@@ -79,7 +80,7 @@ impl State {
         };
         surface.configure(&device, &config);
 
-        let mut renderer = Renderer::new(device, queue.clone(), surface_format);
+        let mut renderer = Renderer::new(&device, &queue, surface_format);
 
         let style = renderer.text.add_style(
             TextStyle2 {
@@ -137,18 +138,7 @@ impl State {
         let svg_handle = renderer.image_renderer.load_svg(TIGER_SVG, 200, 200).unwrap();
         let texture_handle = renderer.image_renderer.load_encoded_image(TEXTURE).unwrap();
 
-        Self {
-            surface,
-            config,
-            size,
-            renderer,
-            text_edit,
-            text_box1,
-            text_box2,
-            text_box3,
-            svg_handle,
-            texture_handle,
-        }
+        Self { device, surface, config, size, renderer, text_edit, text_box1, text_box2, text_box3, svg_handle, texture_handle }
     }
 
     fn resize(&mut self, new_size: PhysicalSize<u32>) {
@@ -156,7 +146,7 @@ impl State {
             self.size = new_size;
             self.config.width = new_size.width;
             self.config.height = new_size.height;
-            self.surface.configure(self.renderer.device(), &self.config);
+            self.surface.configure(&self.device, &self.config);
             // self.renderer.resize(new_size.width, new_size.height);
         }
     }

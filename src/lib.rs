@@ -420,8 +420,8 @@ struct Instance {
 
 impl Renderer {
     pub fn new(
-        device: wgpu::Device,
-        queue: wgpu::Queue,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
         surface_format: wgpu::TextureFormat,
     ) -> Self {
         #[cfg(debug_assertions)] {
@@ -555,20 +555,13 @@ impl Renderer {
         }).unwrap();
 
         Self {
-            device,
-            queue,
-            render_pipeline,
-            shapes,
-            transforms,
-            image_renderer,
-            text,
-            shapes_bind_group,
-            instances,
-            current_transform: 0, // Identity transform is at index 0
-            gpu_profiler,
             deferred_mode: false,
             deferred_mode_start: 0,
-            deferred_instances: Vec::new(),
+            deferred_instances: Vec::with_capacity(5),
+            device: device.clone(),
+            queue: queue.clone(),
+            current_transform: 0, // Identity transform is at index 0
+            render_pipeline, shapes, transforms, image_renderer, text, shapes_bind_group, instances, gpu_profiler
         }
     }
 
