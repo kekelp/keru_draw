@@ -22,9 +22,15 @@ pub struct InstanceRange { pub start: usize, pub end: usize }
 #[derive(Debug, Clone, Copy)]
 pub struct DeferredInstanceRange { start: usize, end: usize }
 
+/// A handle to a transform inside the [`Renderer`]'s transforms slab.
+/// 
+/// The transform should eventually be removed with [`Renderer::remove_transform()`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct TransformHandle(usize);
 
+/// A handle to a clip rect inside the [`Renderer`]'s clip rects slab.
+/// 
+/// The clip rect should eventually be removed with [`Renderer::remove_clip rect()`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ClipRectHandle(usize);
 
