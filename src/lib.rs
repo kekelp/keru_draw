@@ -3,12 +3,14 @@ pub use shapes::*;
 pub mod color;
 pub use color::*;
 pub mod gpu_vec;
+pub mod gpu_slab;
 pub mod images;
 
 mod limited_hangout;
 pub use limited_hangout::*;
 
 use gpu_vec::GpuVec;
+use gpu_slab::{GpuSlab, GpuSlabItem};
 use std::hash::{Hash, Hasher};
 use std::time::Duration;
 
@@ -398,6 +400,28 @@ impl From<ClipRectOrTransform> for ClipRect {
     }
 }
 
+// GpuSlabItem implementation for ClipRectOrTransform.
+// When a slot is free, we store the next_free index in the first element (as f32 bits).
+// u32::MAX means None.
+impl GpuSlabItem for ClipRectOrTransform {
+    fn next_free(&self) -> Option<usize> {
+        let bits = self[0].to_bits();
+        if bits == u32::MAX {
+            None
+        } else {
+            Some(bits as usize)
+        }
+    }
+
+    fn set_next_free(&mut self, i: Option<usize>) {
+        let bits = match i {
+            Some(idx) => idx as u32,
+            None => u32::MAX,
+        };
+        self[0] = f32::from_bits(bits);
+    }
+}
+
 /// Combines a keru_draw Transform with a keru_text Transform2D.
 fn combine_transforms(keru_transform: &Transform, keru_text_transform: &keru_text::Transform2D) -> keru_text::Transform2D {
     keru_text::Transform2D {
@@ -417,7 +441,7 @@ pub struct Renderer {
     pub image_renderer: ImageRenderer,
     pub text: Text,
     shapes: Shapes,
-    clip_rects_or_transforms: GpuVec<ClipRectOrTransform>,
+    clip_rects_or_transforms: GpuSlab<ClipRectOrTransform>,
     shapes_bind_group: wgpu::BindGroup,
     instances: GpuVec<Instance>,
     current_transform: usize,
@@ -465,9 +489,9 @@ impl Renderer {
         let shapes = Shapes::new(&device);
         let image_renderer = ImageRenderer::new(&device, &queue, surface_format);
 
-        let mut clip_rects_or_transforms: GpuVec<ClipRectOrTransform> = GpuVec::new(&device, 64, "keru_draw clip_rects and transforms");
-        clip_rects_or_transforms.push(Transform::identity().into());
-        clip_rects_or_transforms.push(CLIP_NOTHING.into());
+        let mut clip_rects_or_transforms: GpuSlab<ClipRectOrTransform> = GpuSlab::new(&device, 64, "keru_draw clip_rects and transforms");
+        let _ = clip_rects_or_transforms.insert(Transform::identity().into()); // index 0: identity transform
+        let _ = clip_rects_or_transforms.insert(CLIP_NOTHING.into()); // index 1: no clip
 
         // Create merged bind group layout for shapes + images
         let shapes_bind_group_layout = Self::create_shapes_bind_group_layout(&device);
@@ -593,7 +617,7 @@ impl Renderer {
 
     fn create_shapes_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
         let entries = &[
-            GpuVec::<Transform>::bind_group_layout_entry(0),
+            GpuSlab::<ClipRectOrTransform>::bind_group_layout_entry(0),
             GpuVec::<BoxGpu>::bind_group_layout_entry(1),
             GpuVec::<CircleGpu>::bind_group_layout_entry(2),
             GpuVec::<SegmentGpu>::bind_group_layout_entry(3),
@@ -630,7 +654,7 @@ impl Renderer {
     fn create_shapes_bind_group(
         device: &wgpu::Device,
         layout: &wgpu::BindGroupLayout,
-        clip_rects_or_transforms: &GpuVec<ClipRectOrTransform>,
+        clip_rects_or_transforms: &GpuSlab<ClipRectOrTransform>,
         shapes: &Shapes,
         image_renderer: &ImageRenderer,
     ) -> wgpu::BindGroup {
@@ -1222,8 +1246,8 @@ impl Renderer {
         self.deferred_instances.clear();
         // Reset slots: identity transform at index 0, "no clip" at index 1
         self.clip_rects_or_transforms.clear();
-        self.clip_rects_or_transforms.push(Transform::identity().into());
-        self.clip_rects_or_transforms.push(CLIP_NOTHING.into());
+        self.clip_rects_or_transforms.insert(Transform::identity().into());
+        self.clip_rects_or_transforms.insert(CLIP_NOTHING.into());
         self.current_transform = 0;
         self.current_clip_rect = 1;
     }
@@ -1278,12 +1302,16 @@ impl Renderer {
         self.current_transform = 0;
     }
 
-    /// Create a transform for this frame.
-    /// The returned `TransformHandle` is valid until the next time [`Renderer::clear_for_new_frame()`] is called.
+    /// Create a retained transform.
+    /// The returned `TransformHandle` is valid until [`Renderer::remove_transform()`] is called on it.
     pub fn insert_transform(&mut self, transform: Transform) -> TransformHandle {
-        let index = self.clip_rects_or_transforms.len();
-        self.clip_rects_or_transforms.push(transform.into());
+        let index = self.clip_rects_or_transforms.insert(transform.into());
         TransformHandle(index)
+    }
+
+    /// Remove a retained transform.
+    pub fn remove_transform(&mut self, handle: TransformHandle) {
+        self.clip_rects_or_transforms.remove(handle.0);
     }
 
     /// Modify a transform.
@@ -1308,12 +1336,16 @@ impl Renderer {
         self.current_clip_rect = 0;
     }
 
-    /// Create a clip rect for this frame.
-    /// The returned `ClipRectHandle` is valid until the next time [`Renderer::clear_for_new_frame()`] is called.
+    /// Create a retained clip rect.
+    /// The returned `ClipRectHandle` is valid until [`Renderer::remove_clip_rect()`] is called on it.
     pub fn insert_clip_rect(&mut self, clip_rect: ClipRect) -> ClipRectHandle {
-        let index = self.clip_rects_or_transforms.len();
-        self.clip_rects_or_transforms.push(clip_rect.into());
+        let index = self.clip_rects_or_transforms.insert(clip_rect.into());
         ClipRectHandle(index)
+    }
+
+    /// Remove a retained clip rect.
+    pub fn remove_clip_rect(&mut self, handle: ClipRectHandle) {
+        self.clip_rects_or_transforms.remove(handle.0);
     }
 
     /// Modify a clip rect.
@@ -1326,12 +1358,6 @@ impl Renderer {
     pub fn get_clip_rect(&self, handle: ClipRectHandle) -> ClipRect {
         self.clip_rects_or_transforms[handle.0].into()
     }
-
-    /// Get the "no clip" handle (index 0).
-    pub fn no_clip(&self) -> ClipRectHandle {
-        ClipRectHandle(0)
-    }
-
 
     /// Get the current transform being used for draw calls.
     fn get_current_transform(&self) -> Transform {

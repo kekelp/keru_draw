@@ -108,11 +108,6 @@ impl<'a> DrawContext<'a> {
         self.renderer.clear_current_clip_rect();
     }
 
-    /// Get the "no clip" handle.
-    pub fn no_clip(&self) -> ClipRectHandle {
-        self.renderer.no_clip()
-    }
-
     /// Load and rasterize an SVG, returning the loaded image.
     /// 
     /// Must be unloaded manually with [`Self::unload_image()`].
