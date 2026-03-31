@@ -168,8 +168,6 @@ impl State {
             rounded_corners: RoundedCorners::ALL,
             border_thickness: 0.0,
             fill: ColorFill::Gradient(Gradient::linear(Color::new(1.0, 0.3, 0.3, 1.0), Color::new(0.3, 0.3, 1.0, 1.0), 0.0)),
-            x_clip: clip_x,
-            y_clip: clip_y,
             texture: Some(self.texture_handle)
         });
 
@@ -181,8 +179,6 @@ impl State {
             rounded_corners: RoundedCorners::ALL,
             border_thickness: 0.0,
             fill: ColorFill::Gradient(Gradient::linear(Color::new(1.0, 0.5, 0.3, 1.0), Color::new(0.3, 1.0, 0.5, 1.0), PI * 0.25)),
-            x_clip: clip_x,
-            y_clip: clip_y,
             texture: None,
         });
 
@@ -194,8 +190,6 @@ impl State {
             rounded_corners: RoundedCorners::TOP,
             border_thickness: 5.0,
             fill: ColorFill::Color(Color { r: 0.015686, g: 0.666667, b: 0.427451, a: 1.0 }),
-            x_clip: clip_x,
-            y_clip: clip_y,
             texture: None,
         });
 
@@ -207,8 +201,6 @@ impl State {
             rounded_corners: RoundedCorners::ALL,
             border_thickness: 5.0,
             fill: ColorFill::Color(Color { r: 0.8, g: 1.0, b: 0.3, a: 1.0 }),
-            x_clip: clip_x,
-            y_clip: clip_y,
             texture: None,
         });
 
@@ -220,8 +212,6 @@ impl State {
             rounded_corners: RoundedCorners::BOTTOM_RIGHT,
             border_thickness: 0.0,
             fill: ColorFill::Color(Color { r: 0.6, g: 0.3, b: 0.9, a: 1.0 }),
-            x_clip: clip_x,
-            y_clip: clip_y,
             texture: None,
         });
 
@@ -233,8 +223,6 @@ impl State {
             rounded_corners: RoundedCorners::TOP_LEFT | RoundedCorners::BOTTOM_RIGHT,
             border_thickness: 0.0,
             fill: ColorFill::Color(Color { r: 0.9, g: 0.5, b: 0.2, a: 1.0 }),
-            x_clip: clip_x,
-            y_clip: clip_y,
             texture: None,
         });
 
@@ -243,8 +231,6 @@ impl State {
             center: [50.0, 150.0],
             radius: 20.0,
             fill: ColorFill::Gradient(Gradient::radial(Color::new(1.0, 1.0, 0.3, 1.0), Color::new(1.0, 0.3, 0.3, 1.0))),
-            x_clip: clip_x,
-            y_clip: clip_y,
             texture: None,
         });
 
@@ -253,8 +239,6 @@ impl State {
             center: [140.0, 150.0],
             radius: 30.0,
             fill: ColorFill::Gradient(Gradient::linear(Color::new(0.3, 0.7, 1.0, 1.0), Color::new(1.0, 0.3, 0.7, 1.0), PI * 0.5)),
-            x_clip: clip_x,
-            y_clip: clip_y,
             texture: None,
         });
 
@@ -262,8 +246,6 @@ impl State {
             center: [250.0, 150.0],
             radius: 40.0,
             fill: ColorFill::Color(Color { r: 0.3, g: 0.9, b: 1.0, a: 1.0 }),
-            x_clip: clip_x,
-            y_clip: clip_y,
             texture: None,
         });
 
@@ -272,8 +254,6 @@ impl State {
             inner_radius: 35.0,
             outer_radius: 40.0,
             fill: ColorFill::Color(Color { r: 1.0, g: 1.0, b: 0.3, a: 1.0 }),
-            x_clip: clip_x,
-            y_clip: clip_y,
             texture: None,
             dash_length: None,
             dash_offset: 0.0,
@@ -284,8 +264,6 @@ impl State {
             inner_radius: 30.0,
             outer_radius: 45.0,
             fill: ColorFill::Color(Color { r: 1.0, g: 0.8, b: 0.3, a: 1.0 }),
-            x_clip: clip_x,
-            y_clip: clip_y,
             texture: None,
             dash_length: None,
             dash_offset: 0.0,
@@ -296,8 +274,6 @@ impl State {
             inner_radius: 25.0,
             outer_radius: 50.0,
             fill: ColorFill::Color(Color { r: 1.0, g: 0.6, b: 0.3, a: 1.0 }),
-            x_clip: clip_x,
-            y_clip: clip_y,
             texture: None,
             dash_length: Some(15.0),  // dashed ring example
             dash_offset: 0.0,
@@ -310,8 +286,6 @@ impl State {
             end_angle: PI * 0.5,
             thickness: 8.0,
             fill: ColorFill::Color(Color { r: 1.0, g: 0.3, b: 1.0, a: 1.0 }),
-            x_clip: clip_x,
-            y_clip: clip_y,
             texture: None,
             dash_length: None,
             dash_offset: 0.0,
@@ -324,8 +298,6 @@ impl State {
             end_angle: PI,
             thickness: 8.0,
             fill: ColorFill::Color(Color { r: 0.8, g: 0.3, b: 1.0, a: 1.0 }),
-            x_clip: clip_x,
-            y_clip: clip_y,
             texture: None,
             dash_length: None,
             dash_offset: 0.0,
@@ -339,8 +311,6 @@ impl State {
             end_angle: PI * 1.5,
             thickness: 8.0,
             fill: ColorFill::Color(Color { r: 0.6, g: 0.3, b: 1.0, a: 1.0 }),
-            x_clip: clip_x,
-            y_clip: clip_y,
             texture: None,
             dash_length: Some(10.0),
             dash_offset: 0.0,
@@ -353,8 +323,6 @@ impl State {
             end_angle: PI * 1.25,
             thickness: 8.0,
             fill: ColorFill::Color(Color { r: 0.4, g: 0.3, b: 1.0, a: 1.0 }),
-            x_clip: clip_x,
-            y_clip: clip_y,
             texture: None,
             dash_length: None,
             dash_offset: 0.0,
@@ -366,8 +334,6 @@ impl State {
             start_angle: 0.0,
             end_angle: PI * 0.25,
             fill: ColorFill::Color(Color { r: 0.3, g: 1.0, b: 1.0, a: 1.0 }),
-            x_clip: clip_x,
-            y_clip: clip_y,
             texture: None,
         });
 
@@ -377,8 +343,6 @@ impl State {
             start_angle: 0.0,
             end_angle: PI * 0.5,
             fill: ColorFill::Color(Color { r: 0.3, g: 1.0, b: 0.8, a: 1.0 }),
-            x_clip: clip_x,
-            y_clip: clip_y,
             texture: None,
         });
 
@@ -388,8 +352,6 @@ impl State {
             start_angle: 0.0,
             end_angle: PI,
             fill: ColorFill::Color(Color { r: 0.3, g: 1.0, b: 0.6, a: 1.0 }),
-            x_clip: clip_x,
-            y_clip: clip_y,
             texture: None,
         });
 
@@ -399,8 +361,6 @@ impl State {
             start_angle: PI * 0.5,
             end_angle: PI * 2.0,
             fill: ColorFill::Color(Color { r: 0.3, g: 1.0, b: 0.4, a: 1.0 }),
-            x_clip: clip_x,
-            y_clip: clip_y,
             texture: None,
         });
 
@@ -409,8 +369,6 @@ impl State {
             end: [100.0, 520.0],
             thickness: 3.0,
             fill: ColorFill::Color(Color { r: 1.0, g: 0.5, b: 0.0, a: 1.0 }),
-            x_clip: clip_x,
-            y_clip: clip_y,
             dash_length: None,
             dash_offset: 0.0,
             texture: None,
@@ -421,8 +379,6 @@ impl State {
             end: [200.0, 540.0],
             thickness: 6.0,
             fill: ColorFill::Color(Color { r: 1.0, g: 0.6, b: 0.0, a: 1.0 }),
-            x_clip: clip_x,
-            y_clip: clip_y,
             dash_length: Some(10.0),
             dash_offset: 0.0,
             texture: None,
@@ -433,8 +389,6 @@ impl State {
             end: [230.0, 540.0],
             thickness: 10.0,
             fill: ColorFill::Color(Color { r: 1.0, g: 0.7, b: 0.0, a: 1.0 }),
-            x_clip: clip_x,
-            y_clip: clip_y,
             dash_length: Some(15.0),
             dash_offset: 0.0,
             texture: None,
@@ -445,8 +399,6 @@ impl State {
             end: [340.0, 500.0],
             thickness: 8.0,
             fill: ColorFill::Color(Color { r: 1.0, g: 0.8, b: 0.0, a: 1.0 }),
-            x_clip: clip_x,
-            y_clip: clip_y,
             dash_length: Some(5.0),
             dash_offset: 0.0,
             texture: None,
@@ -458,8 +410,6 @@ impl State {
             end: [430.0, 540.0],
             thickness: 5.0,
             fill: ColorFill::Gradient(Gradient::linear(Color::new(1.0, 0.9, 0.2, 0.7), Color::new(0.2, 0.9, 1.0, 0.7), 0.0)), // angle is ignored for segments
-            x_clip: clip_x,
-            y_clip: clip_y,
             dash_length: Some(8.0),
             dash_offset: 0.0,
             texture: None,
@@ -469,8 +419,6 @@ impl State {
             end: [430.0, 500.0],
             thickness: 5.0,
             fill: ColorFill::Gradient(Gradient::linear(Color::new(1.0, 0.2, 0.9, 0.8), Color::new(0.2, 1.0, 0.9, 0.8), 0.0)), // angle is ignored for segments
-            x_clip: clip_x,
-            y_clip: clip_y,
             dash_length: None,
             dash_offset: 0.0,
             texture: None,
@@ -485,8 +433,6 @@ impl State {
             line_thickness: 2.0,
             color: Color::new(0.5, 0.5, 1.0, 0.5),
             grid_type: GridType::Square,
-            x_clip: clip_x,
-            y_clip: clip_y,
             texture: None,
         });
 
@@ -499,8 +445,6 @@ impl State {
             line_thickness: 2.0,
             color: Color::new(1.0, 0.0, 0.0, 0.5),
             grid_type: GridType::Hexagonal,
-            x_clip: clip_x,
-            y_clip: clip_y,
             texture: None,
         });
 
@@ -511,8 +455,6 @@ impl State {
             rotation: 0.0,
             fill: ColorFill::Color(Color { r: 0.2, g: 0.7, b: 0.9, a: 1.0 }),
             stroke_thickness: 0.0,
-            x_clip: clip_x,
-            y_clip: clip_y,
             texture: None,
         });
 
@@ -526,8 +468,6 @@ impl State {
                 Color::new(0.5, 0.3, 1.0, 1.0),
                 PI * 0.25,
             )),            stroke_thickness: 0.0,
-            x_clip: clip_x,
-            y_clip: clip_y,
             texture: None,
         });
 
@@ -538,8 +478,6 @@ impl State {
             rotation: 0.0,
             fill: ColorFill::Color(Color { r: 0.9, g: 0.5, b: 0.2, a: 1.0 }),
             stroke_thickness: 4.0,
-            x_clip: clip_x,
-            y_clip: clip_y,
             texture: None,
         });
 
@@ -550,8 +488,6 @@ impl State {
             rotation: PI / 6.0, // 30 degrees for pointy-top
             fill: ColorFill::Color(Color { r: 0.5, g: 0.9, b: 0.3, a: 1.0 }),
             stroke_thickness: 0.0,
-            x_clip: clip_x,
-            y_clip: clip_y,
             texture: None,
         });
 
@@ -562,8 +498,6 @@ impl State {
             rotation: 0.0,
             fill: ColorFill::Color(Color { r: 1.0, g: 1.0, b: 1.0, a: 1.0 }),
             stroke_thickness: 0.0,
-            x_clip: clip_x,
-            y_clip: clip_y,
             texture: Some(self.texture_handle),
         });
 
@@ -575,8 +509,6 @@ impl State {
             thickness: 3.0,
             color: Color { r: 1.0, g: 0.5, b: 0.2, a: 1.0 },
             dash_length: 10.0,
-            x_clip: clip_x,
-            y_clip: clip_y,
         });
 
         // Dashed box outline (with rounded corners)
@@ -587,8 +519,6 @@ impl State {
             thickness: 3.0,
             color: Color { r: 0.2, g: 0.8, b: 1.0, a: 1.0 },
             dash_length: 8.0,
-            x_clip: clip_x,
-            y_clip: clip_y,
         });
 
         // Dashed hexagon outline
@@ -599,8 +529,6 @@ impl State {
             thickness: 3.0,
             color: Color { r: 0.8, g: 0.3, b: 1.0, a: 1.0 },
             dash_length: 12.0,
-            x_clip: clip_x,
-            y_clip: clip_y,
         });
 
         // Dashed hexagon outline (rotated)
@@ -611,8 +539,6 @@ impl State {
             thickness: 3.0,
             color: Color { r: 0.3, g: 1.0, b: 0.5, a: 1.0 },
             dash_length: 8.0,
-            x_clip: clip_x,
-            y_clip: clip_y,
         });
 
         // Quadratic bezier curve
@@ -622,8 +548,6 @@ impl State {
             p2: [820.0, 520.0],
             thickness: 4.0,
             color: Color { r: 0.9, g: 0.2, b: 0.6, a: 1.0 },
-            x_clip: clip_x,
-            y_clip: clip_y,
         });
 
         self.renderer.draw_text_box(&self.text_box3);
@@ -631,7 +555,7 @@ impl State {
         self.renderer.draw_text_edit(&self.text_edit);
 
         // SVG rendered as image
-        self.renderer.draw_image(self.svg_handle, 520.0, 150.0, 180.0, 180.0, clip_x, clip_y);
+        self.renderer.draw_image(self.svg_handle, 520.0, 150.0, 180.0, 180.0);
 
         // Rotated text
         self.renderer.text.get_text_box_mut(&self.text_box1);

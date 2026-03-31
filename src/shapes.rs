@@ -1,13 +1,26 @@
 use crate::gpu_vec::GpuVec;
 use crate::Color;
 
+
+
+
+
+
+
+
+
+
+
+
+
+
 #[repr(C)]
-#[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
+#[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable, Default)]
 pub struct BoxGpu {
     pub top_left: [f32; 2],
     pub size: [f32; 2],
-    pub x_clip: [f32; 2],
-    pub y_clip: [f32; 2],
+    pub _pad1: [f32; 2],
+    pub _pad2: [f32; 2],
     pub corner_radius: f32,
     pub border_thickness: f32,
     pub gradient_direction: [f32; 2],
@@ -24,14 +37,12 @@ pub struct BoxGpu {
 #[repr(C)]
 #[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct CircleGpu {
+    pub color_start: Color,
+    pub color_end: Color,
     pub center: [f32; 2],
     pub radii: [f32; 2],      // [inner_radius, outer_radius]
     pub angles: [f32; 2],     // [start_angle, end_angle] in radians
-    pub x_clip: [f32; 2],
-    pub y_clip: [f32; 2],
     pub gradient_direction: [f32; 2],
-    pub color_start: Color,
-    pub color_end: Color,
     pub gradient_type: u32, // 0=solid, 1=linear, 2=radial
     pub texture_page: u32,           // atlas layer, u32::MAX = no texture
     pub texture_uv_origin: [f32; 2], // pixel coords in atlas (top-left corner)
@@ -45,30 +56,10 @@ pub struct CircleGpu {
 pub struct SegmentGpu {
     pub start: [f32; 2],
     pub end: [f32; 2],
-    pub x_clip: [f32; 2],
-    pub y_clip: [f32; 2],
     pub color_start: Color,
     pub color_end: Color,
     pub thickness_dash: [f32; 4], // [thickness, dash_length, dash_offset, unused]
     pub gradient_type: u32, // 0=solid, 1=linear along segment
-    pub texture_page: u32,           // atlas layer, u32::MAX = no texture
-    pub texture_uv_origin: [f32; 2], // pixel coords in atlas (top-left corner)
-    pub texture_uv_size: [f32; 2],   // pixel dimensions in atlas
-    pub pad: [f32; 2],               // padding to 112 bytes (16-byte aligned)
-}
-
-#[repr(C)]
-#[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
-pub struct GridGpu {
-    pub top_left: [f32; 2],
-    pub size: [f32; 2],
-    pub x_clip: [f32; 2],
-    pub y_clip: [f32; 2],
-    pub offset: [f32; 2],
-    pub lattice_size: f32,
-    pub line_thickness: f32,
-    pub color: Color,
-    pub grid_type: u32, // 0=square, 1=hex
     pub texture_page: u32,           // atlas layer, u32::MAX = no texture
     pub texture_uv_origin: [f32; 2], // pixel coords in atlas (top-left corner)
     pub texture_uv_size: [f32; 2],   // pixel dimensions in atlas
@@ -77,12 +68,26 @@ pub struct GridGpu {
 
 #[repr(C)]
 #[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
+pub struct GridGpu {
+    pub top_left: [f32; 2],
+    pub size: [f32; 2],
+    pub offset: [f32; 2],
+    pub lattice_size: f32,
+    pub line_thickness: f32,
+    pub color: Color,
+    pub grid_type: u32, // 0=square, 1=hex
+    pub texture_page: u32,           // atlas layer, u32::MAX = no texture
+    pub texture_uv_origin: [f32; 2], // pixel coords in atlas (top-left corner)
+    pub texture_uv_size: [f32; 2],   // pixel dimensions in atlas
+    pub pad: [f32; 2],               // padding to 80 bytes (16-byte aligned)
+}
+
+#[repr(C)]
+#[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct TriangleGpu {
     pub p0: [f32; 2],
     pub p1: [f32; 2],
     pub p2: [f32; 2],
-    pub x_clip: [f32; 2],
-    pub y_clip: [f32; 2],
     pub gradient_direction: [f32; 2],
     pub color_start: Color,
     pub color_end: Color,
@@ -90,7 +95,7 @@ pub struct TriangleGpu {
     pub texture_page: u32,           // atlas layer, u32::MAX = no texture
     pub texture_uv_origin: [f32; 2], // pixel coords in atlas (top-left corner)
     pub texture_uv_size: [f32; 2],   // pixel dimensions in atlas
-    pub pad: [f32; 2],               // padding to 112 bytes (16-byte aligned)
+    pub pad: [f32; 2],               // padding to 96 bytes (16-byte aligned)
 }
 
 #[repr(C)]
@@ -99,8 +104,6 @@ pub struct HexagonGpu {
     pub center: [f32; 2],
     pub size: f32,
     pub rotation: f32,
-    pub x_clip: [f32; 2],
-    pub y_clip: [f32; 2],
     pub gradient_direction: [f32; 2],
     pub stroke_thickness: f32,
     pub texture_page: u32,
@@ -110,7 +113,7 @@ pub struct HexagonGpu {
     pub _pad1: f32,
     pub texture_uv_origin: [f32; 2],
     pub texture_uv_size: [f32; 2],
-    pub _pad2: [f32; 2],
+    pub pad: [f32; 2],               // padding to 96 bytes (16-byte aligned)
 }
 
 #[repr(C)]
@@ -121,8 +124,6 @@ pub struct QuadraticBezierGpu {
     pub p2: [f32; 2],
     pub thickness: f32,
     pub _pad0: f32,
-    pub x_clip: [f32; 2],
-    pub y_clip: [f32; 2],
     pub color: Color,
 }
 
@@ -177,17 +178,5 @@ impl Shapes {
         let quadratic_beziers_changed = self.quadratic_beziers.load_to_gpu(device, queue);
 
         boxes_changed || circles_changed || segments_changed || grids_changed || triangles_changed || hexagons_changed || quadratic_beziers_changed
-    }
-
-    pub fn bind_group_layout_entries() -> Vec<wgpu::BindGroupLayoutEntry> {
-        vec![
-            GpuVec::<BoxGpu>::bind_group_layout_entry(0),
-            GpuVec::<CircleGpu>::bind_group_layout_entry(1),
-            GpuVec::<SegmentGpu>::bind_group_layout_entry(2),
-            GpuVec::<GridGpu>::bind_group_layout_entry(3),
-            GpuVec::<TriangleGpu>::bind_group_layout_entry(4),
-            GpuVec::<HexagonGpu>::bind_group_layout_entry(5),
-            GpuVec::<QuadraticBezierGpu>::bind_group_layout_entry(6),
-        ]
     }
 }

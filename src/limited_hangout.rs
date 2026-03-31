@@ -22,17 +22,8 @@ impl<'a> DrawContext<'a> {
     }
 
     /// Draw an image.
-    pub fn draw_image(
-        &mut self,
-        image: LoadedImage,
-        x: f32,
-        y: f32,
-        width: f32,
-        height: f32,
-        x_clip: [f32; 2],
-        y_clip: [f32; 2],
-    ) {
-        self.renderer.draw_image(image, x, y, width, height, x_clip, y_clip);
+    pub fn draw_image(&mut self, image: LoadedImage, x: f32, y: f32, width: f32, height: f32,) {
+        self.renderer.draw_image(image, x, y, width, height);
     }
 
     /// Draw a filled circle.
@@ -99,6 +90,27 @@ impl<'a> DrawContext<'a> {
     /// Clear the current transform, resetting to identity.
     pub fn clear_transform(&mut self) {
         self.renderer.clear_current_transform();
+    }
+
+    /// Create a clip rect for this frame.
+    pub fn insert_clip_rect(&mut self, clip_rect: ClipRect) -> ClipRectHandle {
+        self.renderer.insert_clip_rect(clip_rect)
+    }
+
+    /// Set a clip rect for subsequent draw calls.
+    pub fn set_clip_rect(&mut self, clip_rect: ClipRect) {
+        let handle = self.renderer.insert_clip_rect(clip_rect);
+        self.renderer.set_current_clip_rect(handle);
+    }
+
+    /// Clear the current clip rect, resetting to no clip.
+    pub fn clear_clip_rect(&mut self) {
+        self.renderer.clear_current_clip_rect();
+    }
+
+    /// Get the "no clip" handle.
+    pub fn no_clip(&self) -> ClipRectHandle {
+        self.renderer.no_clip()
     }
 
     /// Load and rasterize an SVG, returning the loaded image.

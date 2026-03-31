@@ -1,7 +1,7 @@
 pub use crate::*;
 
 #[repr(C)]
-#[derive(Debug, Clone, Copy, PartialEq, bytemuck::Pod, bytemuck::Zeroable)]
+#[derive(Debug, Clone, Copy, PartialEq, bytemuck::Pod, bytemuck::Zeroable, Default)]
 pub struct Color {
     /// Red component of the color
     pub r: f32,

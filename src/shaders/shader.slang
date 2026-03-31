@@ -18,6 +18,7 @@ struct VertexOutput {
     float4 position: SV_Position;
     uint primitiveType: PRIMTYPE;
     uint primitiveIndex: PRIMINDEX;
+    nointerpolation uint clipRectIndex: CLIPRECTINDEX;
     float2 uv: TEXCOORD0;
     float2 screen_pos: TEXCOORD1;
     float transform_scale: TEXCOORD2;
@@ -27,6 +28,7 @@ struct VertexInput {
     uint primitiveType: PRIMTYPE;
     uint primitiveIndex: PRIMINDEX;
     uint transformIndex: TRANSFORMINDEX;
+    uint clipRectIndex: CLIPRECTINDEX;
 }
 
 
@@ -38,6 +40,7 @@ VertexOutput vertexMain(
     VertexOutput output;
     output.primitiveType = input.primitiveType;
     output.primitiveIndex = input.primitiveIndex;
+    output.clipRectIndex = input.clipRectIndex;
     output.transform_scale = 1.0; // Default scale
 
     // grab the screen resolution from keru_text
@@ -76,7 +79,7 @@ VertexOutput vertexMain(
         float2 screen_pos = (output.position.xy * float2(1.0, -1.0) + 1.0) * resolution * 0.5;
 
         // Apply the transform
-        Transform transform = shapes.transforms[input.transformIndex];
+        Transform transform = reinterpret<Transform>(shapes.clip_rects_or_transforms[input.transformIndex]);
         float2 transformed_pos = screen_pos * transform.scale + transform.offset;
 
         // Store the scale factor for antialiasing
@@ -100,25 +103,25 @@ float4 fragmentMain(VertexOutput input): SV_Target {
     bool srgb = keru_text.params.srgb != 0;
 
     if (input.primitiveType == PrimitiveType::Box) {
-        return box_fragment(input.primitiveIndex, input.uv, input.screen_pos, srgb, input.transform_scale);
+        return box_fragment(input.primitiveIndex, input.clipRectIndex, input.uv, input.screen_pos, srgb, input.transform_scale);
     }
     else if (input.primitiveType == PrimitiveType::Circle) {
-        return circle_fragment(input.primitiveIndex, input.uv, input.screen_pos, srgb, input.transform_scale);
+        return circle_fragment(input.primitiveIndex, input.clipRectIndex, input.uv, input.screen_pos, srgb, input.transform_scale);
     }
     else if (input.primitiveType == PrimitiveType::Segment) {
-        return segment_fragment(input.primitiveIndex, input.uv, input.screen_pos, srgb, input.transform_scale);
+        return segment_fragment(input.primitiveIndex, input.clipRectIndex, input.uv, input.screen_pos, srgb, input.transform_scale);
     }
     else if (input.primitiveType == PrimitiveType::Grid) {
-        return grid_fragment(input.primitiveIndex, input.uv, input.screen_pos, srgb, input.transform_scale);
+        return grid_fragment(input.primitiveIndex, input.clipRectIndex, input.uv, input.screen_pos, srgb, input.transform_scale);
     }
     else if (input.primitiveType == PrimitiveType::Triangle) {
-        return triangle_fragment(input.primitiveIndex, input.uv, input.screen_pos, srgb, input.transform_scale);
+        return triangle_fragment(input.primitiveIndex, input.clipRectIndex, input.uv, input.screen_pos, srgb, input.transform_scale);
     }
     else if (input.primitiveType == PrimitiveType::Hexagon) {
-        return hexagon_fragment(input.primitiveIndex, input.uv, input.screen_pos, srgb, input.transform_scale);
+        return hexagon_fragment(input.primitiveIndex, input.clipRectIndex, input.uv, input.screen_pos, srgb, input.transform_scale);
     }
     else if (input.primitiveType == PrimitiveType::QuadraticBezier) {
-        return quadratic_bezier_fragment(input.primitiveIndex, input.uv, input.screen_pos, srgb, input.transform_scale);
+        return quadratic_bezier_fragment(input.primitiveIndex, input.clipRectIndex, input.uv, input.screen_pos, srgb, input.transform_scale);
     }
     else if (input.primitiveType == PrimitiveType::Text) {
         return text_fragment(input.primitiveIndex, input.uv, input.position);

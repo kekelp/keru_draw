@@ -1,5 +1,20 @@
 import quad;
 
+struct ShapesGpu {
+    StructuredBuffer<float4> clip_rects_or_transforms;
+    StructuredBuffer<BoxGpu> boxes;
+    StructuredBuffer<CircleGpu> circles;
+    StructuredBuffer<SegmentGpu> segments;
+    StructuredBuffer<GridGpu> grids;
+    StructuredBuffer<TriangleGpu> triangles;
+    StructuredBuffer<HexagonGpu> hexagons;
+    StructuredBuffer<QuadraticBezierGpu> quadratic_beziers;
+    Texture2DArray<float4> atlas_texture;
+    SamplerState atlas_sampler;
+}
+
+ParameterBlock<ShapesGpu> shapes;
+
 struct BoxGpu {
     float2 top_left;
     float2 size;
@@ -23,14 +38,12 @@ struct BoxGpu {
 }
 
 struct CircleGpu {
+    float4 color_start;
+    float4 color_end;
     float2 center;
     float2 radii;
     float2 angles;
-    float2 x_clip;
-    float2 y_clip;
     float2 gradient_direction; // normalized direction for linear gradient
-    float4 color_start;
-    float4 color_end;
     uint gradient_type; // 0=solid, 1=linear, 2=radial
     uint texture_page;        // atlas layer, 0xFFFFFFFF = no texture
     float2 texture_uv_origin; // pixel coords in atlas (top-left corner)
@@ -42,8 +55,6 @@ struct CircleGpu {
 struct SegmentGpu {
     float2 start;
     float2 end;
-    float2 x_clip;
-    float2 y_clip;
     float4 color_start;
     float4 color_end;
     float4 thickness_dash;
@@ -51,15 +62,12 @@ struct SegmentGpu {
     uint texture_page;        // atlas layer, 0xFFFFFFFF = no texture
     float2 texture_uv_origin; // pixel coords in atlas (top-left corner)
     float2 texture_uv_size;   // pixel dimensions in atlas
-    float pad0;
-    float pad1;
+    float2 pad;               // padding for 16-byte alignment
 }
 
 struct GridGpu {
     float2 top_left;
     float2 size;
-    float2 x_clip;
-    float2 y_clip;
     float2 offset;
     float lattice_size;
     float line_thickness;
@@ -68,16 +76,13 @@ struct GridGpu {
     uint texture_page;        // atlas layer, 0xFFFFFFFF = no texture
     float2 texture_uv_origin; // pixel coords in atlas (top-left corner)
     float2 texture_uv_size;   // pixel dimensions in atlas
-    float pad0;
-    float pad1;
+    float2 pad;               // padding for 16-byte alignment
 }
 
 struct TriangleGpu {
     float2 p0;
     float2 p1;
     float2 p2;
-    float2 x_clip;
-    float2 y_clip;
     float2 gradient_direction; // normalized direction for linear gradient
     float4 color_start;
     float4 color_end;
@@ -85,16 +90,13 @@ struct TriangleGpu {
     uint texture_page;        // atlas layer, 0xFFFFFFFF = no texture
     float2 texture_uv_origin; // pixel coords in atlas (top-left corner)
     float2 texture_uv_size;   // pixel dimensions in atlas
-    float pad0;
-    float pad1;
+    float2 pad;               // padding for 16-byte alignment
 }
 
 struct HexagonGpu {
     float2 center;
     float size;                // distance from center to vertex
     float rotation;            // rotation in radians
-    float2 x_clip;
-    float2 y_clip;
     float2 gradient_direction; // normalized direction for linear gradient
     float stroke_thickness;    // 0 = filled, >0 = stroke only
     uint texture_page;         // atlas layer, 0xFFFFFFFF = no texture
@@ -104,7 +106,7 @@ struct HexagonGpu {
     float _pad1;               // alignment for float2
     float2 texture_uv_origin;  // pixel coords in atlas (top-left corner)
     float2 texture_uv_size;    // pixel dimensions in atlas
-    float2 _pad2;
+    float2 pad;                // padding for 16-byte alignment
 }
 
 struct QuadraticBezierGpu {
@@ -113,8 +115,6 @@ struct QuadraticBezierGpu {
     float2 p2;
     float thickness;
     float _pad0;
-    float2 x_clip;
-    float2 y_clip;
     float4 color;
 }
 
@@ -124,20 +124,10 @@ struct Transform {
     float _padding;
 }
 
-struct ShapesGpu {
-    StructuredBuffer<Transform> transforms;
-    StructuredBuffer<BoxGpu> boxes;
-    StructuredBuffer<CircleGpu> circles;
-    StructuredBuffer<SegmentGpu> segments;
-    StructuredBuffer<GridGpu> grids;
-    StructuredBuffer<TriangleGpu> triangles;
-    StructuredBuffer<HexagonGpu> hexagons;
-    StructuredBuffer<QuadraticBezierGpu> quadratic_beziers;
-    Texture2DArray<float4> atlas_texture;
-    SamplerState atlas_sampler;
+struct ClipRect {
+    float2 x_clip;
+    float2 y_clip;
 }
-
-ParameterBlock<ShapesGpu> shapes;
 
 void box_vertex(
     uint instanceIndex,
@@ -221,11 +211,12 @@ float sd_rounded_box(float2 p, float2 size, float4 r) {
     return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - r.x;
 }
 
-float4 box_fragment(uint primitiveIndex, float2 uv, float2 screen_pos, bool surface_is_srgb, float transform_scale): SV_Target {
+float4 box_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, float2 screen_pos, bool surface_is_srgb, float transform_scale): SV_Target {
     var box: BoxGpu = shapes.boxes[primitiveIndex];
+    var clip: ClipRect = reinterpret<ClipRect>(shapes.clip_rects_or_transforms[clipRectIndex]);
 
-    if (screen_pos.x < box.x_clip.x || screen_pos.x > box.x_clip.y ||
-        screen_pos.y < box.y_clip.x || screen_pos.y > box.y_clip.y) {
+    if (screen_pos.x < clip.x_clip.x || screen_pos.x > clip.x_clip.y ||
+        screen_pos.y < clip.y_clip.x || screen_pos.y > clip.y_clip.y) {
         discard;
     }
 
@@ -386,11 +377,12 @@ float sd_circle_variant(float2 p, CircleGpu circle) {
     }
 }
 
-float4 circle_fragment(uint primitiveIndex, float2 uv, float2 screen_pos, bool srgb, float transform_scale): SV_Target {
+float4 circle_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, float2 screen_pos, bool srgb, float transform_scale): SV_Target {
     var circle: CircleGpu = shapes.circles[primitiveIndex];
+    var clip: ClipRect = reinterpret<ClipRect>(shapes.clip_rects_or_transforms[clipRectIndex]);
 
-    if (screen_pos.x < circle.x_clip.x || screen_pos.x > circle.x_clip.y ||
-        screen_pos.y < circle.y_clip.x || screen_pos.y > circle.y_clip.y) {
+    if (screen_pos.x < clip.x_clip.x || screen_pos.x > clip.x_clip.y ||
+        screen_pos.y < clip.y_clip.x || screen_pos.y > clip.y_clip.y) {
         discard;
     }
 
@@ -512,11 +504,12 @@ float sd_segment(float2 p, float2 a, float2 b) {
     return length(pa - ba * h);
 }
 
-float4 segment_fragment(uint primitiveIndex, float2 uv, float2 screen_pos, bool srgb, float transform_scale): SV_Target {
+float4 segment_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, float2 screen_pos, bool srgb, float transform_scale): SV_Target {
     var seg: SegmentGpu = shapes.segments[primitiveIndex];
+    var clip: ClipRect = reinterpret<ClipRect>(shapes.clip_rects_or_transforms[clipRectIndex]);
 
-    if (screen_pos.x < seg.x_clip.x || screen_pos.x > seg.x_clip.y ||
-        screen_pos.y < seg.y_clip.x || screen_pos.y > seg.y_clip.y) {
+    if (screen_pos.x < clip.x_clip.x || screen_pos.x > clip.x_clip.y ||
+        screen_pos.y < clip.y_clip.x || screen_pos.y > clip.y_clip.y) {
         discard;
     }
 
@@ -621,12 +614,13 @@ void grid_vertex(
 }
 
 // Thanks leftofzen. https://www.shadertoy.com/view/wtdSzX
-float4 grid_fragment(uint primitiveIndex, float2 uv, float2 screen_pos, bool surface_is_srgb, float transform_scale): SV_Target {
+float4 grid_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, float2 screen_pos, bool surface_is_srgb, float transform_scale): SV_Target {
     var grid: GridGpu = shapes.grids[primitiveIndex];
+    var clip: ClipRect = reinterpret<ClipRect>(shapes.clip_rects_or_transforms[clipRectIndex]);
 
     // Apply clipping
-    if (screen_pos.x < grid.x_clip.x || screen_pos.x > grid.x_clip.y ||
-        screen_pos.y < grid.y_clip.x || screen_pos.y > grid.y_clip.y) {
+    if (screen_pos.x < clip.x_clip.x || screen_pos.x > clip.x_clip.y ||
+        screen_pos.y < clip.y_clip.x || screen_pos.y > clip.y_clip.y) {
         discard;
     }
 
@@ -745,11 +739,12 @@ float sd_triangle(float2 p, float2 p0, float2 p1, float2 p2) {
     return -sqrt(d.x) * sign(d.y);
 }
 
-float4 triangle_fragment(uint primitiveIndex, float2 uv, float2 screen_pos, bool surface_is_srgb, float transform_scale): SV_Target {
+float4 triangle_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, float2 screen_pos, bool surface_is_srgb, float transform_scale): SV_Target {
     var tri: TriangleGpu = shapes.triangles[primitiveIndex];
+    var clip: ClipRect = reinterpret<ClipRect>(shapes.clip_rects_or_transforms[clipRectIndex]);
 
-    if (screen_pos.x < tri.x_clip.x || screen_pos.x > tri.x_clip.y ||
-        screen_pos.y < tri.y_clip.x || screen_pos.y > tri.y_clip.y) {
+    if (screen_pos.x < clip.x_clip.x || screen_pos.x > clip.x_clip.y ||
+        screen_pos.y < clip.y_clip.x || screen_pos.y > clip.y_clip.y) {
         discard;
     }
 
@@ -846,11 +841,12 @@ float sd_hexagon(float2 p, float r) {
     return length(p) * sign(p.y);
 }
 
-float4 hexagon_fragment(uint primitiveIndex, float2 uv, float2 screen_pos, bool surface_is_srgb, float transform_scale): SV_Target {
+float4 hexagon_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, float2 screen_pos, bool surface_is_srgb, float transform_scale): SV_Target {
     var hex: HexagonGpu = shapes.hexagons[primitiveIndex];
+    var clip: ClipRect = reinterpret<ClipRect>(shapes.clip_rects_or_transforms[clipRectIndex]);
 
-    if (screen_pos.x < hex.x_clip.x || screen_pos.x > hex.x_clip.y ||
-        screen_pos.y < hex.y_clip.x || screen_pos.y > hex.y_clip.y) {
+    if (screen_pos.x < clip.x_clip.x || screen_pos.x > clip.x_clip.y ||
+        screen_pos.y < clip.y_clip.x || screen_pos.y > clip.y_clip.y) {
         discard;
     }
 
@@ -999,11 +995,12 @@ float sd_quadratic_bezier(float2 pos, float2 p0, float2 p1, float2 p2) {
     return sqrt(res);
 }
 
-float4 quadratic_bezier_fragment(uint primitiveIndex, float2 uv, float2 screen_pos, bool srgb, float transform_scale): SV_Target {
+float4 quadratic_bezier_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, float2 screen_pos, bool srgb, float transform_scale): SV_Target {
     var seg: QuadraticBezierGpu = shapes.quadratic_beziers[primitiveIndex];
+    var clip: ClipRect = reinterpret<ClipRect>(shapes.clip_rects_or_transforms[clipRectIndex]);
 
-    if (screen_pos.x < seg.x_clip.x || screen_pos.x > seg.x_clip.y ||
-        screen_pos.y < seg.y_clip.x || screen_pos.y > seg.y_clip.y) {
+    if (screen_pos.x < clip.x_clip.x || screen_pos.x > clip.x_clip.y ||
+        screen_pos.y < clip.y_clip.x || screen_pos.y > clip.y_clip.y) {
         discard;
     }
 

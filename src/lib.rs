@@ -20,10 +20,11 @@ pub struct InstanceRange { pub start: usize, pub end: usize }
 #[derive(Debug, Clone, Copy)]
 pub struct DeferredInstanceRange { start: usize, end: usize }
 
-/// A handle to a retained transform in the transforms slab.
-/// The handle remains valid until `destroy_transform()` is called.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct TransformHandle(usize);
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ClipRectHandle(usize);
 
 pub use keru_text;
 
@@ -146,8 +147,6 @@ pub struct Box {
     pub rounded_corners: RoundedCorners,
     pub border_thickness: f32,
     pub fill: ColorFill,
-    pub x_clip: [f32; 2],
-    pub y_clip: [f32; 2],
     pub texture: Option<LoadedImage>,
 }
 
@@ -157,8 +156,6 @@ pub struct Circle {
     pub center: [f32; 2],
     pub radius: f32,
     pub fill: ColorFill,
-    pub x_clip: [f32; 2],
-    pub y_clip: [f32; 2],
     pub texture: Option<LoadedImage>,
 }
 
@@ -169,8 +166,6 @@ pub struct CircleRing {
     pub inner_radius: f32,
     pub outer_radius: f32,
     pub fill: ColorFill,
-    pub x_clip: [f32; 2],
-    pub y_clip: [f32; 2],
     pub texture: Option<LoadedImage>,
     pub dash_length: Option<f32>,
     pub dash_offset: f32,
@@ -185,8 +180,6 @@ pub struct CircleArc {
     pub end_angle: f32,
     pub thickness: f32,
     pub fill: ColorFill,
-    pub x_clip: [f32; 2],
-    pub y_clip: [f32; 2],
     pub texture: Option<LoadedImage>,
     pub dash_length: Option<f32>,
     pub dash_offset: f32,
@@ -200,8 +193,6 @@ pub struct CirclePie {
     pub start_angle: f32,
     pub end_angle: f32,
     pub fill: ColorFill,
-    pub x_clip: [f32; 2],
-    pub y_clip: [f32; 2],
     pub texture: Option<LoadedImage>,
 }
 
@@ -212,8 +203,6 @@ pub struct Segment {
     pub end: [f32; 2],
     pub thickness: f32,
     pub fill: ColorFill,
-    pub x_clip: [f32; 2],
-    pub y_clip: [f32; 2],
     pub dash_length: Option<f32>,
     pub dash_offset: f32,
     pub texture: Option<LoadedImage>,
@@ -236,8 +225,6 @@ pub struct Grid {
     pub line_thickness: f32,
     pub color: Color,
     pub grid_type: GridType,
-    pub x_clip: [f32; 2],
-    pub y_clip: [f32; 2],
     pub texture: Option<LoadedImage>,
 }
 
@@ -248,8 +235,6 @@ pub struct Triangle {
     pub p1: [f32; 2],
     pub p2: [f32; 2],
     pub fill: ColorFill,
-    pub x_clip: [f32; 2],
-    pub y_clip: [f32; 2],
     pub texture: Option<LoadedImage>,
 }
 
@@ -261,13 +246,11 @@ pub struct Hexagon {
     pub rotation: f32,          // rotation in radians (0 = flat-top)
     pub fill: ColorFill,
     pub stroke_thickness: f32,  // 0 = filled, >0 = stroke only
-    pub x_clip: [f32; 2],
-    pub y_clip: [f32; 2],
     pub texture: Option<LoadedImage>,
 }
 
 /// Parameters for drawing a quadratic bezier curve from `p0` to `p2`, with `p1` as a control point.
-/// 
+///
 /// The curve is rendered analytically, solving the cubic distance equation in the fragment shader. This is not cheap, relatively speaking.
 #[derive(Debug, Clone)]
 pub struct QuadraticBezier {
@@ -276,8 +259,6 @@ pub struct QuadraticBezier {
     pub p2: [f32; 2],
     pub thickness: f32,
     pub color: Color,
-    pub x_clip: [f32; 2],
-    pub y_clip: [f32; 2],
 }
 
 /// Parameters for drawing a dashed box outline (composed of segments and corner arcs)
@@ -289,8 +270,6 @@ pub struct DashedBoxOutline {
     pub thickness: f32,
     pub color: Color,
     pub dash_length: f32,
-    pub x_clip: [f32; 2],
-    pub y_clip: [f32; 2],
 }
 
 /// Parameters for drawing a dashed hexagon outline (composed of segments)
@@ -302,8 +281,6 @@ pub struct DashedHexagonOutline {
     pub thickness: f32,
     pub color: Color,
     pub dash_length: f32,
-    pub x_clip: [f32; 2],
-    pub y_clip: [f32; 2],
 }
 
 fn fill_gpu(fill: ColorFill) -> ([f32; 2], Color, Color, u32) {
@@ -350,6 +327,19 @@ pub struct Transform {
     pub _padding: f32,  // For 16-byte alignment
 }
 
+/// A clip rect
+#[repr(C)]
+#[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
+pub struct ClipRect {
+    pub x_clip: [f32; 2],
+    pub y_clip: [f32; 2],
+}
+pub const CLIP_NOTHING: ClipRect = ClipRect {
+    x_clip: [f32::MIN, f32::MAX],
+    y_clip: [f32::MIN, f32::MAX],
+};
+
+
 impl Transform {
     /// Create an identity transform (no translation, scale = 1.0)
     pub fn identity() -> Self {
@@ -379,6 +369,35 @@ impl Transform {
     }
 }
 
+pub type ClipRectOrTransform = [f32; 4];
+impl From<Transform> for ClipRectOrTransform {
+    fn from(t: Transform) -> Self {
+        [t.offset[0], t.offset[1], t.scale, t._padding]
+    }
+}
+impl From<ClipRectOrTransform> for Transform {
+    fn from(s: ClipRectOrTransform) -> Self {
+        Self {
+            offset: [s[0], s[1]],
+            scale: s[2],
+            _padding: s[3],
+        }
+    }
+}
+impl From<ClipRect> for ClipRectOrTransform {
+    fn from(c: ClipRect) -> Self {
+        [c.x_clip[0], c.x_clip[1], c.y_clip[0], c.y_clip[1]]
+    }
+}
+impl From<ClipRectOrTransform> for ClipRect {
+    fn from(s: ClipRectOrTransform) -> Self {
+        Self {
+            x_clip: [s[0], s[1]],
+            y_clip: [s[2], s[3]],
+        }
+    }
+}
+
 /// Combines a keru_draw Transform with a keru_text Transform2D.
 fn combine_transforms(keru_transform: &Transform, keru_text_transform: &keru_text::Transform2D) -> keru_text::Transform2D {
     keru_text::Transform2D {
@@ -398,10 +417,11 @@ pub struct Renderer {
     pub image_renderer: ImageRenderer,
     pub text: Text,
     shapes: Shapes,
-    transforms: GpuVec<Transform>,
+    clip_rects_or_transforms: GpuVec<ClipRectOrTransform>,
     shapes_bind_group: wgpu::BindGroup,
     instances: GpuVec<Instance>,
     current_transform: usize,
+    current_clip_rect: usize,
     pub gpu_profiler: GpuProfiler,
     // Deferred mode
     deferred_mode: bool,
@@ -415,7 +435,7 @@ struct Instance {
     p_type: u32,
     p_index: u32,
     transform_index: u32,
-    _padding: u32,
+    clip_rect_index: u32,
 }
 
 impl Renderer {
@@ -445,9 +465,9 @@ impl Renderer {
         let shapes = Shapes::new(&device);
         let image_renderer = ImageRenderer::new(&device, &queue, surface_format);
 
-        // Create transforms with identity transform at index 0
-        let mut transforms = GpuVec::new(&device, 64, "keru_draw transforms");
-        transforms.push(Transform::identity());
+        let mut clip_rects_or_transforms: GpuVec<ClipRectOrTransform> = GpuVec::new(&device, 64, "keru_draw clip_rects and transforms");
+        clip_rects_or_transforms.push(Transform::identity().into());
+        clip_rects_or_transforms.push(CLIP_NOTHING.into());
 
         // Create merged bind group layout for shapes + images
         let shapes_bind_group_layout = Self::create_shapes_bind_group_layout(&device);
@@ -456,7 +476,7 @@ impl Renderer {
         let shapes_bind_group = Self::create_shapes_bind_group(
             &device,
             &shapes_bind_group_layout,
-            &transforms,
+            &clip_rects_or_transforms,
             &shapes,
             &image_renderer,
         );
@@ -497,6 +517,11 @@ impl Renderer {
                         wgpu::VertexAttribute {
                             offset: 8,
                             shader_location: 2,
+                            format: wgpu::VertexFormat::Uint32,
+                        },
+                        wgpu::VertexAttribute {
+                            offset: 12,
+                            shader_location: 3,
                             format: wgpu::VertexFormat::Uint32,
                         },
                     ],
@@ -560,28 +585,23 @@ impl Renderer {
             deferred_instances: Vec::with_capacity(5),
             device: device.clone(),
             queue: queue.clone(),
-            current_transform: 0, // Identity transform is at index 0
-            render_pipeline, shapes, transforms, image_renderer, text, shapes_bind_group, instances, gpu_profiler
+            current_transform: 0, // Identity transform is at slot index 0
+            current_clip_rect: 1, // "No clip" is at slot index 1
+            render_pipeline, shapes, clip_rects_or_transforms, image_renderer, text, shapes_bind_group, instances, gpu_profiler
         }
     }
 
     fn create_shapes_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
-        // todo: rewrite this
-        let mut entries = vec![
-            // Transforms buffer
+        let entries = &[
             GpuVec::<Transform>::bind_group_layout_entry(0),
-        ];
-
-        // Add shapes resources (bindings 1-5)
-        let mut shapes_entries = Shapes::bind_group_layout_entries();
-        for entry in &mut shapes_entries {
-            entry.binding += 1; // Shift by 1 since transforms is at 0
-        }
-        entries.extend(shapes_entries);
-
-        // Add image atlas resources (bindings 8-9)
-        entries.extend_from_slice(&[
-            // Image atlas texture array
+            GpuVec::<BoxGpu>::bind_group_layout_entry(1),
+            GpuVec::<CircleGpu>::bind_group_layout_entry(2),
+            GpuVec::<SegmentGpu>::bind_group_layout_entry(3),
+            GpuVec::<GridGpu>::bind_group_layout_entry(4),
+            GpuVec::<TriangleGpu>::bind_group_layout_entry(5),
+            GpuVec::<HexagonGpu>::bind_group_layout_entry(6),
+            GpuVec::<QuadraticBezierGpu>::bind_group_layout_entry(7),
+            // Texture atlas
             wgpu::BindGroupLayoutEntry {
                 binding: 8,
                 visibility: wgpu::ShaderStages::VERTEX.union(wgpu::ShaderStages::FRAGMENT),
@@ -599,18 +619,18 @@ impl Renderer {
                 ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
                 count: None,
             },
-        ]);
+        ];
 
         device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: Some("keru_draw shapes+images bind group layout"),
-            entries: &entries,
+            entries: entries,
         })
     }
 
     fn create_shapes_bind_group(
         device: &wgpu::Device,
         layout: &wgpu::BindGroupLayout,
-        transforms: &GpuVec<Transform>,
+        clip_rects_or_transforms: &GpuVec<ClipRectOrTransform>,
         shapes: &Shapes,
         image_renderer: &ImageRenderer,
     ) -> wgpu::BindGroup {
@@ -623,7 +643,7 @@ impl Renderer {
             label: Some("Shapes+Images Bind Group"),
             layout,
             entries: &[
-                transforms.bind_group_entry(0),
+                clip_rects_or_transforms.bind_group_entry(0),
                 shapes.boxes.bind_group_entry(1),
                 shapes.circles.bind_group_entry(2),
                 shapes.segments.bind_group_entry(3),
@@ -653,8 +673,6 @@ impl Renderer {
         self.shapes.boxes.push(shapes::BoxGpu {
             top_left: params.top_left,
             size: params.size,
-            x_clip: params.x_clip,
-            y_clip: params.y_clip,
             corner_radius: params.corner_radius,
             border_thickness: params.border_thickness,
             gradient_direction,
@@ -665,13 +683,13 @@ impl Renderer {
             texture_uv_origin,
             texture_uv_size,
             texture_page,
-            pad: [0.0; 5],
+            ..Default::default()
         });
         self.push_instance(Instance {
             p_type: primitive::BOX,
             p_index: index as u32,
             transform_index: self.current_transform as u32,
-            _padding: 0,
+            clip_rect_index: self.current_clip_rect as u32,
         });
     }
 
@@ -684,8 +702,6 @@ impl Renderer {
         y: f32,
         width: f32,
         height: f32,
-        x_clip: [f32; 2],
-        y_clip: [f32; 2],
     ) {
         self.draw_box(Box {
             top_left: [x, y],
@@ -694,8 +710,6 @@ impl Renderer {
             rounded_corners: RoundedCorners::NONE,
             border_thickness: 0.0,
             fill: ColorFill::Color(Color::WHITE),
-            x_clip,
-            y_clip,
             texture: Some(image),
         });
     }
@@ -710,8 +724,6 @@ impl Renderer {
             center: params.center,
             radii: [0.0, params.radius],
             angles: [0.0, std::f32::consts::TAU],
-            x_clip: params.x_clip,
-            y_clip: params.y_clip,
             gradient_direction,
             color_start,
             color_end,
@@ -726,7 +738,7 @@ impl Renderer {
             p_type: primitive::CIRCLE,
             p_index: index as u32,
             transform_index: self.current_transform as u32,
-            _padding: 0,
+            clip_rect_index: self.current_clip_rect as u32,
         });
     }
 
@@ -740,8 +752,6 @@ impl Renderer {
             center: params.center,
             radii: [params.inner_radius, params.outer_radius],
             angles: [0.0, std::f32::consts::TAU],
-            x_clip: params.x_clip,
-            y_clip: params.y_clip,
             gradient_direction,
             color_start,
             color_end,
@@ -756,7 +766,7 @@ impl Renderer {
             p_type: primitive::CIRCLE,
             p_index: index as u32,
             transform_index: self.current_transform as u32,
-            _padding: 0,
+            clip_rect_index: self.current_clip_rect as u32,
         });
     }
 
@@ -770,8 +780,6 @@ impl Renderer {
             center: params.center,
             radii: [params.radius - params.thickness * 0.5, params.radius + params.thickness * 0.5],
             angles: [params.start_angle, params.end_angle],
-            x_clip: params.x_clip,
-            y_clip: params.y_clip,
             gradient_direction,
             color_start,
             color_end,
@@ -786,7 +794,7 @@ impl Renderer {
             p_type: primitive::CIRCLE,
             p_index: index as u32,
             transform_index: self.current_transform as u32,
-            _padding: 0,
+            clip_rect_index: self.current_clip_rect as u32,
         });
     }
 
@@ -800,8 +808,6 @@ impl Renderer {
             center: params.center,
             radii: [0.0, params.radius],
             angles: [params.start_angle, params.end_angle],
-            x_clip: params.x_clip,
-            y_clip: params.y_clip,
             gradient_direction,
             color_start,
             color_end,
@@ -816,7 +822,7 @@ impl Renderer {
             p_type: primitive::CIRCLE,
             p_index: index as u32,
             transform_index: self.current_transform as u32,
-            _padding: 0,
+            clip_rect_index: self.current_clip_rect as u32,
         });
     }
 
@@ -834,8 +840,6 @@ impl Renderer {
         self.shapes.segments.push(shapes::SegmentGpu {
             start: params.start,
             end: params.end,
-            x_clip: params.x_clip,
-            y_clip: params.y_clip,
             color_start,
             color_end,
             thickness_dash: [params.thickness, params.dash_length.unwrap_or(0.0), params.dash_offset, 0.0],
@@ -849,7 +853,7 @@ impl Renderer {
             p_type: primitive::SEGMENT,
             p_index: index as u32,
             transform_index: self.current_transform as u32,
-            _padding: 0,
+            clip_rect_index: self.current_clip_rect as u32,
         });
     }
 
@@ -860,8 +864,6 @@ impl Renderer {
         self.shapes.grids.push(shapes::GridGpu {
             top_left: params.top_left,
             size: params.size,
-            x_clip: params.x_clip,
-            y_clip: params.y_clip,
             offset: params.offset,
             lattice_size: params.lattice_size,
             line_thickness: params.line_thickness,
@@ -870,13 +872,13 @@ impl Renderer {
             texture_page,
             texture_uv_origin,
             texture_uv_size,
-            pad: [0.0, 0.0],
+            pad: [0.0; 2],
         });
         self.push_instance(Instance {
             p_type: primitive::GRID,
             p_index: index as u32,
             transform_index: self.current_transform as u32,
-            _padding: 0,
+            clip_rect_index: self.current_clip_rect as u32,
         });
     }
 
@@ -890,8 +892,6 @@ impl Renderer {
             p0: params.p0,
             p1: params.p1,
             p2: params.p2,
-            x_clip: params.x_clip,
-            y_clip: params.y_clip,
             gradient_direction,
             color_start,
             color_end,
@@ -905,7 +905,7 @@ impl Renderer {
             p_type: primitive::TRIANGLE,
             p_index: index as u32,
             transform_index: self.current_transform as u32,
-            _padding: 0,
+            clip_rect_index: self.current_clip_rect as u32,
         });
     }
 
@@ -919,24 +919,22 @@ impl Renderer {
             center: params.center,
             size: params.size,
             rotation: params.rotation,
-            x_clip: params.x_clip,
-            y_clip: params.y_clip,
             gradient_direction,
+            stroke_thickness: params.stroke_thickness,
+            texture_page,
             color_start,
             color_end,
             gradient_type,
-            stroke_thickness: params.stroke_thickness,
-            texture_page,
             _pad1: 0.0,
             texture_uv_origin,
             texture_uv_size,
-            _pad2: [0.0; 2],
+            pad: [0.0; 2],
         });
         self.push_instance(Instance {
             p_type: primitive::HEXAGON,
             p_index: index as u32,
             transform_index: self.current_transform as u32,
-            _padding: 0,
+            clip_rect_index: self.current_clip_rect as u32,
         });
     }
 
@@ -948,15 +946,13 @@ impl Renderer {
             p2: params.p2,
             thickness: params.thickness,
             _pad0: 0.0,
-            x_clip: params.x_clip,
-            y_clip: params.y_clip,
             color: params.color,
         });
         self.push_instance(Instance {
             p_type: primitive::QUADRATIC_BEZIER,
             p_index: index as u32,
             transform_index: self.current_transform as u32,
-            _padding: 0,
+            clip_rect_index: self.current_clip_rect as u32,
         });
     }
 
@@ -976,8 +972,6 @@ impl Renderer {
                 end: [x + w, y],
                 thickness: params.thickness,
                 fill,
-                x_clip: params.x_clip,
-                y_clip: params.y_clip,
                 dash_length: Some(params.dash_length),
                 dash_offset: offset,
                 texture: None,
@@ -989,8 +983,6 @@ impl Renderer {
                 end: [x + w, y + h],
                 thickness: params.thickness,
                 fill,
-                x_clip: params.x_clip,
-                y_clip: params.y_clip,
                 dash_length: Some(params.dash_length),
                 dash_offset: offset,
                 texture: None,
@@ -1002,8 +994,6 @@ impl Renderer {
                 end: [x, y + h],
                 thickness: params.thickness,
                 fill,
-                x_clip: params.x_clip,
-                y_clip: params.y_clip,
                 dash_length: Some(params.dash_length),
                 dash_offset: offset,
                 texture: None,
@@ -1015,8 +1005,6 @@ impl Renderer {
                 end: [x, y],
                 thickness: params.thickness,
                 fill,
-                x_clip: params.x_clip,
-                y_clip: params.y_clip,
                 dash_length: Some(params.dash_length),
                 dash_offset: offset,
                 texture: None,
@@ -1033,8 +1021,6 @@ impl Renderer {
                 end: [x + w - r, y],
                 thickness: params.thickness,
                 fill,
-                x_clip: params.x_clip,
-                y_clip: params.y_clip,
                 dash_length: Some(params.dash_length),
                 dash_offset: offset,
                 texture: None,
@@ -1048,8 +1034,6 @@ impl Renderer {
                 end_angle: 0.0,
                 thickness: params.thickness,
                 fill,
-                x_clip: params.x_clip,
-                y_clip: params.y_clip,
                 texture: None,
                 dash_length: Some(params.dash_length),
                 dash_offset: offset,
@@ -1062,8 +1046,6 @@ impl Renderer {
                 end: [x + w, y + h - r],
                 thickness: params.thickness,
                 fill,
-                x_clip: params.x_clip,
-                y_clip: params.y_clip,
                 dash_length: Some(params.dash_length),
                 dash_offset: offset,
                 texture: None,
@@ -1077,8 +1059,6 @@ impl Renderer {
                 end_angle: pi * 0.5,
                 thickness: params.thickness,
                 fill,
-                x_clip: params.x_clip,
-                y_clip: params.y_clip,
                 texture: None,
                 dash_length: Some(params.dash_length),
                 dash_offset: offset,
@@ -1090,8 +1070,6 @@ impl Renderer {
                 end: [x + r, y + h],
                 thickness: params.thickness,
                 fill,
-                x_clip: params.x_clip,
-                y_clip: params.y_clip,
                 dash_length: Some(params.dash_length),
                 dash_offset: offset,
                 texture: None,
@@ -1105,8 +1083,6 @@ impl Renderer {
                 end_angle: pi,
                 thickness: params.thickness,
                 fill,
-                x_clip: params.x_clip,
-                y_clip: params.y_clip,
                 texture: None,
                 dash_length: Some(params.dash_length),
                 dash_offset: offset,
@@ -1118,8 +1094,6 @@ impl Renderer {
                 end: [x, y + r],
                 thickness: params.thickness,
                 fill,
-                x_clip: params.x_clip,
-                y_clip: params.y_clip,
                 dash_length: Some(params.dash_length),
                 dash_offset: offset,
                 texture: None,
@@ -1133,8 +1107,6 @@ impl Renderer {
                 end_angle: pi * 1.5,
                 thickness: params.thickness,
                 fill,
-                x_clip: params.x_clip,
-                y_clip: params.y_clip,
                 texture: None,
                 dash_length: Some(params.dash_length),
                 dash_offset: offset,
@@ -1169,8 +1141,6 @@ impl Renderer {
                 end: vertices[next],
                 thickness: params.thickness,
                 fill,
-                x_clip: params.x_clip,
-                y_clip: params.y_clip,
                 dash_length: Some(params.dash_length),
                 dash_offset: offset,
                 texture: None,
@@ -1199,7 +1169,7 @@ impl Renderer {
                 p_type: primitive::TEXT,
                 p_index: q as u32,
                 transform_index: self.current_transform as u32,
-                _padding: 0,
+                clip_rect_index: self.current_clip_rect as u32,
             });
         }
     }
@@ -1227,31 +1197,35 @@ impl Renderer {
                 p_type: primitive::TEXT,
                 p_index: q as u32,
                 transform_index: self.current_transform as u32,
-                _padding: 0,
+                clip_rect_index: self.current_clip_rect as u32,
             });
         }
     }
 
     /// Begin recording a new frame.
-    /// 
-    /// This only clears the main instance buffer, not the shape data, transforms, or deferred instances, so they can be reused.
-    /// 
+    ///
+    /// This only clears the main instance buffer, not the shape data, transforms, clip_rects, or deferred instances, so they can be reused.
+    ///
     /// To clear everything, call [`Renderer::clear_for_new_frame()`].
     pub fn begin_frame(&mut self) {
         self.instances.clear();
         self.current_transform = 0; // Reset to identity transform
+        self.current_clip_rect = 1; // Reset to "no clip"
         self.deferred_mode = false;
         self.deferred_mode_start = 0;
     }
 
-    /// Clear all the render data, including shapes, deferred instances, and transforms and begin a new frame from scratch.
+    /// Clear all the render data, including shapes, deferred instances, transforms, and clip_rects, and begin a new frame from scratch.
     pub fn clear_for_new_frame(&mut self) {
         self.instances.clear();
         self.shapes.clear();
         self.deferred_instances.clear();
-        // Reset transforms to just identity at index 0
-        self.transforms.clear();
-        self.transforms.push(Transform::identity());
+        // Reset slots: identity transform at index 0, "no clip" at index 1
+        self.clip_rects_or_transforms.clear();
+        self.clip_rects_or_transforms.push(Transform::identity().into());
+        self.clip_rects_or_transforms.push(CLIP_NOTHING.into());
+        self.current_transform = 0;
+        self.current_clip_rect = 1;
     }
 
     pub fn prepare_text(&mut self) {
@@ -1307,28 +1281,63 @@ impl Renderer {
     /// Create a transform for this frame.
     /// The returned `TransformHandle` is valid until the next time [`Renderer::clear_for_new_frame()`] is called.
     pub fn insert_transform(&mut self, transform: Transform) -> TransformHandle {
-        let index = self.transforms.len();
-        self.transforms.push(transform);
+        let index = self.clip_rects_or_transforms.len();
+        self.clip_rects_or_transforms.push(transform.into());
         TransformHandle(index)
     }
 
     /// Modify a transform.
     /// All instances using this transform will be affected.
-    pub fn get_transform_mut(&mut self, handle: TransformHandle) -> &mut Transform {
-        &mut self.transforms[handle.0]
+    pub fn update_transform(&mut self, handle: TransformHandle, transform: Transform) {
+        self.clip_rects_or_transforms[handle.0] = transform.into()
     }
 
     /// Get the value of a transform.
-    pub fn get_transform(&self, handle: TransformHandle) -> &Transform {
-        &self.transforms[handle.0]
+    pub fn get_transform(&self, handle: TransformHandle) -> Transform {
+        self.clip_rects_or_transforms[handle.0].into()
+    }
+
+    /// Set the current clip rect to an existing clip rect handle.
+    /// All subsequent draw calls will use this clip rect until `clear_current_clip_rect` is called.
+    pub fn set_current_clip_rect(&mut self, handle: ClipRectHandle) {
+        self.current_clip_rect = handle.0;
+    }
+
+    /// Reset the current clip rect back to "no clip".
+    pub fn clear_current_clip_rect(&mut self) {
+        self.current_clip_rect = 0;
+    }
+
+    /// Create a clip rect for this frame.
+    /// The returned `ClipRectHandle` is valid until the next time [`Renderer::clear_for_new_frame()`] is called.
+    pub fn insert_clip_rect(&mut self, clip_rect: ClipRect) -> ClipRectHandle {
+        let index = self.clip_rects_or_transforms.len();
+        self.clip_rects_or_transforms.push(clip_rect.into());
+        ClipRectHandle(index)
+    }
+
+    /// Modify a clip rect.
+    /// All instances using this clip rect will be affected.
+    pub fn update_clip_rect(&mut self, handle: ClipRectHandle, clip_rect: ClipRect) {
+        self.clip_rects_or_transforms[handle.0] = clip_rect.into();
+    }
+
+    /// Get the value of a clip rect.
+    pub fn get_clip_rect(&self, handle: ClipRectHandle) -> ClipRect {
+        self.clip_rects_or_transforms[handle.0].into()
+    }
+
+    /// Get the "no clip" handle (index 0).
+    pub fn no_clip(&self) -> ClipRectHandle {
+        ClipRectHandle(0)
     }
 
 
     /// Get the current transform being used for draw calls.
     fn get_current_transform(&self) -> Transform {
         let current_index = self.current_transform;
-        if current_index < self.transforms.len() {
-            self.transforms[current_index]
+        if current_index < self.clip_rects_or_transforms.len() {
+            self.clip_rects_or_transforms[current_index].into()
         } else {
             Transform::identity()
         }
@@ -1337,17 +1346,17 @@ impl Renderer {
     /// Render into a render pass.
     pub fn render(&mut self, render_pass: &mut wgpu::RenderPass) {
         // Upload resources to GPU
-        let transforms_changed = self.transforms.load_to_gpu(&self.device, &self.queue);
+        let slots_changed = self.clip_rects_or_transforms.load_to_gpu(&self.device, &self.queue);
         let shapes_changed = self.shapes.load_to_gpu(&self.device, &self.queue);
         let images_changed = self.image_renderer.load_to_gpu(&self.device, &self.queue);
 
-        // Recreate bind group if transforms, shapes or images changed
-        if transforms_changed || shapes_changed || images_changed {
+        // Recreate bind group if slots, shapes or images changed
+        if slots_changed || shapes_changed || images_changed {
             let layout = Self::create_shapes_bind_group_layout(&self.device);
             self.shapes_bind_group = Self::create_shapes_bind_group(
                 &self.device,
                 &layout,
-                &self.transforms,
+                &self.clip_rects_or_transforms,
                 &self.shapes,
                 &self.image_renderer,
             );
@@ -1363,17 +1372,17 @@ impl Renderer {
 
     pub fn load_to_gpu(&mut self) {
         // Upload resources to GPU
-        let transforms_changed = self.transforms.load_to_gpu(&self.device, &self.queue);
+        let slots_changed = self.clip_rects_or_transforms.load_to_gpu(&self.device, &self.queue);
         let shapes_changed = self.shapes.load_to_gpu(&self.device, &self.queue);
         let images_changed = self.image_renderer.load_to_gpu(&self.device, &self.queue);
 
-        // Recreate bind group if transforms, shapes or images changed
-        if transforms_changed || shapes_changed || images_changed {
+        // Recreate bind group if slots, shapes or images changed
+        if slots_changed || shapes_changed || images_changed {
             let layout = Self::create_shapes_bind_group_layout(&self.device);
             self.shapes_bind_group = Self::create_shapes_bind_group(
                 &self.device,
                 &layout,
-                &self.transforms,
+                &self.clip_rects_or_transforms,
                 &self.shapes,
                 &self.image_renderer,
             );
