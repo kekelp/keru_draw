@@ -1474,6 +1474,11 @@ impl Renderer {
 
         output.present();
     }
+
+    // todo: remove this and make nicer start/end methods 
+    pub fn instance_count(&self) -> usize {
+        self.instances.len()
+    }
 }
 
 fn assert_imported_keru_text_shader_matches() {
