@@ -2350,11 +2350,69 @@
                                                 "scalarType": "float32"
                                             },
                                             "binding": {"kind": "uniform", "offset": 60, "size": 4, "elementStride": 0}
+                                        },
+                                        {
+                                            "name": "group_transform_index",
+                                            "type": {
+                                                "kind": "scalar",
+                                                "scalarType": "uint32"
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 64, "size": 4, "elementStride": 0}
+                                        },
+                                        {
+                                            "name": "_padding",
+                                            "type": {
+                                                "kind": "scalar",
+                                                "scalarType": "uint32"
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 68, "size": 4, "elementStride": 0}
                                         }
                                     ]
                                 }
                             },
                             "binding": {"kind": "descriptorTableSlot", "index": 5}
+                        },
+                        {
+                            "name": "group_transforms",
+                            "type": {
+                                "kind": "resource",
+                                "baseShape": "structuredBuffer",
+                                "resultType": {
+                                    "kind": "struct",
+                                    "name": "GroupTransform",
+                                    "fields": [
+                                        {
+                                            "name": "offset",
+                                            "type": {
+                                                "kind": "vector",
+                                                "elementCount": 2,
+                                                "elementType": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                }
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 0, "size": 8, "elementStride": 4}
+                                        },
+                                        {
+                                            "name": "scale",
+                                            "type": {
+                                                "kind": "scalar",
+                                                "scalarType": "float32"
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 8, "size": 4, "elementStride": 0}
+                                        },
+                                        {
+                                            "name": "_padding",
+                                            "type": {
+                                                "kind": "scalar",
+                                                "scalarType": "float32"
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 12, "size": 4, "elementStride": 0}
+                                        }
+                                    ]
+                                }
+                            },
+                            "binding": {"kind": "descriptorTableSlot", "index": 6}
                         }
                     ]
                 },
@@ -2678,15 +2736,73 @@
                                                     "scalarType": "float32"
                                                 },
                                                 "binding": {"kind": "uniform", "offset": 60, "size": 4, "elementStride": 0}
+                                            },
+                                            {
+                                                "name": "group_transform_index",
+                                                "type": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "uint32"
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 64, "size": 4, "elementStride": 0}
+                                            },
+                                            {
+                                                "name": "_padding",
+                                                "type": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "uint32"
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 68, "size": 4, "elementStride": 0}
                                             }
                                         ]
                                     }
                                 },
                                 "binding": {"kind": "descriptorTableSlot", "index": 5}
+                            },
+                            {
+                                "name": "group_transforms",
+                                "type": {
+                                    "kind": "resource",
+                                    "baseShape": "structuredBuffer",
+                                    "resultType": {
+                                        "kind": "struct",
+                                        "name": "GroupTransform",
+                                        "fields": [
+                                            {
+                                                "name": "offset",
+                                                "type": {
+                                                    "kind": "vector",
+                                                    "elementCount": 2,
+                                                    "elementType": {
+                                                        "kind": "scalar",
+                                                        "scalarType": "float32"
+                                                    }
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 0, "size": 8, "elementStride": 4}
+                                            },
+                                            {
+                                                "name": "scale",
+                                                "type": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 8, "size": 4, "elementStride": 0}
+                                            },
+                                            {
+                                                "name": "_padding",
+                                                "type": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 12, "size": 4, "elementStride": 0}
+                                            }
+                                        ]
+                                    }
+                                },
+                                "binding": {"kind": "descriptorTableSlot", "index": 6}
                             }
                         ]
                     },
-                    "binding": {"kind": "descriptorTableSlot", "index": 0, "count": 6}
+                    "binding": {"kind": "descriptorTableSlot", "index": 0, "count": 7}
                 }
             }
         }

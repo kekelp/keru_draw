@@ -23,10 +23,22 @@ pub struct InstanceRange { pub start: usize, pub end: usize }
 pub struct DeferredInstanceRange { start: usize, end: usize }
 
 /// A handle to a transform inside the [`Renderer`]'s transforms slab.
-/// 
+///
 /// The transform should eventually be removed with [`Renderer::remove_transform()`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct TransformHandle(usize);
+pub struct TransformHandle {
+    draw_index: usize,
+    text: keru_text::GroupTransformHandle,
+}
+
+impl TransformHandle {
+    /// A handle to the always-present identity transform.
+    pub const IDENTITY: Self = Self {
+        draw_index: 0,
+        text: keru_text::GroupTransformHandle::IDENTITY,
+    };
+}
+
 
 /// A handle to a clip rect inside the [`Renderer`]'s clip rects slab.
 /// 
@@ -450,7 +462,7 @@ pub struct Renderer {
     clip_rects_or_transforms: GpuSlab<ClipRectOrTransform>,
     shapes_bind_group: wgpu::BindGroup,
     instances: GpuVec<Instance>,
-    current_transform: usize,
+    current_transform: TransformHandle,
     current_clip_rect: usize,
     pub gpu_profiler: GpuProfiler,
     // Deferred mode
@@ -615,7 +627,7 @@ impl Renderer {
             deferred_instances: Vec::with_capacity(5),
             device: device.clone(),
             queue: queue.clone(),
-            current_transform: 0, // Identity transform is at slot index 0
+            current_transform: TransformHandle { draw_index: 0, text: keru_text::GroupTransformHandle::IDENTITY },
             current_clip_rect: 1, // "No clip" is at slot index 1
             render_pipeline, shapes, clip_rects_or_transforms, image_renderer, text, shapes_bind_group, instances, gpu_profiler
         }
@@ -718,7 +730,7 @@ impl Renderer {
         self.push_instance(Instance {
             p_type: primitive::BOX,
             p_index: index as u32,
-            transform_index: self.current_transform as u32,
+            transform_index: self.current_transform.draw_index as u32,
             clip_rect_index: self.current_clip_rect as u32,
         });
     }
@@ -767,7 +779,7 @@ impl Renderer {
         self.push_instance(Instance {
             p_type: primitive::CIRCLE,
             p_index: index as u32,
-            transform_index: self.current_transform as u32,
+            transform_index: self.current_transform.draw_index as u32,
             clip_rect_index: self.current_clip_rect as u32,
         });
     }
@@ -795,7 +807,7 @@ impl Renderer {
         self.push_instance(Instance {
             p_type: primitive::CIRCLE,
             p_index: index as u32,
-            transform_index: self.current_transform as u32,
+            transform_index: self.current_transform.draw_index as u32,
             clip_rect_index: self.current_clip_rect as u32,
         });
     }
@@ -823,7 +835,7 @@ impl Renderer {
         self.push_instance(Instance {
             p_type: primitive::CIRCLE,
             p_index: index as u32,
-            transform_index: self.current_transform as u32,
+            transform_index: self.current_transform.draw_index as u32,
             clip_rect_index: self.current_clip_rect as u32,
         });
     }
@@ -851,7 +863,7 @@ impl Renderer {
         self.push_instance(Instance {
             p_type: primitive::CIRCLE,
             p_index: index as u32,
-            transform_index: self.current_transform as u32,
+            transform_index: self.current_transform.draw_index as u32,
             clip_rect_index: self.current_clip_rect as u32,
         });
     }
@@ -882,7 +894,7 @@ impl Renderer {
         self.push_instance(Instance {
             p_type: primitive::SEGMENT,
             p_index: index as u32,
-            transform_index: self.current_transform as u32,
+            transform_index: self.current_transform.draw_index as u32,
             clip_rect_index: self.current_clip_rect as u32,
         });
     }
@@ -907,7 +919,7 @@ impl Renderer {
         self.push_instance(Instance {
             p_type: primitive::GRID,
             p_index: index as u32,
-            transform_index: self.current_transform as u32,
+            transform_index: self.current_transform.draw_index as u32,
             clip_rect_index: self.current_clip_rect as u32,
         });
     }
@@ -934,7 +946,7 @@ impl Renderer {
         self.push_instance(Instance {
             p_type: primitive::TRIANGLE,
             p_index: index as u32,
-            transform_index: self.current_transform as u32,
+            transform_index: self.current_transform.draw_index as u32,
             clip_rect_index: self.current_clip_rect as u32,
         });
     }
@@ -963,7 +975,7 @@ impl Renderer {
         self.push_instance(Instance {
             p_type: primitive::HEXAGON,
             p_index: index as u32,
-            transform_index: self.current_transform as u32,
+            transform_index: self.current_transform.draw_index as u32,
             clip_rect_index: self.current_clip_rect as u32,
         });
     }
@@ -981,7 +993,7 @@ impl Renderer {
         self.push_instance(Instance {
             p_type: primitive::QUADRATIC_BEZIER,
             p_index: index as u32,
-            transform_index: self.current_transform as u32,
+            transform_index: self.current_transform.draw_index as u32,
             clip_rect_index: self.current_clip_rect as u32,
         });
     }
@@ -1181,16 +1193,8 @@ impl Renderer {
 
     /// Draw a text box.
     pub fn draw_text_box(&mut self, text_box: &TextBoxHandle) {
-        // Get current transform before borrowing text_box_ref
-        let current_euclid_transform = self.get_current_transform();
-
-        // Combine keru_draw's transform with the text box's retained_transform
-        let text_box_ref = self.text.get_text_box_mut(text_box);
-        let retained = text_box_ref.transform();
-
-        // Combine: first apply retained_transform, then keru_draw's transform
-        let combined = combine_transforms(&current_euclid_transform, &retained);
-        text_box_ref.set_transform(combined);
+        let transform = self.current_transform.text;
+        self.text.get_text_box_mut(text_box).set_group_transform(transform);
 
         let glyph_range = self.text.get_text_box(text_box).glyph_quad_range();
 
@@ -1198,7 +1202,7 @@ impl Renderer {
             self.push_instance(Instance {
                 p_type: primitive::TEXT,
                 p_index: q as u32,
-                transform_index: self.current_transform as u32,
+                transform_index: self.current_transform.draw_index as u32,
                 clip_rect_index: self.current_clip_rect as u32,
             });
         }
@@ -1206,19 +1210,8 @@ impl Renderer {
 
     /// Draw a text edit widget.
     pub fn draw_text_edit(&mut self, text_edit: &TextEditHandle) {
-        // Get current transform before borrowing text_edit_ref
-        let current_euclid_transform = self.get_current_transform();
-
-        // For TextEdit, we assume retained_transform is managed by the TextEdit itself
-        // We just combine with the current transform
-        let text_edit_ref = self.text.get_text_edit_mut(text_edit);
-
-        // TextEdit doesn't expose retained_transform publicly
-        // For now, we'll just apply the keru_draw transform on top of whatever transform the text_edit has
-        // This might need adjustment if TextEdit needs to track retained_transform separately
-        let current_text_transform = text_edit_ref.transform();
-        let combined = combine_transforms(&current_euclid_transform, &current_text_transform);
-        text_edit_ref.set_transform(combined);
+        let transform = self.current_transform.text;
+        self.text.get_text_edit_mut(text_edit).set_group_transform(transform);
 
         let glyph_range = self.text.get_text_edit(text_edit).glyph_quad_range();
 
@@ -1226,7 +1219,7 @@ impl Renderer {
             self.push_instance(Instance {
                 p_type: primitive::TEXT,
                 p_index: q as u32,
-                transform_index: self.current_transform as u32,
+                transform_index: self.current_transform.draw_index as u32,
                 clip_rect_index: self.current_clip_rect as u32,
             });
         }
@@ -1239,7 +1232,7 @@ impl Renderer {
     /// To clear everything, call [`Renderer::clear_for_new_frame()`].
     pub fn begin_frame(&mut self) {
         self.instances.clear();
-        self.current_transform = 0; // Reset to identity transform
+        self.current_transform = TransformHandle::IDENTITY;
         self.current_clip_rect = 1; // Reset to "no clip"
         self.deferred_mode = false;
         self.deferred_mode_start = 0;
@@ -1250,11 +1243,7 @@ impl Renderer {
         self.instances.clear();
         self.shapes.clear();
         self.deferred_instances.clear();
-        // Reset slots: identity transform at index 0, "no clip" at index 1
-        self.clip_rects_or_transforms.clear();
-        self.clip_rects_or_transforms.insert(Transform::identity().into());
-        self.clip_rects_or_transforms.insert(CLIP_NOTHING.into());
-        self.current_transform = 0;
+        self.current_transform = TransformHandle::IDENTITY;
         self.current_clip_rect = 1;
     }
 
@@ -1300,35 +1289,51 @@ impl Renderer {
     /// Set the current transform to an existing transform handle.
     /// All subsequent draw calls will use this transform until `pop_current_transform` is called.
     pub fn set_current_transform(&mut self, handle: TransformHandle) {
-        self.current_transform = handle.0;
+        self.current_transform = handle;
     }
 
     /// Reset the current transform back to identity.
     pub fn clear_current_transform(&mut self) {
-        self.current_transform = 0;
+        self.current_transform = TransformHandle::IDENTITY
     }
 
     /// Create a retained transform.
     /// The returned `TransformHandle` is valid until [`Renderer::remove_transform()`] is called on it.
     pub fn insert_transform(&mut self, transform: Transform) -> TransformHandle {
-        let index = self.clip_rects_or_transforms.insert(transform.into());
-        TransformHandle(index)
+        let draw_index = self.clip_rects_or_transforms.insert(transform.into());
+        // Also create a keru_text GroupTransform
+        let text_transform = keru_text::GroupTransform {
+            offset: transform.offset,
+            scale: transform.scale,
+            _padding: 0.0,
+        };
+        let text_handle = self.text.insert_group_transform(text_transform);
+        TransformHandle { draw_index, text: text_handle }
     }
 
     /// Remove a retained transform.
     pub fn remove_transform(&mut self, handle: TransformHandle) {
-        self.clip_rects_or_transforms.remove(handle.0);
+        self.clip_rects_or_transforms.remove(handle.draw_index);
+        // Also remove from keru_text group transforms
+        self.text.remove_group_transform(handle.text);
     }
 
     /// Modify a transform.
     /// All instances using this transform will be affected.
     pub fn update_transform(&mut self, handle: TransformHandle, transform: Transform) {
-        self.clip_rects_or_transforms[handle.0] = transform.into()
+        self.clip_rects_or_transforms[handle.draw_index] = transform.into();
+        // Also update keru_text group transform
+        let text_transform = keru_text::GroupTransform {
+            offset: transform.offset,
+            scale: transform.scale,
+            _padding: 0.0,
+        };
+        self.text.update_group_transform(handle.text, text_transform);
     }
 
     /// Get the value of a transform.
     pub fn get_transform(&self, handle: TransformHandle) -> Transform {
-        self.clip_rects_or_transforms[handle.0].into()
+        self.clip_rects_or_transforms[handle.draw_index].into()
     }
 
     /// Set the current clip rect to an existing clip rect handle.
@@ -1363,16 +1368,6 @@ impl Renderer {
     /// Get the value of a clip rect.
     pub fn get_clip_rect(&self, handle: ClipRectHandle) -> ClipRect {
         self.clip_rects_or_transforms[handle.0].into()
-    }
-
-    /// Get the current transform being used for draw calls.
-    fn get_current_transform(&self) -> Transform {
-        let current_index = self.current_transform;
-        if current_index < self.clip_rects_or_transforms.len() {
-            self.clip_rects_or_transforms[current_index].into()
-        } else {
-            Transform::identity()
-        }
     }
 
     /// Render into a render pass.

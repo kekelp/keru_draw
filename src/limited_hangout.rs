@@ -10,7 +10,7 @@ impl Renderer {
 
 /// A context for custom drawing.
 /// 
-/// This is a limited version of the `keru_draw` [`Renderer`] that exposes the methods for drawing, but not the internal ones like [`begin_new_frame`].
+/// This is a limited version of the `keru_draw` [`Renderer`] that exposes the methods for drawing, but not the internal ones like [`Renderer::clear_for_new_frame`].
 pub struct DrawContext<'a> {
     renderer: &'a mut Renderer,
 }
