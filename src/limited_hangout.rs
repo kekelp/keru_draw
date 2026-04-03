@@ -1,18 +1,17 @@
 use crate::*;
 
-impl Renderer {
-    /// Get a restricted drawing context that only exposes the drawing methods, but not the methods like [`Self::begin_frame()`] and [`Self::clear_for_new_frame()`].
-    pub fn get_draw_context(&mut self) -> DrawContext<'_> {
-        DrawContext { renderer: self }
-    }
-}
-
-
 /// A context for custom drawing.
 /// 
 /// This is a limited version of the `keru_draw` [`Renderer`] that exposes the methods for drawing, but not the internal ones like [`Renderer::clear_for_new_frame`].
 pub struct DrawContext<'a> {
     renderer: &'a mut Renderer,
+}
+
+impl Renderer {
+    /// Get a restricted drawing context that only exposes the drawing methods, but not the methods like [`Self::begin_frame()`] and [`Self::clear_for_new_frame()`].
+    pub fn get_draw_context(&mut self) -> DrawContext<'_> {
+        DrawContext { renderer: self }
+    }
 }
 
 impl<'a> DrawContext<'a> {
