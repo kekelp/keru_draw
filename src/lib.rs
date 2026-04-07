@@ -1375,12 +1375,12 @@ impl Renderer {
     /// Render into a render pass.
     pub fn render(&mut self, render_pass: &mut wgpu::RenderPass) {
         // Upload resources to GPU
-        let slots_changed = self.clip_rects_or_transforms.load_to_gpu(&self.device, &self.queue);
-        let shapes_changed = self.shapes.load_to_gpu(&self.device, &self.queue);
-        let images_changed = self.image_renderer.load_to_gpu(&self.device, &self.queue);
+        let slots_realloc = self.clip_rects_or_transforms.load_to_gpu(&self.device, &self.queue);
+        let shapes_realloc = self.shapes.load_to_gpu(&self.device, &self.queue);
+        let images_realloc = self.image_renderer.load_to_gpu(&self.device, &self.queue);
 
-        // Recreate bind group if slots, shapes or images changed
-        if slots_changed || shapes_changed || images_changed {
+        // Recreate bind group if slots, shapes or images realloc
+        if slots_realloc || shapes_realloc || images_realloc {
             let layout = Self::create_shapes_bind_group_layout(&self.device);
             self.shapes_bind_group = Self::create_shapes_bind_group(
                 &self.device,
