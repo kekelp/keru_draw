@@ -71,20 +71,6 @@ impl<T: GpuSlabItem + Copy> GpuSlab<T> {
         self.first_free = Some(i);
     }
 
-    /// Get the number of slots (including free slots).
-    pub fn len(&self) -> usize {
-        self.items.len()
-    }
-
-    /// Clear all items from the slab.
-    pub fn clear(&mut self) {
-        if !self.items.is_empty() {
-            self.items.clear();
-            self.first_free = None;
-            self.dirty = true;
-        }
-    }
-
     /// Updates the underlying GPU buffer with current data.
     /// Returns true if the buffer was reallocated.
     pub fn load_to_gpu(&mut self, device: &wgpu::Device, queue: &wgpu::Queue) -> bool {

@@ -442,18 +442,6 @@ impl GpuSlabItem for ClipRectOrTransform {
     }
 }
 
-/// Combines a keru_draw Transform with a keru_text Transform2D.
-fn combine_transforms(keru_transform: &Transform, keru_text_transform: &keru_text::Transform2D) -> keru_text::Transform2D {
-    keru_text::Transform2D {
-        translation: (
-            keru_text_transform.translation.0 + keru_transform.offset[0],
-            keru_text_transform.translation.1 + keru_transform.offset[1],
-        ),
-        rotation: keru_text_transform.rotation,
-        scale: keru_text_transform.scale * keru_transform.scale,
-    }
-}
-
 pub struct Renderer {
     device: wgpu::Device,
     queue: wgpu::Queue,

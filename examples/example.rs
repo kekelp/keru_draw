@@ -152,11 +152,6 @@ impl State {
     }
 
     fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
-        let width = self.size.width as f32;
-        let height = self.size.height as f32;
-        let clip_x = [0.0, width];
-        let clip_y = [0.0, height];
-
         self.renderer.begin_frame();
         self.renderer.prepare_text();
 
