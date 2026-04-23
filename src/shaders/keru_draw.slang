@@ -30,7 +30,7 @@ struct BoxGpu {
     float2 texture_uv_origin; // pixel coords in atlas (top-left corner)
     float2 texture_uv_size;   // pixel dimensions in atlas
     uint texture_page;        // atlas layer, 0xFFFFFFFF = no texture
-    float pad0;
+    float blur_radius;
     float pad1;
     float pad2;
     float pad3;
@@ -50,6 +50,10 @@ struct CircleGpu {
     float2 texture_uv_size;   // pixel dimensions in atlas
     float dash_length;        // 0 = no dashing, >0 = dash length in pixels
     float dash_offset;        // offset for dash pattern alignment
+    float blur_radius;
+    float _blur_pad0;
+    float _blur_pad1;
+    float _blur_pad2;
 }
 
 struct SegmentGpu {
@@ -62,7 +66,8 @@ struct SegmentGpu {
     uint texture_page;        // atlas layer, 0xFFFFFFFF = no texture
     float2 texture_uv_origin; // pixel coords in atlas (top-left corner)
     float2 texture_uv_size;   // pixel dimensions in atlas
-    float2 pad;               // padding for 16-byte alignment
+    float blur_radius;
+    float pad;
 }
 
 struct GridGpu {
@@ -76,7 +81,8 @@ struct GridGpu {
     uint texture_page;        // atlas layer, 0xFFFFFFFF = no texture
     float2 texture_uv_origin; // pixel coords in atlas (top-left corner)
     float2 texture_uv_size;   // pixel dimensions in atlas
-    float2 pad;               // padding for 16-byte alignment
+    float blur_radius;
+    float pad;
 }
 
 struct TriangleGpu {
@@ -90,7 +96,8 @@ struct TriangleGpu {
     uint texture_page;        // atlas layer, 0xFFFFFFFF = no texture
     float2 texture_uv_origin; // pixel coords in atlas (top-left corner)
     float2 texture_uv_size;   // pixel dimensions in atlas
-    float2 pad;               // padding for 16-byte alignment
+    float blur_radius;
+    float pad;
 }
 
 struct HexagonGpu {
@@ -106,7 +113,8 @@ struct HexagonGpu {
     float _pad1;               // alignment for float2
     float2 texture_uv_origin;  // pixel coords in atlas (top-left corner)
     float2 texture_uv_size;    // pixel dimensions in atlas
-    float2 pad;                // padding for 16-byte alignment
+    float blur_radius;
+    float pad;
 }
 
 struct QuadraticBezierGpu {
@@ -114,7 +122,7 @@ struct QuadraticBezierGpu {
     float2 p1;
     float2 p2;
     float thickness;
-    float _pad0;
+    float blur_radius;
     float4 color;
 }
 
@@ -138,8 +146,11 @@ void box_vertex(
     out float2 screen_pos,
 ) {
     var box: BoxGpu = shapes.boxes[instanceIndex];
-    quad_vertex(box.top_left, box.size, vertexIndex, resolution, position, uv);
-    screen_pos = box.top_left + uv * box.size;
+    float blur_margin = box.blur_radius * 3.0;
+    float2 expanded_top_left = box.top_left - float2(blur_margin, blur_margin);
+    float2 expanded_size = box.size + float2(blur_margin * 2.0, blur_margin * 2.0);
+    quad_vertex(expanded_top_left, expanded_size, vertexIndex, resolution, position, uv);
+    screen_pos = expanded_top_left + uv * expanded_size;
 }
 
 float linear(float a, float b, float x) { return (x-a)/(b-a); }
@@ -220,7 +231,10 @@ float4 box_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, float2 s
         discard;
     }
 
-    float2 p = (uv - 0.5) * box.size;
+    float blur_margin = box.blur_radius * 3.0;
+    float2 expanded_top_left = box.top_left - float2(blur_margin, blur_margin);
+    float2 expanded_size = box.size + float2(blur_margin * 2.0, blur_margin * 2.0);
+    float2 p = expanded_top_left + uv * expanded_size - (box.top_left + box.size * 0.5);
 
     // Compute per-corner radii based on bitflags
     // Bits: 1=top-left, 2=top-right, 4=bottom-left, 8=bottom-right (screen space, Y down)
@@ -242,9 +256,13 @@ float4 box_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, float2 s
         dist = abs(dist + box.border_thickness * 0.5) - box.border_thickness * 0.5;
     }
 
-    // Scale antialiasing width based on transform zoom
-    float aa_width = 0.5 / max(transform_scale, 0.001);
-    float alpha = 1.0 - linearstep(-aa_width, aa_width, dist);
+    float alpha;
+    if (box.blur_radius > 0.5) {
+        alpha = 1.0 / (1.0 + exp(1.7 * dist / box.blur_radius));
+    } else {
+        float aa_width = 0.5 / max(transform_scale, 0.001);
+        alpha = 1.0 - linearstep(-aa_width, aa_width, dist);
+    }
 
     if (alpha < 0.001) {
         discard;
@@ -254,8 +272,7 @@ float4 box_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, float2 s
     float4 color;
     if (box.gradient_type == 1) {
         // Linear gradient
-        float2 pos = (uv - 0.5) * box.size;
-        float t = dot(pos, box.gradient_direction) / length(box.size * 0.5);
+        float t = dot(p, box.gradient_direction) / length(box.size * 0.5);
         t = t * 0.5 + 0.5; // Remap from [-1,1] to [0,1]
         color = gradient_oklab(box.color_start, box.color_end, clamp(t, 0.0, 1.0));
     } else {
@@ -275,8 +292,8 @@ float4 box_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, float2 s
         shapes.atlas_texture.GetDimensions(atlas_width, atlas_height, atlas_elements);
         float2 atlas_size = float2(float(atlas_width), float(atlas_height));
 
-        // Calculate UV in atlas space (uv is 0-1 across the box)
-        float2 tex_uv = (box.texture_uv_origin + box.texture_uv_size * uv) / atlas_size;
+        float2 local_uv = (p + box.size * 0.5) / box.size;
+        float2 tex_uv = (box.texture_uv_origin + box.texture_uv_size * local_uv) / atlas_size;
 
         // Sample texture
         float4 tex_color = shapes.atlas_texture.SampleLevel(
@@ -302,10 +319,11 @@ void circle_vertex(
 ) {
     var circle: CircleGpu = shapes.circles[instanceIndex];
 
-    // Create bounding box for the circle
+    // Create bounding box for the circle, expanded for blur falloff
     float outer_radius = circle.radii.y;
-    float2 top_left = circle.center - float2(outer_radius, outer_radius);
-    float2 size = float2(outer_radius * 2.0, outer_radius * 2.0);
+    float blur_margin = circle.blur_radius * 3.0;
+    float2 top_left = circle.center - float2(outer_radius + blur_margin, outer_radius + blur_margin);
+    float2 size = float2((outer_radius + blur_margin) * 2.0, (outer_radius + blur_margin) * 2.0);
 
     quad_vertex(top_left, size, vertexIndex, resolution, position, uv);
     screen_pos = top_left + uv * size;
@@ -318,21 +336,6 @@ float normalize_angle(float angle) {
     return result;
 }
 
-bool is_in_arc(float angle, float start, float end) {
-    const float TAU = 6.28318530718;
-
-    // Normalize all angles to [0, 2π]
-    angle = normalize_angle(angle);
-    start = normalize_angle(start);
-    end = normalize_angle(end);
-
-    // Handle wrap-around case
-    if (start <= end) {
-        return angle >= start && angle <= end;
-    } else {
-        return angle >= start || angle <= end;
-    }
-}
 
 float sd_circle_variant(float2 p, CircleGpu circle) {
     const float TAU = 6.28318530718;
@@ -357,23 +360,42 @@ float sd_circle_variant(float2 p, CircleGpu circle) {
             // Ring (annulus)
             return abs(dist_from_center - (inner_radius + outer_radius) * 0.5) - (outer_radius - inner_radius) * 0.5;
         }
-    } else {
-        // Arc or pie case - need to check angle
-        float angle = atan2(p.y, p.x);
+    }
 
-        if (is_in_arc(angle, start_angle, end_angle)) {
-            // Inside the angular range
-            if (inner_radius < 0.001) {
-                // Pie slice
-                return dist_from_center - outer_radius;
-            } else {
-                // Arc
-                return abs(dist_from_center - (inner_radius + outer_radius) * 0.5) - (outer_radius - inner_radius) * 0.5;
-            }
+    // Normalize the pixel's angle relative to start_angle, into [0, span]
+    float angle = atan2(p.y, p.x);
+    float angle_rel = normalize_angle(angle - start_angle);
+    float span = normalize_angle(end_angle - start_angle);
+
+    if (inner_radius < 0.001) {
+        // Pie slice
+        bool in_angle = (angle_rel <= span);
+        if (in_angle) {
+            return dist_from_center - outer_radius;
         } else {
-            // Outside the angular range - far away
-            return 1000.0;
+            // Distance to nearest radial edge (segment from origin to arc endpoint)
+            float2 dir_start = float2(cos(start_angle), sin(start_angle));
+            float2 dir_end = float2(cos(end_angle), sin(end_angle));
+            float t_start = clamp(dot(p, dir_start), 0.0, outer_radius);
+            float t_end = clamp(dot(p, dir_end), 0.0, outer_radius);
+            return min(length(p - dir_start * t_start), length(p - dir_end * t_end));
         }
+    } else {
+        // Arc: nearest point on arc centerline (proper SDF).
+        // clamp() alone is wrong for the start cap: angle_rel just before start wraps to ~2π,
+        // which clamps to span (the end cap) instead of 0 (the start cap). Pick the nearer cap.
+        float mid_radius = (inner_radius + outer_radius) * 0.5;
+        float half_thickness = (outer_radius - inner_radius) * 0.5;
+        float nearest_rel;
+        if (angle_rel <= span) {
+            nearest_rel = angle_rel;
+        } else {
+            float dist_to_start = 6.28318530718 - angle_rel; // gap going back to start
+            float dist_to_end   = angle_rel - span;           // gap going forward to end
+            nearest_rel = (dist_to_start < dist_to_end) ? 0.0 : span;
+        }
+        float2 nearest_on_arc = mid_radius * float2(cos(start_angle + nearest_rel), sin(start_angle + nearest_rel));
+        return length(p - nearest_on_arc) - half_thickness;
     }
 }
 
@@ -386,18 +408,20 @@ float4 circle_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, float
         discard;
     }
 
-    // Convert UV to position relative to circle center
+    // Convert UV to position relative to circle center, accounting for blur-expanded bounding quad
     float outer_radius = circle.radii.y;
-    float2 top_left = circle.center - float2(outer_radius, outer_radius);
-    float2 size = float2(outer_radius * 2.0, outer_radius * 2.0);
-
-    float2 p = top_left + uv * size - circle.center;
+    float blur_margin = circle.blur_radius * 3.0;
+    float2 p = (uv - 0.5) * float2((outer_radius + blur_margin) * 2.0);
 
     float dist = sd_circle_variant(p, circle);
 
-    // Scale antialiasing width based on transform zoom
     float aa_width = 0.5 / max(transform_scale, 0.001);
-    float alpha = 1.0 - linearstep(-aa_width, aa_width, dist);
+    float alpha;
+    if (circle.blur_radius > 0.5) {
+        alpha = 1.0 / (1.0 + exp(1.7 * dist / circle.blur_radius));
+    } else {
+        alpha = 1.0 - linearstep(-aa_width, aa_width, dist);
+    }
 
     // dashed circle
     if (circle.dash_length > 0.0001) {
@@ -418,11 +442,25 @@ float4 circle_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, float
         float pos_in_period = fmod(arc_pos, dash_period);
         if (pos_in_period < 0.0) pos_in_period += dash_period;
 
-        float dist_to_start = pos_in_period;
-        float dist_to_end = circle.dash_length - pos_in_period;
-        float dist_to_nearest_edge = min(dist_to_start, dist_to_end);
+        // Signed distance to nearest dash boundary: positive inside a dash, negative in a gap.
+        // min(pos_in_period, ...) alone is wrong near the start of the next dash: it only
+        // measures distance to the end of the previous dash, giving a large negative in the gap
+        // near the next start. Compute distance to both neighboring boundaries explicitly.
+        float dist_to_nearest_edge;
+        if (pos_in_period <= circle.dash_length) {
+            dist_to_nearest_edge = min(pos_in_period, circle.dash_length - pos_in_period);
+        } else {
+            float dist_to_prev = pos_in_period - circle.dash_length;
+            float dist_to_next = dash_period - pos_in_period;
+            dist_to_nearest_edge = -min(dist_to_prev, dist_to_next);
+        }
 
-        float dash_alpha = linearstep(-aa_width, aa_width, dist_to_nearest_edge);
+        float dash_alpha;
+        if (circle.blur_radius > 0.5) {
+            dash_alpha = 1.0 / (1.0 + exp(1.7 * (-dist_to_nearest_edge) / circle.blur_radius));
+        } else {
+            dash_alpha = linearstep(-aa_width, aa_width, dist_to_nearest_edge);
+        }
         alpha *= dash_alpha;
     }
 
@@ -457,8 +495,9 @@ float4 circle_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, float
         shapes.atlas_texture.GetDimensions(atlas_width, atlas_height, atlas_elements);
         float2 atlas_size = float2(float(atlas_width), float(atlas_height));
 
-        // Calculate UV in atlas space (uv is 0-1 across the bounding box)
-        float2 tex_uv = (circle.texture_uv_origin + circle.texture_uv_size * uv) / atlas_size;
+        // Calculate UV in atlas space (local_uv is 0-1 across the original circle bounding box, not the expanded quad)
+        float2 local_uv = (p + float2(outer_radius)) / float2(outer_radius * 2.0);
+        float2 tex_uv = (circle.texture_uv_origin + circle.texture_uv_size * local_uv) / atlas_size;
 
         // Sample texture
         float4 tex_color = shapes.atlas_texture.SampleLevel(
@@ -484,10 +523,11 @@ void segment_vertex(
 ) {
     var seg: SegmentGpu = shapes.segments[instanceIndex];
 
-    // Create bounding box for the segment
+    // Create bounding box for the segment, expanded for blur falloff
     float half_thickness = seg.thickness_dash[0] * 0.5;
-    float2 min_point = min(seg.start, seg.end) - float2(half_thickness, half_thickness);
-    float2 max_point = max(seg.start, seg.end) + float2(half_thickness, half_thickness);
+    float blur_margin = seg.blur_radius * 3.0;
+    float2 min_point = min(seg.start, seg.end) - float2(half_thickness + blur_margin, half_thickness + blur_margin);
+    float2 max_point = max(seg.start, seg.end) + float2(half_thickness + blur_margin, half_thickness + blur_margin);
 
     float2 top_left = min_point;
     float2 size = max_point - min_point;
@@ -513,10 +553,11 @@ float4 segment_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, floa
         discard;
     }
 
-    // Convert UV to world position
+    // Convert UV to world position, accounting for blur-expanded bounding quad
     float half_thickness = seg.thickness_dash[0] * 0.5;
-    float2 min_point = min(seg.start, seg.end) - float2(half_thickness, half_thickness);
-    float2 max_point = max(seg.start, seg.end) + float2(half_thickness, half_thickness);
+    float blur_margin = seg.blur_radius * 3.0;
+    float2 min_point = min(seg.start, seg.end) - float2(half_thickness + blur_margin, half_thickness + blur_margin);
+    float2 max_point = max(seg.start, seg.end) + float2(half_thickness + blur_margin, half_thickness + blur_margin);
 
     float2 top_left = min_point;
     float2 size = max_point - min_point;
@@ -526,9 +567,13 @@ float4 segment_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, floa
     // Calculate distance to segment
     float dist = sd_segment(p, seg.start, seg.end) - half_thickness;
 
-    // Scale antialiasing width based on transform zoom
     float aa_width = 0.5 / max(transform_scale, 0.001);
-    float alpha = 1.0 - linearstep(-aa_width, aa_width, dist);
+    float alpha;
+    if (seg.blur_radius > 0.5) {
+        alpha = 1.0 / (1.0 + exp(1.7 * dist / seg.blur_radius));
+    } else {
+        alpha = 1.0 - linearstep(-aa_width, aa_width, dist);
+    }
 
     if (alpha < 0.001) {
         discard;
@@ -550,12 +595,23 @@ float4 segment_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, floa
         float pos_in_period = fmod(t, dash_period);
         if (pos_in_period < 0.0) pos_in_period += dash_period;
 
-        float dist_to_start = pos_in_period;
-        float dist_to_end = dash_length - pos_in_period;
-        float dist_to_nearest_edge = min(dist_to_start, dist_to_end);
+        // Signed distance to nearest dash boundary: positive inside a dash, negative in a gap.
+        // Same fix as circle dashes: compute distance to both neighboring boundaries.
+        float dist_to_nearest_edge;
+        if (pos_in_period <= dash_length) {
+            dist_to_nearest_edge = min(pos_in_period, dash_length - pos_in_period);
+        } else {
+            float dist_to_prev = pos_in_period - dash_length;
+            float dist_to_next = dash_period - pos_in_period;
+            dist_to_nearest_edge = -min(dist_to_prev, dist_to_next);
+        }
 
-        float dash_alpha = linearstep(-0.5, 0.5, dist_to_nearest_edge);
-
+        float dash_alpha;
+        if (seg.blur_radius > 0.5) {
+            dash_alpha = 1.0 / (1.0 + exp(1.7 * (-dist_to_nearest_edge) / seg.blur_radius));
+        } else {
+            dash_alpha = linearstep(-0.5, 0.5, dist_to_nearest_edge);
+        }
         alpha *= dash_alpha;
 
         if (alpha < 0.001) {
@@ -588,7 +644,10 @@ float4 segment_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, floa
         uint atlas_width, atlas_height, atlas_elements;
         shapes.atlas_texture.GetDimensions(atlas_width, atlas_height, atlas_elements);
         float2 atlas_size = float2(float(atlas_width), float(atlas_height));
-        float2 tex_uv = (seg.texture_uv_origin + seg.texture_uv_size * uv) / atlas_size;
+        float2 orig_min = min(seg.start, seg.end) - float2(half_thickness, half_thickness);
+        float2 orig_size = max(seg.start, seg.end) + float2(half_thickness, half_thickness) - orig_min;
+        float2 local_uv = (p - orig_min) / orig_size;
+        float2 tex_uv = (seg.texture_uv_origin + seg.texture_uv_size * local_uv) / atlas_size;
         float4 tex_color = shapes.atlas_texture.SampleLevel(
             shapes.atlas_sampler,
             float3(tex_uv, float(seg.texture_page)),
@@ -665,9 +724,14 @@ float4 grid_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, float2 
     // Apply line thickness and antialiasing
     float line_width = grid.line_thickness / max(transform_scale, 0.001);
     float half_thickness = line_width * 0.5;
-    // Scale antialiasing width based on transform zoom (dist is in local space)
-    float aa_width = 0.5 / max(transform_scale, 0.001);
-    float alpha = 1.0 - linearstep(half_thickness - aa_width, half_thickness + aa_width, dist);
+    float d = dist - half_thickness; // effective SDF: 0 at line edge, positive outside
+    float alpha;
+    if (grid.blur_radius > 0.5) {
+        alpha = 1.0 / (1.0 + exp(1.7 * d / grid.blur_radius));
+    } else {
+        float aa_width = 0.5 / max(transform_scale, 0.001);
+        alpha = 1.0 - linearstep(-aa_width, aa_width, d);
+    }
 
     if (alpha < 0.001) {
         discard;
@@ -706,9 +770,10 @@ void triangle_vertex(
 ) {
     var tri: TriangleGpu = shapes.triangles[instanceIndex];
 
-    // Create bounding box for the triangle
-    float2 min_point = min(tri.p0, min(tri.p1, tri.p2));
-    float2 max_point = max(tri.p0, max(tri.p1, tri.p2));
+    // Create bounding box for the triangle, expanded for blur falloff
+    float blur_margin = tri.blur_radius * 3.0;
+    float2 min_point = min(tri.p0, min(tri.p1, tri.p2)) - float2(blur_margin, blur_margin);
+    float2 max_point = max(tri.p0, max(tri.p1, tri.p2)) + float2(blur_margin, blur_margin);
 
     float2 top_left = min_point;
     float2 size = max_point - min_point;
@@ -748,9 +813,12 @@ float4 triangle_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, flo
         discard;
     }
 
-    // Convert UV to world position
-    float2 min_point = min(tri.p0, min(tri.p1, tri.p2));
-    float2 max_point = max(tri.p0, max(tri.p1, tri.p2));
+    // Convert UV to world position, accounting for blur-expanded bounding quad
+    float blur_margin = tri.blur_radius * 3.0;
+    float2 orig_min = min(tri.p0, min(tri.p1, tri.p2));
+    float2 orig_max = max(tri.p0, max(tri.p1, tri.p2));
+    float2 min_point = orig_min - float2(blur_margin, blur_margin);
+    float2 max_point = orig_max + float2(blur_margin, blur_margin);
     float2 top_left = min_point;
     float2 size = max_point - min_point;
     float2 p = top_left + uv * size;
@@ -758,10 +826,13 @@ float4 triangle_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, flo
     // Calculate distance to triangle
     float dist = sd_triangle(p, tri.p0, tri.p1, tri.p2);
 
-    // Scale antialiasing width based on transform zoom
-    float aa_width = 0.5 / max(transform_scale, 0.001);
-    float alpha = 1.0 - linearstep(-aa_width, aa_width, dist);
-
+    float alpha;
+    if (tri.blur_radius > 0.5) {
+        alpha = 1.0 / (1.0 + exp(1.7 * dist / tri.blur_radius));
+    } else {
+        float aa_width = 0.5 / max(transform_scale, 0.001);
+        alpha = 1.0 - linearstep(-aa_width, aa_width, dist);
+    }
 
     if (alpha < 0.001) {
         discard;
@@ -773,7 +844,7 @@ float4 triangle_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, flo
         // Linear gradient
         float2 centroid = (tri.p0 + tri.p1 + tri.p2) / 3.0;
         float2 pos = p - centroid;
-        float tri_size = length(max_point - min_point);
+        float tri_size = length(orig_max - orig_min);
         float t = dot(pos, tri.gradient_direction) / (tri_size * 0.5);
         t = t * 0.5 + 0.5; // Remap from [-1,1] to [0,1]
         color = gradient_oklab(tri.color_start, tri.color_end, clamp(t, 0.0, 1.0));
@@ -793,8 +864,9 @@ float4 triangle_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, flo
         shapes.atlas_texture.GetDimensions(atlas_width, atlas_height, atlas_elements);
         float2 atlas_size = float2(float(atlas_width), float(atlas_height));
 
-        // Calculate UV in atlas space (uv is 0-1 across the bounding box)
-        float2 tex_uv = (tri.texture_uv_origin + tri.texture_uv_size * uv) / atlas_size;
+        // Calculate UV in atlas space (local_uv is 0-1 across the original triangle bounding box)
+        float2 local_uv = (p - orig_min) / (orig_max - orig_min);
+        float2 tex_uv = (tri.texture_uv_origin + tri.texture_uv_size * local_uv) / atlas_size;
 
         // Sample texture
         float4 tex_color = shapes.atlas_texture.SampleLevel(
@@ -820,10 +892,9 @@ void hexagon_vertex(
 ) {
     var hex: HexagonGpu = shapes.hexagons[instanceIndex];
 
-    // Create bounding box for the hexagon
-    // For flat-top hex: width = 2 * r / cos(30°) = 2 * r * 1.1547, height = 2 * r
-    // Use a square that fits the rotated hexagon (worst case)
-    float extent = hex.size;
+    // Create bounding box for the hexagon, expanded for blur falloff
+    float blur_margin = hex.blur_radius * 3.0;
+    float extent = hex.size + blur_margin;
     float2 top_left = hex.center - float2(extent, extent);
     float2 size = float2(extent * 2.0, extent * 2.0);
 
@@ -850,8 +921,9 @@ float4 hexagon_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, floa
         discard;
     }
 
-    // Convert UV to position relative to hexagon center
-    float extent = hex.size * 1.1547;
+    // Convert UV to position relative to hexagon center, accounting for blur-expanded bounding quad
+    float blur_margin = hex.blur_radius * 3.0;
+    float extent = (hex.size + blur_margin) * 1.1547;
     float2 p = (uv - 0.5) * 2.0 * extent;
 
     // Apply rotation
@@ -870,9 +942,13 @@ float4 hexagon_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, floa
         dist = abs(dist + hex.stroke_thickness * 0.5) - hex.stroke_thickness * 0.5;
     }
 
-    // Scale antialiasing width based on transform zoom
-    float aa_width = 0.5 / max(transform_scale, 0.001);
-    float alpha = 1.0 - linearstep(-aa_width, aa_width, dist);
+    float alpha;
+    if (hex.blur_radius > 0.5) {
+        alpha = 1.0 / (1.0 + exp(1.7 * dist / hex.blur_radius));
+    } else {
+        float aa_width = 0.5 / max(transform_scale, 0.001);
+        alpha = 1.0 - linearstep(-aa_width, aa_width, dist);
+    }
 
     if (alpha < 0.001) {
         discard;
@@ -899,7 +975,9 @@ float4 hexagon_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, floa
         uint atlas_width, atlas_height, atlas_elements;
         shapes.atlas_texture.GetDimensions(atlas_width, atlas_height, atlas_elements);
         float2 atlas_size = float2(float(atlas_width), float(atlas_height));
-        float2 tex_uv = (hex.texture_uv_origin + hex.texture_uv_size * uv) / atlas_size;
+        // Map p (in the 1.1547-scaled space) back to 0-1 over the original bounding box
+        float2 local_uv = (p * 0.866025 + float2(hex.size)) / float2(hex.size * 2.0);
+        float2 tex_uv = (hex.texture_uv_origin + hex.texture_uv_size * local_uv) / atlas_size;
         float4 tex_color = shapes.atlas_texture.SampleLevel(
             shapes.atlas_sampler,
             float3(tex_uv, float(hex.texture_page)),
@@ -921,10 +999,11 @@ void quadratic_bezier_vertex(
 ) {
     var seg: QuadraticBezierGpu = shapes.quadratic_beziers[instanceIndex];
 
-    // Create bounding box for the quadratic bezier
+    // Create bounding box for the quadratic bezier, expanded for blur falloff
     float half_thickness = seg.thickness * 0.5;
-    float2 min_point = min(seg.p0, min(seg.p1, seg.p2)) - float2(half_thickness, half_thickness);
-    float2 max_point = max(seg.p0, max(seg.p1, seg.p2)) + float2(half_thickness, half_thickness);
+    float blur_margin = seg.blur_radius * 3.0;
+    float2 min_point = min(seg.p0, min(seg.p1, seg.p2)) - float2(half_thickness + blur_margin, half_thickness + blur_margin);
+    float2 max_point = max(seg.p0, max(seg.p1, seg.p2)) + float2(half_thickness + blur_margin, half_thickness + blur_margin);
 
     float2 top_left = min_point;
     float2 size = max_point - min_point;
@@ -1004,10 +1083,11 @@ float4 quadratic_bezier_fragment(uint primitiveIndex, uint clipRectIndex, float2
         discard;
     }
 
-    // Convert UV to world position
+    // Convert UV to world position, accounting for blur-expanded bounding quad
     float half_thickness = seg.thickness * 0.5;
-    float2 min_point = min(seg.p0, min(seg.p1, seg.p2)) - float2(half_thickness, half_thickness);
-    float2 max_point = max(seg.p0, max(seg.p1, seg.p2)) + float2(half_thickness, half_thickness);
+    float blur_margin = seg.blur_radius * 3.0;
+    float2 min_point = min(seg.p0, min(seg.p1, seg.p2)) - float2(half_thickness + blur_margin, half_thickness + blur_margin);
+    float2 max_point = max(seg.p0, max(seg.p1, seg.p2)) + float2(half_thickness + blur_margin, half_thickness + blur_margin);
 
     float2 top_left = min_point;
     float2 size = max_point - min_point;
@@ -1017,9 +1097,13 @@ float4 quadratic_bezier_fragment(uint primitiveIndex, uint clipRectIndex, float2
     // Calculate distance to the curve
     float dist = sd_quadratic_bezier(p, seg.p0, seg.p1, seg.p2) - half_thickness;
 
-    // Scale antialiasing width based on transform zoom
-    float aa_width = 0.5 / max(transform_scale, 0.001);
-    float alpha = 1.0 - linearstep(-aa_width, aa_width, dist);
+    float alpha;
+    if (seg.blur_radius > 0.5) {
+        alpha = 1.0 / (1.0 + exp(1.7 * dist / seg.blur_radius));
+    } else {
+        float aa_width = 0.5 / max(transform_scale, 0.001);
+        alpha = 1.0 - linearstep(-aa_width, aa_width, dist);
+    }
 
     if (alpha < 0.001) {
         discard;

@@ -183,7 +183,7 @@
                                             "binding": {"kind": "uniform", "offset": 104, "size": 4, "elementStride": 0}
                                         },
                                         {
-                                            "name": "pad0",
+                                            "name": "blur_radius",
                                             "type": {
                                                 "kind": "scalar",
                                                 "scalarType": "float32"
@@ -363,6 +363,38 @@
                                                 "scalarType": "float32"
                                             },
                                             "binding": {"kind": "uniform", "offset": 92, "size": 4, "elementStride": 0}
+                                        },
+                                        {
+                                            "name": "blur_radius",
+                                            "type": {
+                                                "kind": "scalar",
+                                                "scalarType": "float32"
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 96, "size": 4, "elementStride": 0}
+                                        },
+                                        {
+                                            "name": "_blur_pad0",
+                                            "type": {
+                                                "kind": "scalar",
+                                                "scalarType": "float32"
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 100, "size": 4, "elementStride": 0}
+                                        },
+                                        {
+                                            "name": "_blur_pad1",
+                                            "type": {
+                                                "kind": "scalar",
+                                                "scalarType": "float32"
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 104, "size": 4, "elementStride": 0}
+                                        },
+                                        {
+                                            "name": "_blur_pad2",
+                                            "type": {
+                                                "kind": "scalar",
+                                                "scalarType": "float32"
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 108, "size": 4, "elementStride": 0}
                                         }
                                     ]
                                 }
@@ -479,16 +511,20 @@
                                             "binding": {"kind": "uniform", "offset": 80, "size": 8, "elementStride": 4}
                                         },
                                         {
+                                            "name": "blur_radius",
+                                            "type": {
+                                                "kind": "scalar",
+                                                "scalarType": "float32"
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 88, "size": 4, "elementStride": 0}
+                                        },
+                                        {
                                             "name": "pad",
                                             "type": {
-                                                "kind": "vector",
-                                                "elementCount": 2,
-                                                "elementType": {
-                                                    "kind": "scalar",
-                                                    "scalarType": "float32"
-                                                }
+                                                "kind": "scalar",
+                                                "scalarType": "float32"
                                             },
-                                            "binding": {"kind": "uniform", "offset": 88, "size": 8, "elementStride": 4}
+                                            "binding": {"kind": "uniform", "offset": 92, "size": 4, "elementStride": 0}
                                         }
                                     ]
                                 }
@@ -609,16 +645,20 @@
                                             "binding": {"kind": "uniform", "offset": 64, "size": 8, "elementStride": 4}
                                         },
                                         {
+                                            "name": "blur_radius",
+                                            "type": {
+                                                "kind": "scalar",
+                                                "scalarType": "float32"
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 72, "size": 4, "elementStride": 0}
+                                        },
+                                        {
                                             "name": "pad",
                                             "type": {
-                                                "kind": "vector",
-                                                "elementCount": 2,
-                                                "elementType": {
-                                                    "kind": "scalar",
-                                                    "scalarType": "float32"
-                                                }
+                                                "kind": "scalar",
+                                                "scalarType": "float32"
                                             },
-                                            "binding": {"kind": "uniform", "offset": 72, "size": 8, "elementStride": 4}
+                                            "binding": {"kind": "uniform", "offset": 76, "size": 4, "elementStride": 0}
                                         }
                                     ]
                                 }
@@ -747,16 +787,20 @@
                                             "binding": {"kind": "uniform", "offset": 80, "size": 8, "elementStride": 4}
                                         },
                                         {
+                                            "name": "blur_radius",
+                                            "type": {
+                                                "kind": "scalar",
+                                                "scalarType": "float32"
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 88, "size": 4, "elementStride": 0}
+                                        },
+                                        {
                                             "name": "pad",
                                             "type": {
-                                                "kind": "vector",
-                                                "elementCount": 2,
-                                                "elementType": {
-                                                    "kind": "scalar",
-                                                    "scalarType": "float32"
-                                                }
+                                                "kind": "scalar",
+                                                "scalarType": "float32"
                                             },
-                                            "binding": {"kind": "uniform", "offset": 88, "size": 8, "elementStride": 4}
+                                            "binding": {"kind": "uniform", "offset": 92, "size": 4, "elementStride": 0}
                                         }
                                     ]
                                 }
@@ -893,16 +937,20 @@
                                             "binding": {"kind": "uniform", "offset": 80, "size": 8, "elementStride": 4}
                                         },
                                         {
+                                            "name": "blur_radius",
+                                            "type": {
+                                                "kind": "scalar",
+                                                "scalarType": "float32"
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 88, "size": 4, "elementStride": 0}
+                                        },
+                                        {
                                             "name": "pad",
                                             "type": {
-                                                "kind": "vector",
-                                                "elementCount": 2,
-                                                "elementType": {
-                                                    "kind": "scalar",
-                                                    "scalarType": "float32"
-                                                }
+                                                "kind": "scalar",
+                                                "scalarType": "float32"
                                             },
-                                            "binding": {"kind": "uniform", "offset": 88, "size": 8, "elementStride": 4}
+                                            "binding": {"kind": "uniform", "offset": 92, "size": 4, "elementStride": 0}
                                         }
                                     ]
                                 }
@@ -963,7 +1011,7 @@
                                             "binding": {"kind": "uniform", "offset": 24, "size": 4, "elementStride": 0}
                                         },
                                         {
-                                            "name": "_pad0",
+                                            "name": "blur_radius",
                                             "type": {
                                                 "kind": "scalar",
                                                 "scalarType": "float32"
@@ -1195,7 +1243,7 @@
                                                 "binding": {"kind": "uniform", "offset": 104, "size": 4, "elementStride": 0}
                                             },
                                             {
-                                                "name": "pad0",
+                                                "name": "blur_radius",
                                                 "type": {
                                                     "kind": "scalar",
                                                     "scalarType": "float32"
@@ -1375,6 +1423,38 @@
                                                     "scalarType": "float32"
                                                 },
                                                 "binding": {"kind": "uniform", "offset": 92, "size": 4, "elementStride": 0}
+                                            },
+                                            {
+                                                "name": "blur_radius",
+                                                "type": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 96, "size": 4, "elementStride": 0}
+                                            },
+                                            {
+                                                "name": "_blur_pad0",
+                                                "type": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 100, "size": 4, "elementStride": 0}
+                                            },
+                                            {
+                                                "name": "_blur_pad1",
+                                                "type": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 104, "size": 4, "elementStride": 0}
+                                            },
+                                            {
+                                                "name": "_blur_pad2",
+                                                "type": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 108, "size": 4, "elementStride": 0}
                                             }
                                         ]
                                     }
@@ -1491,16 +1571,20 @@
                                                 "binding": {"kind": "uniform", "offset": 80, "size": 8, "elementStride": 4}
                                             },
                                             {
+                                                "name": "blur_radius",
+                                                "type": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 88, "size": 4, "elementStride": 0}
+                                            },
+                                            {
                                                 "name": "pad",
                                                 "type": {
-                                                    "kind": "vector",
-                                                    "elementCount": 2,
-                                                    "elementType": {
-                                                        "kind": "scalar",
-                                                        "scalarType": "float32"
-                                                    }
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
                                                 },
-                                                "binding": {"kind": "uniform", "offset": 88, "size": 8, "elementStride": 4}
+                                                "binding": {"kind": "uniform", "offset": 92, "size": 4, "elementStride": 0}
                                             }
                                         ]
                                     }
@@ -1621,16 +1705,20 @@
                                                 "binding": {"kind": "uniform", "offset": 64, "size": 8, "elementStride": 4}
                                             },
                                             {
+                                                "name": "blur_radius",
+                                                "type": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 72, "size": 4, "elementStride": 0}
+                                            },
+                                            {
                                                 "name": "pad",
                                                 "type": {
-                                                    "kind": "vector",
-                                                    "elementCount": 2,
-                                                    "elementType": {
-                                                        "kind": "scalar",
-                                                        "scalarType": "float32"
-                                                    }
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
                                                 },
-                                                "binding": {"kind": "uniform", "offset": 72, "size": 8, "elementStride": 4}
+                                                "binding": {"kind": "uniform", "offset": 76, "size": 4, "elementStride": 0}
                                             }
                                         ]
                                     }
@@ -1759,16 +1847,20 @@
                                                 "binding": {"kind": "uniform", "offset": 80, "size": 8, "elementStride": 4}
                                             },
                                             {
+                                                "name": "blur_radius",
+                                                "type": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 88, "size": 4, "elementStride": 0}
+                                            },
+                                            {
                                                 "name": "pad",
                                                 "type": {
-                                                    "kind": "vector",
-                                                    "elementCount": 2,
-                                                    "elementType": {
-                                                        "kind": "scalar",
-                                                        "scalarType": "float32"
-                                                    }
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
                                                 },
-                                                "binding": {"kind": "uniform", "offset": 88, "size": 8, "elementStride": 4}
+                                                "binding": {"kind": "uniform", "offset": 92, "size": 4, "elementStride": 0}
                                             }
                                         ]
                                     }
@@ -1905,16 +1997,20 @@
                                                 "binding": {"kind": "uniform", "offset": 80, "size": 8, "elementStride": 4}
                                             },
                                             {
+                                                "name": "blur_radius",
+                                                "type": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 88, "size": 4, "elementStride": 0}
+                                            },
+                                            {
                                                 "name": "pad",
                                                 "type": {
-                                                    "kind": "vector",
-                                                    "elementCount": 2,
-                                                    "elementType": {
-                                                        "kind": "scalar",
-                                                        "scalarType": "float32"
-                                                    }
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
                                                 },
-                                                "binding": {"kind": "uniform", "offset": 88, "size": 8, "elementStride": 4}
+                                                "binding": {"kind": "uniform", "offset": 92, "size": 4, "elementStride": 0}
                                             }
                                         ]
                                     }
@@ -1975,7 +2071,7 @@
                                                 "binding": {"kind": "uniform", "offset": 24, "size": 4, "elementStride": 0}
                                             },
                                             {
-                                                "name": "_pad0",
+                                                "name": "blur_radius",
                                                 "type": {
                                                     "kind": "scalar",
                                                     "scalarType": "float32"

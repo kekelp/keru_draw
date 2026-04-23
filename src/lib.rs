@@ -168,6 +168,7 @@ pub struct Box {
     pub border_thickness: f32,
     pub fill: ColorFill,
     pub texture: Option<LoadedImage>,
+    pub blur: f32,
 }
 
 /// Parameters for drawing a circle
@@ -177,6 +178,7 @@ pub struct Circle {
     pub radius: f32,
     pub fill: ColorFill,
     pub texture: Option<LoadedImage>,
+    pub blur: f32,
 }
 
 /// Parameters for drawing a ring (hollow circle)
@@ -189,6 +191,7 @@ pub struct CircleRing {
     pub texture: Option<LoadedImage>,
     pub dash_length: Option<f32>,
     pub dash_offset: f32,
+    pub blur: f32,
 }
 
 /// Parameters for drawing an arc
@@ -203,6 +206,7 @@ pub struct CircleArc {
     pub texture: Option<LoadedImage>,
     pub dash_length: Option<f32>,
     pub dash_offset: f32,
+    pub blur: f32,
 }
 
 /// Parameters for drawing a pie slice
@@ -214,6 +218,7 @@ pub struct CirclePie {
     pub end_angle: f32,
     pub fill: ColorFill,
     pub texture: Option<LoadedImage>,
+    pub blur: f32,
 }
 
 /// Parameters for drawing a line segment
@@ -226,6 +231,7 @@ pub struct Segment {
     pub dash_length: Option<f32>,
     pub dash_offset: f32,
     pub texture: Option<LoadedImage>,
+    pub blur: f32,
 }
 
 /// Grid type for the grid primitive
@@ -246,6 +252,7 @@ pub struct Grid {
     pub color: Color,
     pub grid_type: GridType,
     pub texture: Option<LoadedImage>,
+    pub blur: f32,
 }
 
 /// Parameters for drawing a triangle
@@ -256,6 +263,7 @@ pub struct Triangle {
     pub p2: [f32; 2],
     pub fill: ColorFill,
     pub texture: Option<LoadedImage>,
+    pub blur: f32,
 }
 
 /// Parameters for drawing a hexagon
@@ -267,6 +275,7 @@ pub struct Hexagon {
     pub fill: ColorFill,
     pub stroke_thickness: f32,  // 0 = filled, >0 = stroke only
     pub texture: Option<LoadedImage>,
+    pub blur: f32,
 }
 
 /// Parameters for drawing a quadratic bezier curve from `p0` to `p2`, with `p1` as a control point.
@@ -279,6 +288,7 @@ pub struct QuadraticBezier {
     pub p2: [f32; 2],
     pub thickness: f32,
     pub color: Color,
+    pub blur: f32,
 }
 
 /// Parameters for drawing a dashed box outline (composed of segments and corner arcs)
@@ -290,6 +300,7 @@ pub struct DashedBoxOutline {
     pub thickness: f32,
     pub color: Color,
     pub dash_length: f32,
+    pub blur: f32,
 }
 
 /// Parameters for drawing a dashed hexagon outline (composed of segments)
@@ -301,6 +312,7 @@ pub struct DashedHexagonOutline {
     pub thickness: f32,
     pub color: Color,
     pub dash_length: f32,
+    pub blur: f32,
 }
 
 fn fill_gpu(fill: ColorFill) -> ([f32; 2], Color, Color, u32) {
@@ -715,6 +727,7 @@ impl Renderer {
             texture_uv_origin,
             texture_uv_size,
             texture_page,
+            blur_radius: params.blur,
             ..Default::default()
         });
         self.push_instance(Instance {
@@ -743,6 +756,7 @@ impl Renderer {
             border_thickness: 0.0,
             fill: ColorFill::Color(Color::WHITE),
             texture: Some(image),
+            blur: 0.0,
         });
     }
 
@@ -765,6 +779,8 @@ impl Renderer {
             texture_uv_size,
             dash_length: 0.0,
             dash_offset: 0.0,
+            blur_radius: params.blur,
+            _blur_pad: [0.0; 3],
         });
         self.push_instance(Instance {
             p_type: primitive::CIRCLE,
@@ -793,6 +809,8 @@ impl Renderer {
             texture_uv_size,
             dash_length: params.dash_length.unwrap_or(0.0),
             dash_offset: params.dash_offset,
+            blur_radius: params.blur,
+            _blur_pad: [0.0; 3],
         });
         self.push_instance(Instance {
             p_type: primitive::CIRCLE,
@@ -821,6 +839,8 @@ impl Renderer {
             texture_uv_size,
             dash_length: params.dash_length.unwrap_or(0.0),
             dash_offset: params.dash_offset,
+            blur_radius: params.blur,
+            _blur_pad: [0.0; 3],
         });
         self.push_instance(Instance {
             p_type: primitive::CIRCLE,
@@ -849,6 +869,8 @@ impl Renderer {
             texture_uv_size,
             dash_length: 0.0,
             dash_offset: 0.0,
+            blur_radius: params.blur,
+            _blur_pad: [0.0; 3],
         });
         self.push_instance(Instance {
             p_type: primitive::CIRCLE,
@@ -879,7 +901,8 @@ impl Renderer {
             texture_page,
             texture_uv_origin,
             texture_uv_size,
-            pad: [0.0; 2],
+            blur_radius: params.blur,
+            pad: 0.0,
         });
         self.push_instance(Instance {
             p_type: primitive::SEGMENT,
@@ -904,7 +927,8 @@ impl Renderer {
             texture_page,
             texture_uv_origin,
             texture_uv_size,
-            pad: [0.0; 2],
+            blur_radius: params.blur,
+            pad: 0.0,
         });
         self.push_instance(Instance {
             p_type: primitive::GRID,
@@ -931,7 +955,8 @@ impl Renderer {
             texture_page,
             texture_uv_origin,
             texture_uv_size,
-            pad: [0.0; 2],
+            blur_radius: params.blur,
+            pad: 0.0,
         });
         self.push_instance(Instance {
             p_type: primitive::TRIANGLE,
@@ -960,7 +985,8 @@ impl Renderer {
             _pad1: 0.0,
             texture_uv_origin,
             texture_uv_size,
-            pad: [0.0; 2],
+            blur_radius: params.blur,
+            pad: 0.0,
         });
         self.push_instance(Instance {
             p_type: primitive::HEXAGON,
@@ -977,7 +1003,7 @@ impl Renderer {
             p1: params.p1,
             p2: params.p2,
             thickness: params.thickness,
-            _pad0: 0.0,
+            blur_radius: params.blur,
             color: params.color,
         });
         self.push_instance(Instance {
@@ -1007,6 +1033,7 @@ impl Renderer {
                 dash_length: Some(params.dash_length),
                 dash_offset: offset,
                 texture: None,
+                blur: params.blur,
             });
             offset += w;
             // Right edge
@@ -1018,6 +1045,7 @@ impl Renderer {
                 dash_length: Some(params.dash_length),
                 dash_offset: offset,
                 texture: None,
+                blur: params.blur,
             });
             offset += h;
             // Bottom edge
@@ -1029,6 +1057,7 @@ impl Renderer {
                 dash_length: Some(params.dash_length),
                 dash_offset: offset,
                 texture: None,
+                blur: params.blur,
             });
             offset += w;
             // Left edge
@@ -1040,6 +1069,7 @@ impl Renderer {
                 dash_length: Some(params.dash_length),
                 dash_offset: offset,
                 texture: None,
+                blur: params.blur,
             });
         } else {
             // Rounded corners - 4 segments + 4 quarter arcs
@@ -1056,6 +1086,7 @@ impl Renderer {
                 dash_length: Some(params.dash_length),
                 dash_offset: offset,
                 texture: None,
+                blur: params.blur,
             });
             offset += top_len;
             // Top-right corner arc
@@ -1069,6 +1100,7 @@ impl Renderer {
                 texture: None,
                 dash_length: Some(params.dash_length),
                 dash_offset: offset,
+                blur: params.blur,
             });
             offset += quarter_arc;
             // Right edge
@@ -1081,6 +1113,7 @@ impl Renderer {
                 dash_length: Some(params.dash_length),
                 dash_offset: offset,
                 texture: None,
+                blur: params.blur,
             });
             offset += right_len;
             // Bottom-right corner arc
@@ -1094,6 +1127,7 @@ impl Renderer {
                 texture: None,
                 dash_length: Some(params.dash_length),
                 dash_offset: offset,
+                blur: params.blur,
             });
             offset += quarter_arc;
             // Bottom edge
@@ -1105,6 +1139,7 @@ impl Renderer {
                 dash_length: Some(params.dash_length),
                 dash_offset: offset,
                 texture: None,
+                blur: params.blur,
             });
             offset += top_len;
             // Bottom-left corner arc
@@ -1118,6 +1153,7 @@ impl Renderer {
                 texture: None,
                 dash_length: Some(params.dash_length),
                 dash_offset: offset,
+                blur: params.blur,
             });
             offset += quarter_arc;
             // Left edge
@@ -1129,6 +1165,7 @@ impl Renderer {
                 dash_length: Some(params.dash_length),
                 dash_offset: offset,
                 texture: None,
+                blur: params.blur,
             });
             offset += right_len;
             // Top-left corner arc
@@ -1142,6 +1179,7 @@ impl Renderer {
                 texture: None,
                 dash_length: Some(params.dash_length),
                 dash_offset: offset,
+                blur: params.blur,
             });
         }
     }
@@ -1176,8 +1214,10 @@ impl Renderer {
                 dash_length: Some(params.dash_length),
                 dash_offset: offset,
                 texture: None,
+                blur: params.blur,
             });
             offset += edge_len;
+
         }
     }
 

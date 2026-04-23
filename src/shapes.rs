@@ -31,7 +31,8 @@ pub struct BoxGpu {
     pub texture_uv_origin: [f32; 2], // pixel coords in atlas (top-left corner)
     pub texture_uv_size: [f32; 2],   // pixel dimensions in atlas
     pub texture_page: u32,           // atlas layer, u32::MAX = no texture
-    pub pad: [f32; 5],               // padding to 128 bytes (16-byte aligned)
+    pub blur_radius: f32,
+    pub pad: [f32; 4],               // padding to 128 bytes (16-byte aligned)
 }
 
 #[repr(C)]
@@ -49,6 +50,8 @@ pub struct CircleGpu {
     pub texture_uv_size: [f32; 2],   // pixel dimensions in atlas
     pub dash_length: f32,            // 0 = no dashing, >0 = dash length in pixels
     pub dash_offset: f32,            // offset for dash pattern alignment
+    pub blur_radius: f32,
+    pub _blur_pad: [f32; 3],
 }
 
 #[repr(C)]
@@ -63,7 +66,8 @@ pub struct SegmentGpu {
     pub texture_page: u32,           // atlas layer, u32::MAX = no texture
     pub texture_uv_origin: [f32; 2], // pixel coords in atlas (top-left corner)
     pub texture_uv_size: [f32; 2],   // pixel dimensions in atlas
-    pub pad: [f32; 2],               // padding to 96 bytes (16-byte aligned)
+    pub blur_radius: f32,
+    pub pad: f32,
 }
 
 #[repr(C)]
@@ -79,7 +83,8 @@ pub struct GridGpu {
     pub texture_page: u32,           // atlas layer, u32::MAX = no texture
     pub texture_uv_origin: [f32; 2], // pixel coords in atlas (top-left corner)
     pub texture_uv_size: [f32; 2],   // pixel dimensions in atlas
-    pub pad: [f32; 2],               // padding to 80 bytes (16-byte aligned)
+    pub blur_radius: f32,
+    pub pad: f32,
 }
 
 #[repr(C)]
@@ -95,7 +100,8 @@ pub struct TriangleGpu {
     pub texture_page: u32,           // atlas layer, u32::MAX = no texture
     pub texture_uv_origin: [f32; 2], // pixel coords in atlas (top-left corner)
     pub texture_uv_size: [f32; 2],   // pixel dimensions in atlas
-    pub pad: [f32; 2],               // padding to 96 bytes (16-byte aligned)
+    pub blur_radius: f32,
+    pub pad: f32,
 }
 
 #[repr(C)]
@@ -113,7 +119,8 @@ pub struct HexagonGpu {
     pub _pad1: f32,
     pub texture_uv_origin: [f32; 2],
     pub texture_uv_size: [f32; 2],
-    pub pad: [f32; 2],               // padding to 96 bytes (16-byte aligned)
+    pub blur_radius: f32,
+    pub pad: f32,
 }
 
 #[repr(C)]
@@ -123,7 +130,7 @@ pub struct QuadraticBezierGpu {
     pub p1: [f32; 2],
     pub p2: [f32; 2],
     pub thickness: f32,
-    pub _pad0: f32,
+    pub blur_radius: f32,
     pub color: Color,
 }
 
