@@ -156,6 +156,13 @@ void box_vertex(
 float linear(float a, float b, float x) { return (x-a)/(b-a); }
 float linearstep(float a, float b, float x) { return clamp(linear(a,b,x), 0.0, 1.0); }
 
+// LOD for texture blur matching the shape's blur_radius (in screen pixels).
+// tex_uv_size is in atlas pixels; shape_size is in screen pixels.
+float tex_blur_lod(float blur_radius, float2 tex_uv_size, float2 shape_size) {
+    float scale = max(tex_uv_size.x / max(shape_size.x, 0.001), tex_uv_size.y / max(shape_size.y, 0.001));
+    return max(0.0, log2(blur_radius * scale));
+}
+
 float srgb_to_linear(float x) {
     return x <= 0.04045 ? x / 12.92 : pow((x + 0.055) / 1.055, 2.4);
 }
@@ -295,11 +302,13 @@ float4 box_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, float2 s
         float2 local_uv = (p + box.size * 0.5) / box.size;
         float2 tex_uv = (box.texture_uv_origin + box.texture_uv_size * local_uv) / atlas_size;
 
+        float lod = tex_blur_lod(box.blur_radius, box.texture_uv_size, box.size);
+
         // Sample texture
         float4 tex_color = shapes.atlas_texture.SampleLevel(
             shapes.atlas_sampler,
             float3(tex_uv, float(box.texture_page)),
-            0.0
+            lod
         );
 
         // Multiply texture color with fill color (tinting)
@@ -499,11 +508,13 @@ float4 circle_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, float
         float2 local_uv = (p + float2(outer_radius)) / float2(outer_radius * 2.0);
         float2 tex_uv = (circle.texture_uv_origin + circle.texture_uv_size * local_uv) / atlas_size;
 
+        float lod = tex_blur_lod(circle.blur_radius, circle.texture_uv_size, float2(outer_radius * 2.0));
+
         // Sample texture
         float4 tex_color = shapes.atlas_texture.SampleLevel(
             shapes.atlas_sampler,
             float3(tex_uv, float(circle.texture_page)),
-            0.0
+            lod
         );
 
         // Multiply texture color with fill color (tinting)
@@ -648,10 +659,13 @@ float4 segment_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, floa
         float2 orig_size = max(seg.start, seg.end) + float2(half_thickness, half_thickness) - orig_min;
         float2 local_uv = (p - orig_min) / orig_size;
         float2 tex_uv = (seg.texture_uv_origin + seg.texture_uv_size * local_uv) / atlas_size;
+
+        float lod = tex_blur_lod(seg.blur_radius, seg.texture_uv_size, orig_size);
+
         float4 tex_color = shapes.atlas_texture.SampleLevel(
             shapes.atlas_sampler,
             float3(tex_uv, float(seg.texture_page)),
-            0.0
+            lod
         );
         color = tex_color * color;
     }
@@ -749,10 +763,12 @@ float4 grid_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, float2 
         shapes.atlas_texture.GetDimensions(atlas_width, atlas_height, atlas_elements);
         float2 atlas_size = float2(float(atlas_width), float(atlas_height));
         float2 tex_uv = (grid.texture_uv_origin + grid.texture_uv_size * uv) / atlas_size;
+        float lod = tex_blur_lod(grid.blur_radius, grid.texture_uv_size, grid.size);
+
         float4 tex_color = shapes.atlas_texture.SampleLevel(
             shapes.atlas_sampler,
             float3(tex_uv, float(grid.texture_page)),
-            0.0
+            lod
         );
         color = tex_color * color;
     }
@@ -868,11 +884,13 @@ float4 triangle_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, flo
         float2 local_uv = (p - orig_min) / (orig_max - orig_min);
         float2 tex_uv = (tri.texture_uv_origin + tri.texture_uv_size * local_uv) / atlas_size;
 
+        float lod = tex_blur_lod(tri.blur_radius, tri.texture_uv_size, orig_max - orig_min);
+
         // Sample texture
         float4 tex_color = shapes.atlas_texture.SampleLevel(
             shapes.atlas_sampler,
             float3(tex_uv, float(tri.texture_page)),
-            0.0
+            lod
         );
 
         // Multiply texture color with fill color (tinting)
@@ -978,10 +996,12 @@ float4 hexagon_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, floa
         // Map p (in the 1.1547-scaled space) back to 0-1 over the original bounding box
         float2 local_uv = (p * 0.866025 + float2(hex.size)) / float2(hex.size * 2.0);
         float2 tex_uv = (hex.texture_uv_origin + hex.texture_uv_size * local_uv) / atlas_size;
+        float lod = tex_blur_lod(hex.blur_radius, hex.texture_uv_size, float2(hex.size * 2.0));
+
         float4 tex_color = shapes.atlas_texture.SampleLevel(
             shapes.atlas_sampler,
             float3(tex_uv, float(hex.texture_page)),
-            0.0
+            lod
         );
         color = tex_color * color;
     }

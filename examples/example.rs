@@ -540,7 +540,7 @@ impl State {
             p1: [440.0, 615.0],
             p2: [520.0, 615.0],
             fill: ColorFill::Color(Color::new(1.0, 0.4, 0.8, 1.0)),
-            texture: None,
+            texture: Some(self.texture_handle),
             blur: 8.0,
         });
 
@@ -638,7 +638,7 @@ impl State {
             fill: ColorFill::Color(Color { r: 1.0, g: 1.0, b: 1.0, a: 1.0 }),
             stroke_thickness: 0.0,
             texture: Some(self.texture_handle),
-            blur: 0.0,
+            blur: 10.0,
         });
 
         // Blurred hexagon

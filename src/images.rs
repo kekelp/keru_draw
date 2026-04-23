@@ -20,6 +20,28 @@ struct AtlasPage {
     dirty: bool,
 }
 
+// Number of mip levels generated for the atlas (levels 0..MIP_LEVELS, smallest = atlas_size >> (MIP_LEVELS-1)).
+const MIP_LEVELS: u32 = 8;
+
+const MIP_SHADER_WGSL: &str = r#"
+@group(0) @binding(0) var src_tex: texture_2d_array<f32>;
+@group(0) @binding(1) var dst_tex: texture_storage_2d_array<rgba8unorm, write>;
+
+@compute @workgroup_size(8, 8, 1)
+fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
+    let dst_size = textureDimensions(dst_tex);
+    if (gid.x >= dst_size.x || gid.y >= dst_size.y) { return; }
+    let layer = i32(gid.z);
+    let sx = i32(gid.x) * 2;
+    let sy = i32(gid.y) * 2;
+    let c = (textureLoad(src_tex, vec2<i32>(sx,     sy    ), layer, 0) +
+             textureLoad(src_tex, vec2<i32>(sx + 1, sy    ), layer, 0) +
+             textureLoad(src_tex, vec2<i32>(sx,     sy + 1), layer, 0) +
+             textureLoad(src_tex, vec2<i32>(sx + 1, sy + 1), layer, 0)) * 0.25;
+    textureStore(dst_tex, vec2<u32>(gid.x, gid.y), layer, c);
+}
+"#;
+
 /// Image renderer that manages texture atlases for SVG and raster images.
 /// Images are rendered by using them as textures on shapes (e.g., white boxes).
 pub struct ImageRenderer {
@@ -28,6 +50,9 @@ pub struct ImageRenderer {
 
     pub(crate) texture_array: Texture,
     pub(crate) sampler: Sampler,
+
+    mip_pipeline: wgpu::ComputePipeline,
+    mip_bind_group_layout: wgpu::BindGroupLayout,
 
     needs_texture_array_rebuild: bool,
 
@@ -63,6 +88,8 @@ impl ImageRenderer {
             ..Default::default()
         });
 
+        let (mip_pipeline, mip_bind_group_layout) = create_mip_pipeline(device);
+
         // Create initial atlas page
         let atlas_pages = vec![AtlasPage {
             image: RgbaImage::new(atlas_size, atlas_size),
@@ -75,6 +102,8 @@ impl ImageRenderer {
             atlas_pages,
             texture_array,
             sampler,
+            mip_pipeline,
+            mip_bind_group_layout,
             needs_texture_array_rebuild: false,
             surface_is_srgb,
             svg_data_cache: HashMap::new(),
@@ -153,16 +182,18 @@ impl ImageRenderer {
             return false;
         }
 
-        // Rebuild or update texture array
-        if self.needs_texture_array_rebuild {
+        let rebuilt = if self.needs_texture_array_rebuild {
             self.rebuild_texture_array(device, queue);
             self.needs_texture_array_rebuild = false;
-            return true;
+            true
         } else {
             self.update_texture_array(queue);
-        }
+            false
+        };
 
-        false
+        self.generate_mipmaps(device, queue);
+
+        rebuilt
     }
 
     // Internal methods
@@ -308,6 +339,54 @@ impl ImageRenderer {
             }
         }
     }
+
+    fn generate_mipmaps(&self, device: &Device, queue: &Queue) {
+        let num_layers = self.atlas_pages.len() as u32;
+        let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
+
+        for mip in 1..MIP_LEVELS {
+            let src_view = self.texture_array.create_view(&wgpu::TextureViewDescriptor {
+                format: Some(wgpu::TextureFormat::Rgba8Unorm),
+                dimension: Some(wgpu::TextureViewDimension::D2Array),
+                base_mip_level: mip - 1,
+                mip_level_count: Some(1),
+                base_array_layer: 0,
+                array_layer_count: Some(num_layers),
+                ..Default::default()
+            });
+            let dst_view = self.texture_array.create_view(&wgpu::TextureViewDescriptor {
+                format: Some(wgpu::TextureFormat::Rgba8Unorm),
+                dimension: Some(wgpu::TextureViewDimension::D2Array),
+                base_mip_level: mip,
+                mip_level_count: Some(1),
+                base_array_layer: 0,
+                array_layer_count: Some(num_layers),
+                ..Default::default()
+            });
+
+            let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+                label: None,
+                layout: &self.mip_bind_group_layout,
+                entries: &[
+                    wgpu::BindGroupEntry { binding: 0, resource: wgpu::BindingResource::TextureView(&src_view) },
+                    wgpu::BindGroupEntry { binding: 1, resource: wgpu::BindingResource::TextureView(&dst_view) },
+                ],
+            });
+
+            let mip_size = (self.atlas_size >> mip).max(1);
+            let groups = (mip_size + 7) / 8;
+
+            let mut pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
+                label: None,
+                timestamp_writes: None,
+            });
+            pass.set_pipeline(&self.mip_pipeline);
+            pass.set_bind_group(0, &bind_group, &[]);
+            pass.dispatch_workgroups(groups, groups, num_layers);
+        }
+
+        queue.submit(std::iter::once(encoder.finish()));
+    }
 }
 
 fn create_texture_array(device: &Device, size: u32, layers: u32, surface_is_srgb: bool) -> Texture {
@@ -325,13 +404,64 @@ fn create_texture_array(device: &Device, size: u32, layers: u32, surface_is_srgb
             height: size,
             depth_or_array_layers: layers,
         },
-        mip_level_count: 1,
+        mip_level_count: MIP_LEVELS,
         sample_count: 1,
         dimension: TextureDimension::D2,
         format,
-        usage: TextureUsages::TEXTURE_BINDING | TextureUsages::COPY_DST,
-        view_formats: &[],
+        usage: TextureUsages::TEXTURE_BINDING | TextureUsages::COPY_DST | TextureUsages::STORAGE_BINDING,
+        // Rgba8Unorm view needed for storage binding (storage textures don't accept sRGB formats)
+        view_formats: &[TextureFormat::Rgba8Unorm],
     })
+}
+
+fn create_mip_pipeline(device: &Device) -> (wgpu::ComputePipeline, wgpu::BindGroupLayout) {
+    let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+        label: Some("Mip Blit"),
+        source: wgpu::ShaderSource::Wgsl(MIP_SHADER_WGSL.into()),
+    });
+
+    let bgl = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+        label: None,
+        entries: &[
+            wgpu::BindGroupLayoutEntry {
+                binding: 0,
+                visibility: wgpu::ShaderStages::COMPUTE,
+                ty: wgpu::BindingType::Texture {
+                    sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                    view_dimension: wgpu::TextureViewDimension::D2Array,
+                    multisampled: false,
+                },
+                count: None,
+            },
+            wgpu::BindGroupLayoutEntry {
+                binding: 1,
+                visibility: wgpu::ShaderStages::COMPUTE,
+                ty: wgpu::BindingType::StorageTexture {
+                    access: wgpu::StorageTextureAccess::WriteOnly,
+                    format: wgpu::TextureFormat::Rgba8Unorm,
+                    view_dimension: wgpu::TextureViewDimension::D2Array,
+                },
+                count: None,
+            },
+        ],
+    });
+
+    let layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+        label: None,
+        bind_group_layouts: &[&bgl],
+        push_constant_ranges: &[],
+    });
+
+    let pipeline = device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
+        label: Some("Mip Blit"),
+        layout: Some(&layout),
+        module: &shader,
+        entry_point: Some("main"),
+        compilation_options: Default::default(),
+        cache: None,
+    });
+
+    (pipeline, bgl)
 }
 
 fn upload_texture_page(queue: &Queue, texture: &Texture, image: &RgbaImage, layer: u32, size: u32) {
