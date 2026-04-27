@@ -58,6 +58,15 @@ impl Color {
         }
     }
 
+    pub fn to_u8_array(&self) -> [u8; 4] {
+        [
+            (self.r * 255.0) as u8,
+            (self.g * 255.0) as u8,
+            (self.b * 255.0) as u8,
+            (self.a * 255.0) as u8,
+        ]
+    }
+
     pub const KERU_GRAD: ColorFill = ColorFill::Gradient(Gradient {
         color_start: Self::KERU_BLUE,
         color_end: Self::KERU_RED,

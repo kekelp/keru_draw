@@ -227,8 +227,17 @@ impl ImageRenderer {
         // Render
         resvg::render(&tree, transform, &mut pixmap.as_mut());
 
-        // Get raw RGBA data
-        let rgba_data = pixmap.take();
+        // unpremultiply alpha
+        let mut rgba_data = pixmap.take();
+        for pixel in rgba_data.chunks_exact_mut(4) {
+            let a = pixel[3];
+            if a > 0 && a < 255 {
+                let a_f = a as f32 / 255.0;
+                pixel[0] = (pixel[0] as f32 / a_f).round() as u8;
+                pixel[1] = (pixel[1] as f32 / a_f).round() as u8;
+                pixel[2] = (pixel[2] as f32 / a_f).round() as u8;
+            }
+        }
 
         self.store_image_data_with_id(&rgba_data, width, height, id)
     }
