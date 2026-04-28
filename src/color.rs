@@ -38,6 +38,16 @@ impl Color {
         Self { r, g, b, a }
     }
 
+    /// Create a color from a packed RGB integer like `0xff00ff` (alpha=1.0).
+    pub const fn from_hex(rgb: u32) -> Color {
+        Color::rgba_u8(
+            ((rgb >> 16) & 0xff) as u8,
+            ((rgb >> 8) & 0xff) as u8,
+            (rgb & 0xff) as u8,
+            255,
+        )
+    }
+
     /// Create a color from u8 RGBA values.
     pub const fn rgba_u8(r: u8, g: u8, b: u8, a: u8) -> Color {
         Color {
@@ -49,11 +59,11 @@ impl Color {
     }
 
     /// Apply alpha to a color.
-    pub const fn with_alpha(color: Color, alpha: f32) -> Color {
+    pub const fn with_alpha(self, alpha: f32) -> Color {
         Color {
-            r: color.r,
-            g: color.g,
-            b: color.b,
+            r: self.r,
+            g: self.g,
+            b: self.b,
             a: alpha,
         }
     }
