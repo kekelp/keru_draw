@@ -8,6 +8,7 @@ use winit::{
 
 const TIGER_SVG: &[u8] = include_bytes!("tiger.svg");
 const TEXTURE: &[u8] = include_bytes!("texture.jpg");
+const NINE_SLICE_IMAGE: &[u8] = include_bytes!("nine-slice-test.png");
 
 struct App {
     window: Option<std::sync::Arc<Window>>,
@@ -26,6 +27,7 @@ struct State {
     text_box3: TextBoxHandle,
     svg_handle: LoadedImage,
     texture_handle: LoadedImage,
+    nine_slice_handle: LoadedImage,
 }
 
 impl State {
@@ -137,8 +139,9 @@ impl State {
 
         let svg_handle = renderer.image_renderer.load_svg(TIGER_SVG, 200, 200).unwrap();
         let texture_handle = renderer.image_renderer.load_encoded_image(TEXTURE).unwrap();
+        let nine_slice_handle = renderer.image_renderer.load_encoded_image(NINE_SLICE_IMAGE).unwrap();
 
-        Self { device, surface, config, size, renderer, text_edit, text_box1, text_box2, text_box3, svg_handle, texture_handle }
+        Self { device, surface, config, size, renderer, text_edit, text_box1, text_box2, text_box3, svg_handle, texture_handle, nine_slice_handle }
     }
 
     fn resize(&mut self, new_size: PhysicalSize<u32>) {
@@ -761,8 +764,108 @@ impl State {
         });
 
         self.renderer.draw_text_box(&self.text_box3);
-        
+
         self.renderer.draw_text_edit(&self.text_edit);
+
+        // ---- Nine-slice / tiling section (right column, x=1100) ----
+        let ns = self.nine_slice_handle;
+        let insets = NineSliceMargins::uniform(40.0);
+        let x = 1100.0;
+
+        // Box: nine-slice, all-stretch (default)
+        self.renderer.draw_box(Box {
+            top_left: [x, 20.0],
+            size: [450.0, 130.0],
+            corner_radius: 0.0,
+            rounded_corners: RoundedCorners::NONE,
+            border_thickness: 0.0,
+            fill: ColorFill::Color(Color::WHITE),
+            texture: Some(ns),
+            texture_options: Some(TextureOptions {
+                nine_slice: Some(insets),
+                ..Default::default()
+            }),
+            blur: 0.0,
+        });
+
+        // Box: nine-slice, tile middle horizontally
+        self.renderer.draw_box(Box {
+            top_left: [x, 170.0],
+            size: [450.0, 130.0],
+            corner_radius: 0.0,
+            rounded_corners: RoundedCorners::NONE,
+            border_thickness: 0.0,
+            fill: ColorFill::Color(Color::WHITE),
+            texture: Some(ns),
+            texture_options: Some(TextureOptions {
+                nine_slice: Some(insets),
+                tile_x: TileMode::Tile,
+                ..Default::default()
+            }),
+            blur: 0.0,
+        });
+
+        // Box: nine-slice, tile_fit both axes
+        self.renderer.draw_box(Box {
+            top_left: [x, 320.0],
+            size: [450.0, 130.0],
+            corner_radius: 0.0,
+            rounded_corners: RoundedCorners::NONE,
+            border_thickness: 0.0,
+            fill: ColorFill::Color(Color::WHITE),
+            texture: Some(ns),
+            texture_options: Some(TextureOptions {
+                nine_slice: Some(insets),
+                tile_x: TileMode::TileFit,
+                tile_y: TileMode::TileFit,
+            }),
+            blur: 0.0,
+        });
+
+        // Box: no nine-slice, tile both axes (repeating texture)
+        self.renderer.draw_box(Box {
+            top_left: [x, 470.0],
+            size: [200.0, 200.0],
+            corner_radius: 12.0,
+            rounded_corners: RoundedCorners::ALL,
+            border_thickness: 0.0,
+            fill: ColorFill::Color(Color::WHITE),
+            texture: Some(self.texture_handle),
+            texture_options: Some(TextureOptions {
+                nine_slice: None,
+                tile_x: TileMode::Tile,
+                tile_y: TileMode::Tile,
+            }),
+            blur: 0.0,
+        });
+
+        // Circle: nine-slice stretch
+        self.renderer.draw_circle(Circle {
+            center: [x + 310.0, 560.0],
+            radius: 90.0,
+            fill: ColorFill::Color(Color::WHITE),
+            texture: Some(ns),
+            texture_options: Some(TextureOptions {
+                nine_slice: Some(insets),
+                ..Default::default()
+            }),
+            blur: 0.0,
+        });
+
+        // Triangle: nine-slice, tile both
+        self.renderer.draw_triangle(Triangle {
+            p0: [x + 70.0, 700.0],
+            p1: [x, 840.0],
+            p2: [x + 140.0, 840.0],
+            fill: ColorFill::Color(Color::WHITE),
+            texture: Some(ns),
+            texture_options: Some(TextureOptions {
+                nine_slice: Some(insets),
+                tile_x: TileMode::Tile,
+                tile_y: TileMode::Tile,
+            }),
+            blur: 0.0,
+        });
 
         // SVG rendered as image
         self.renderer.draw_image(self.svg_handle, 520.0, 150.0, 180.0, 180.0);
@@ -786,7 +889,7 @@ impl winit::application::ApplicationHandler for App {
                 event_loop
                     .create_window(
                         Window::default_attributes()
-                            .with_inner_size(PhysicalSize::new(1200, 800))
+                            .with_inner_size(PhysicalSize::new(1600, 900))
                             .with_title("example"),
                     )
                     .unwrap(),

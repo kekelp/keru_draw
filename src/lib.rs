@@ -219,6 +219,18 @@ pub struct TextureOptions {
     /// If `nine_slice` is not `None`, it will not apply to the corner regions
     pub tile_y: TileMode,
 }
+impl TextureOptions {
+    pub const DEFAULT: TextureOptions = TextureOptions {
+        nine_slice: Some(NineSliceMargins {
+            top: 0.0,
+            right: 0.0,
+            bottom: 0.0,
+            left: 0.0,
+        }),
+        tile_x: TileMode::Stretch,
+        tile_y: TileMode::Stretch,
+    };
+}
 
 /// Parameters for drawing a box/rectangle
 #[derive(Debug, Clone)]

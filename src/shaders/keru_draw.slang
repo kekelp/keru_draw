@@ -160,71 +160,77 @@ struct ClipRect {
 }
 
 // Remap local_uv (0-1 over shape bounding box) to atlas-normalized UV using nine-slice rules.
-// nine_slice_tiling: bit 0=enabled; bits 1-2=h mode; bits 3-4=v mode
+// tiling_flags: bit 0=enabled; bits 1-2=x mode; bits 3-4=y mode
 //   mode 0=stretch, 1=tile, 2=tile_fit (scale so a whole number of copies fit)
 // Returns the atlas-space UV in [0,1].
 float2 nine_slice_uv(
     float2 local_uv,
-    float2 shape_sz,
-    float2 tex_origin,
-    float2 tex_sz,
-    float ns_l, float ns_r, float ns_t, float ns_b,
-    uint tiling,
+    float2 shape_size,
+    float2 src_origin,
+    float2 src_size,
+    float inset_left, float inset_right, float inset_top, float inset_bottom,
+    uint tiling_flags,
     float2 atlas_size
 ) {
-    float screen_x = local_uv.x * shape_sz.x;
-    float screen_y = local_uv.y * shape_sz.y;
+    float pos_x = local_uv.x * shape_size.x;
+    float pos_y = local_uv.y * shape_size.y;
 
-    float src_xl = tex_origin.x + ns_l;
-    float src_xr = tex_origin.x + tex_sz.x - ns_r;
-    float src_yt = tex_origin.y + ns_t;
-    float src_yb = tex_origin.y + tex_sz.y - ns_b;
+    // Atlas-space boundaries of the stretchable middle region
+    float src_mid_left   = src_origin.x + inset_left;
+    float src_mid_right  = src_origin.x + src_size.x - inset_right;
+    float src_mid_top    = src_origin.y + inset_top;
+    float src_mid_bottom = src_origin.y + src_size.y - inset_bottom;
 
-    float scr_xr = shape_sz.x - ns_r;
-    float scr_yb = shape_sz.y - ns_b;
+    // Screen-space start of the far-corner regions
+    float dst_right  = shape_size.x - inset_right;
+    float dst_bottom = shape_size.y - inset_bottom;
 
-    uint h_mode = (tiling >> 1u) & 3u; // 0=stretch, 1=tile, 2=tile_fit
-    uint v_mode = (tiling >> 3u) & 3u;
+    uint tile_mode_x = (tiling_flags >> 1u) & 3u; // 0=stretch, 1=tile, 2=tile_fit
+    uint tile_mode_y = (tiling_flags >> 3u) & 3u;
 
     // Region: 0=near corner, 1=middle, 2=far corner
-    uint rx = screen_x < ns_l ? 0u : (screen_x >= scr_xr ? 2u : 1u);
-    uint ry = screen_y < ns_t ? 0u : (screen_y >= scr_yb ? 2u : 1u);
+    uint region_x = pos_x < inset_left ? 0u : (pos_x >= dst_right  ? 2u : 1u);
+    uint region_y = pos_y < inset_top  ? 0u : (pos_y >= dst_bottom ? 2u : 1u);
 
     float tex_x;
-    if (rx == 0u) {
-        tex_x = tex_origin.x + screen_x;
-    } else if (rx == 2u) {
-        tex_x = src_xr + (screen_x - scr_xr);
+    if (region_x == 0u) {
+        tex_x = src_origin.x + pos_x;
+    } else if (region_x == 2u) {
+        tex_x = src_mid_right + (pos_x - dst_right);
     } else {
-        float mid_src_w = src_xr - src_xl;
-        float mid_scr_w = scr_xr - ns_l;
-        float t = (screen_x - ns_l) / max(mid_scr_w, 0.001);
-        if (h_mode == 1u && mid_src_w > 0.001) {
-            tex_x = src_xl + fmod(t * mid_scr_w, mid_src_w);
-        } else if (h_mode == 2u && mid_src_w > 0.001) {
-            float n = max(1.0, round(mid_scr_w / mid_src_w));
-            tex_x = src_xl + fmod(t * n, 1.0) * mid_src_w;
+        float src_mid_width = src_mid_right - src_mid_left;
+        float dst_mid_width = dst_right - inset_left;
+        float t = (pos_x - inset_left) / max(dst_mid_width, 0.001);
+        if (tile_mode_x == 1u && src_mid_width > 0.001) {
+            tex_x = src_mid_left + fmod(t * dst_mid_width, src_mid_width);
+            tex_x = clamp(tex_x, src_mid_left + 0.5, src_mid_right - 0.5);
+        } else if (tile_mode_x == 2u && src_mid_width > 0.001) {
+            float n = max(1.0, round(dst_mid_width / src_mid_width));
+            tex_x = src_mid_left + fmod(t * n, 1.0) * src_mid_width;
+            tex_x = clamp(tex_x, src_mid_left + 0.5, src_mid_right - 0.5);
         } else {
-            tex_x = src_xl + t * mid_src_w;
+            tex_x = src_mid_left + t * src_mid_width;
         }
     }
 
     float tex_y;
-    if (ry == 0u) {
-        tex_y = tex_origin.y + screen_y;
-    } else if (ry == 2u) {
-        tex_y = src_yb + (screen_y - scr_yb);
+    if (region_y == 0u) {
+        tex_y = src_origin.y + pos_y;
+    } else if (region_y == 2u) {
+        tex_y = src_mid_bottom + (pos_y - dst_bottom);
     } else {
-        float mid_src_h = src_yb - src_yt;
-        float mid_scr_h = scr_yb - ns_t;
-        float t = (screen_y - ns_t) / max(mid_scr_h, 0.001);
-        if (v_mode == 1u && mid_src_h > 0.001) {
-            tex_y = src_yt + fmod(t * mid_scr_h, mid_src_h);
-        } else if (v_mode == 2u && mid_src_h > 0.001) {
-            float n = max(1.0, round(mid_scr_h / mid_src_h));
-            tex_y = src_yt + fmod(t * n, 1.0) * mid_src_h;
+        float src_mid_height = src_mid_bottom - src_mid_top;
+        float dst_mid_height = dst_bottom - inset_top;
+        float t = (pos_y - inset_top) / max(dst_mid_height, 0.001);
+        if (tile_mode_y == 1u && src_mid_height > 0.001) {
+            tex_y = src_mid_top + fmod(t * dst_mid_height, src_mid_height);
+            tex_y = clamp(tex_y, src_mid_top + 0.5, src_mid_bottom - 0.5);
+        } else if (tile_mode_y == 2u && src_mid_height > 0.001) {
+            float n = max(1.0, round(dst_mid_height / src_mid_height));
+            tex_y = src_mid_top + fmod(t * n, 1.0) * src_mid_height;
+            tex_y = clamp(tex_y, src_mid_top + 0.5, src_mid_bottom - 0.5);
         } else {
-            tex_y = src_yt + t * mid_src_h;
+            tex_y = src_mid_top + t * src_mid_height;
         }
     }
 
