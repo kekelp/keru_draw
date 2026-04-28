@@ -59,28 +59,36 @@
                                             "binding": {"kind": "uniform", "offset": 8, "size": 8, "elementStride": 4}
                                         },
                                         {
-                                            "name": "x_clip",
+                                            "name": "nine_slice_l",
                                             "type": {
-                                                "kind": "vector",
-                                                "elementCount": 2,
-                                                "elementType": {
-                                                    "kind": "scalar",
-                                                    "scalarType": "float32"
-                                                }
+                                                "kind": "scalar",
+                                                "scalarType": "float32"
                                             },
-                                            "binding": {"kind": "uniform", "offset": 16, "size": 8, "elementStride": 4}
+                                            "binding": {"kind": "uniform", "offset": 16, "size": 4, "elementStride": 0}
                                         },
                                         {
-                                            "name": "y_clip",
+                                            "name": "nine_slice_r",
                                             "type": {
-                                                "kind": "vector",
-                                                "elementCount": 2,
-                                                "elementType": {
-                                                    "kind": "scalar",
-                                                    "scalarType": "float32"
-                                                }
+                                                "kind": "scalar",
+                                                "scalarType": "float32"
                                             },
-                                            "binding": {"kind": "uniform", "offset": 24, "size": 8, "elementStride": 4}
+                                            "binding": {"kind": "uniform", "offset": 20, "size": 4, "elementStride": 0}
+                                        },
+                                        {
+                                            "name": "nine_slice_t",
+                                            "type": {
+                                                "kind": "scalar",
+                                                "scalarType": "float32"
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 24, "size": 4, "elementStride": 0}
+                                        },
+                                        {
+                                            "name": "nine_slice_b",
+                                            "type": {
+                                                "kind": "scalar",
+                                                "scalarType": "float32"
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 28, "size": 4, "elementStride": 0}
                                         },
                                         {
                                             "name": "corner_radius",
@@ -191,15 +199,15 @@
                                             "binding": {"kind": "uniform", "offset": 108, "size": 4, "elementStride": 0}
                                         },
                                         {
-                                            "name": "pad1",
+                                            "name": "nine_slice_tiling",
                                             "type": {
                                                 "kind": "scalar",
-                                                "scalarType": "float32"
+                                                "scalarType": "uint32"
                                             },
                                             "binding": {"kind": "uniform", "offset": 112, "size": 4, "elementStride": 0}
                                         },
                                         {
-                                            "name": "pad2",
+                                            "name": "_ns_pad1",
                                             "type": {
                                                 "kind": "scalar",
                                                 "scalarType": "float32"
@@ -207,7 +215,7 @@
                                             "binding": {"kind": "uniform", "offset": 116, "size": 4, "elementStride": 0}
                                         },
                                         {
-                                            "name": "pad3",
+                                            "name": "_ns_pad2",
                                             "type": {
                                                 "kind": "scalar",
                                                 "scalarType": "float32"
@@ -215,7 +223,7 @@
                                             "binding": {"kind": "uniform", "offset": 120, "size": 4, "elementStride": 0}
                                         },
                                         {
-                                            "name": "pad4",
+                                            "name": "_ns_pad3",
                                             "type": {
                                                 "kind": "scalar",
                                                 "scalarType": "float32"
@@ -373,7 +381,7 @@
                                             "binding": {"kind": "uniform", "offset": 96, "size": 4, "elementStride": 0}
                                         },
                                         {
-                                            "name": "_blur_pad0",
+                                            "name": "nine_slice_l",
                                             "type": {
                                                 "kind": "scalar",
                                                 "scalarType": "float32"
@@ -381,7 +389,7 @@
                                             "binding": {"kind": "uniform", "offset": 100, "size": 4, "elementStride": 0}
                                         },
                                         {
-                                            "name": "_blur_pad1",
+                                            "name": "nine_slice_r",
                                             "type": {
                                                 "kind": "scalar",
                                                 "scalarType": "float32"
@@ -389,12 +397,44 @@
                                             "binding": {"kind": "uniform", "offset": 104, "size": 4, "elementStride": 0}
                                         },
                                         {
-                                            "name": "_blur_pad2",
+                                            "name": "nine_slice_t",
                                             "type": {
                                                 "kind": "scalar",
                                                 "scalarType": "float32"
                                             },
                                             "binding": {"kind": "uniform", "offset": 108, "size": 4, "elementStride": 0}
+                                        },
+                                        {
+                                            "name": "nine_slice_b",
+                                            "type": {
+                                                "kind": "scalar",
+                                                "scalarType": "float32"
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 112, "size": 4, "elementStride": 0}
+                                        },
+                                        {
+                                            "name": "nine_slice_tiling",
+                                            "type": {
+                                                "kind": "scalar",
+                                                "scalarType": "uint32"
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 116, "size": 4, "elementStride": 0}
+                                        },
+                                        {
+                                            "name": "_ns_pad0",
+                                            "type": {
+                                                "kind": "scalar",
+                                                "scalarType": "float32"
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 120, "size": 4, "elementStride": 0}
+                                        },
+                                        {
+                                            "name": "_ns_pad1",
+                                            "type": {
+                                                "kind": "scalar",
+                                                "scalarType": "float32"
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 124, "size": 4, "elementStride": 0}
                                         }
                                     ]
                                 }
@@ -519,12 +559,44 @@
                                             "binding": {"kind": "uniform", "offset": 88, "size": 4, "elementStride": 0}
                                         },
                                         {
-                                            "name": "pad",
+                                            "name": "nine_slice_l",
                                             "type": {
                                                 "kind": "scalar",
                                                 "scalarType": "float32"
                                             },
                                             "binding": {"kind": "uniform", "offset": 92, "size": 4, "elementStride": 0}
+                                        },
+                                        {
+                                            "name": "nine_slice_r",
+                                            "type": {
+                                                "kind": "scalar",
+                                                "scalarType": "float32"
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 96, "size": 4, "elementStride": 0}
+                                        },
+                                        {
+                                            "name": "nine_slice_t",
+                                            "type": {
+                                                "kind": "scalar",
+                                                "scalarType": "float32"
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 100, "size": 4, "elementStride": 0}
+                                        },
+                                        {
+                                            "name": "nine_slice_b",
+                                            "type": {
+                                                "kind": "scalar",
+                                                "scalarType": "float32"
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 104, "size": 4, "elementStride": 0}
+                                        },
+                                        {
+                                            "name": "nine_slice_tiling",
+                                            "type": {
+                                                "kind": "scalar",
+                                                "scalarType": "uint32"
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 108, "size": 4, "elementStride": 0}
                                         }
                                     ]
                                 }
@@ -653,12 +725,44 @@
                                             "binding": {"kind": "uniform", "offset": 72, "size": 4, "elementStride": 0}
                                         },
                                         {
-                                            "name": "pad",
+                                            "name": "nine_slice_l",
                                             "type": {
                                                 "kind": "scalar",
                                                 "scalarType": "float32"
                                             },
                                             "binding": {"kind": "uniform", "offset": 76, "size": 4, "elementStride": 0}
+                                        },
+                                        {
+                                            "name": "nine_slice_r",
+                                            "type": {
+                                                "kind": "scalar",
+                                                "scalarType": "float32"
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 80, "size": 4, "elementStride": 0}
+                                        },
+                                        {
+                                            "name": "nine_slice_t",
+                                            "type": {
+                                                "kind": "scalar",
+                                                "scalarType": "float32"
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 84, "size": 4, "elementStride": 0}
+                                        },
+                                        {
+                                            "name": "nine_slice_b",
+                                            "type": {
+                                                "kind": "scalar",
+                                                "scalarType": "float32"
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 88, "size": 4, "elementStride": 0}
+                                        },
+                                        {
+                                            "name": "nine_slice_tiling",
+                                            "type": {
+                                                "kind": "scalar",
+                                                "scalarType": "uint32"
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 92, "size": 4, "elementStride": 0}
                                         }
                                     ]
                                 }
@@ -795,12 +899,44 @@
                                             "binding": {"kind": "uniform", "offset": 88, "size": 4, "elementStride": 0}
                                         },
                                         {
-                                            "name": "pad",
+                                            "name": "nine_slice_l",
                                             "type": {
                                                 "kind": "scalar",
                                                 "scalarType": "float32"
                                             },
                                             "binding": {"kind": "uniform", "offset": 92, "size": 4, "elementStride": 0}
+                                        },
+                                        {
+                                            "name": "nine_slice_r",
+                                            "type": {
+                                                "kind": "scalar",
+                                                "scalarType": "float32"
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 96, "size": 4, "elementStride": 0}
+                                        },
+                                        {
+                                            "name": "nine_slice_t",
+                                            "type": {
+                                                "kind": "scalar",
+                                                "scalarType": "float32"
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 100, "size": 4, "elementStride": 0}
+                                        },
+                                        {
+                                            "name": "nine_slice_b",
+                                            "type": {
+                                                "kind": "scalar",
+                                                "scalarType": "float32"
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 104, "size": 4, "elementStride": 0}
+                                        },
+                                        {
+                                            "name": "nine_slice_tiling",
+                                            "type": {
+                                                "kind": "scalar",
+                                                "scalarType": "uint32"
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 108, "size": 4, "elementStride": 0}
                                         }
                                     ]
                                 }
@@ -905,7 +1041,7 @@
                                             "binding": {"kind": "uniform", "offset": 64, "size": 4, "elementStride": 0}
                                         },
                                         {
-                                            "name": "_pad1",
+                                            "name": "nine_slice_l",
                                             "type": {
                                                 "kind": "scalar",
                                                 "scalarType": "float32"
@@ -945,12 +1081,44 @@
                                             "binding": {"kind": "uniform", "offset": 88, "size": 4, "elementStride": 0}
                                         },
                                         {
-                                            "name": "pad",
+                                            "name": "nine_slice_r",
                                             "type": {
                                                 "kind": "scalar",
                                                 "scalarType": "float32"
                                             },
                                             "binding": {"kind": "uniform", "offset": 92, "size": 4, "elementStride": 0}
+                                        },
+                                        {
+                                            "name": "nine_slice_t",
+                                            "type": {
+                                                "kind": "scalar",
+                                                "scalarType": "float32"
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 96, "size": 4, "elementStride": 0}
+                                        },
+                                        {
+                                            "name": "nine_slice_b",
+                                            "type": {
+                                                "kind": "scalar",
+                                                "scalarType": "float32"
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 100, "size": 4, "elementStride": 0}
+                                        },
+                                        {
+                                            "name": "nine_slice_tiling",
+                                            "type": {
+                                                "kind": "scalar",
+                                                "scalarType": "uint32"
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 104, "size": 4, "elementStride": 0}
+                                        },
+                                        {
+                                            "name": "_ns_pad",
+                                            "type": {
+                                                "kind": "scalar",
+                                                "scalarType": "float32"
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 108, "size": 4, "elementStride": 0}
                                         }
                                     ]
                                 }
@@ -1119,28 +1287,36 @@
                                                 "binding": {"kind": "uniform", "offset": 8, "size": 8, "elementStride": 4}
                                             },
                                             {
-                                                "name": "x_clip",
+                                                "name": "nine_slice_l",
                                                 "type": {
-                                                    "kind": "vector",
-                                                    "elementCount": 2,
-                                                    "elementType": {
-                                                        "kind": "scalar",
-                                                        "scalarType": "float32"
-                                                    }
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
                                                 },
-                                                "binding": {"kind": "uniform", "offset": 16, "size": 8, "elementStride": 4}
+                                                "binding": {"kind": "uniform", "offset": 16, "size": 4, "elementStride": 0}
                                             },
                                             {
-                                                "name": "y_clip",
+                                                "name": "nine_slice_r",
                                                 "type": {
-                                                    "kind": "vector",
-                                                    "elementCount": 2,
-                                                    "elementType": {
-                                                        "kind": "scalar",
-                                                        "scalarType": "float32"
-                                                    }
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
                                                 },
-                                                "binding": {"kind": "uniform", "offset": 24, "size": 8, "elementStride": 4}
+                                                "binding": {"kind": "uniform", "offset": 20, "size": 4, "elementStride": 0}
+                                            },
+                                            {
+                                                "name": "nine_slice_t",
+                                                "type": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 24, "size": 4, "elementStride": 0}
+                                            },
+                                            {
+                                                "name": "nine_slice_b",
+                                                "type": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 28, "size": 4, "elementStride": 0}
                                             },
                                             {
                                                 "name": "corner_radius",
@@ -1251,15 +1427,15 @@
                                                 "binding": {"kind": "uniform", "offset": 108, "size": 4, "elementStride": 0}
                                             },
                                             {
-                                                "name": "pad1",
+                                                "name": "nine_slice_tiling",
                                                 "type": {
                                                     "kind": "scalar",
-                                                    "scalarType": "float32"
+                                                    "scalarType": "uint32"
                                                 },
                                                 "binding": {"kind": "uniform", "offset": 112, "size": 4, "elementStride": 0}
                                             },
                                             {
-                                                "name": "pad2",
+                                                "name": "_ns_pad1",
                                                 "type": {
                                                     "kind": "scalar",
                                                     "scalarType": "float32"
@@ -1267,7 +1443,7 @@
                                                 "binding": {"kind": "uniform", "offset": 116, "size": 4, "elementStride": 0}
                                             },
                                             {
-                                                "name": "pad3",
+                                                "name": "_ns_pad2",
                                                 "type": {
                                                     "kind": "scalar",
                                                     "scalarType": "float32"
@@ -1275,7 +1451,7 @@
                                                 "binding": {"kind": "uniform", "offset": 120, "size": 4, "elementStride": 0}
                                             },
                                             {
-                                                "name": "pad4",
+                                                "name": "_ns_pad3",
                                                 "type": {
                                                     "kind": "scalar",
                                                     "scalarType": "float32"
@@ -1433,7 +1609,7 @@
                                                 "binding": {"kind": "uniform", "offset": 96, "size": 4, "elementStride": 0}
                                             },
                                             {
-                                                "name": "_blur_pad0",
+                                                "name": "nine_slice_l",
                                                 "type": {
                                                     "kind": "scalar",
                                                     "scalarType": "float32"
@@ -1441,7 +1617,7 @@
                                                 "binding": {"kind": "uniform", "offset": 100, "size": 4, "elementStride": 0}
                                             },
                                             {
-                                                "name": "_blur_pad1",
+                                                "name": "nine_slice_r",
                                                 "type": {
                                                     "kind": "scalar",
                                                     "scalarType": "float32"
@@ -1449,12 +1625,44 @@
                                                 "binding": {"kind": "uniform", "offset": 104, "size": 4, "elementStride": 0}
                                             },
                                             {
-                                                "name": "_blur_pad2",
+                                                "name": "nine_slice_t",
                                                 "type": {
                                                     "kind": "scalar",
                                                     "scalarType": "float32"
                                                 },
                                                 "binding": {"kind": "uniform", "offset": 108, "size": 4, "elementStride": 0}
+                                            },
+                                            {
+                                                "name": "nine_slice_b",
+                                                "type": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 112, "size": 4, "elementStride": 0}
+                                            },
+                                            {
+                                                "name": "nine_slice_tiling",
+                                                "type": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "uint32"
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 116, "size": 4, "elementStride": 0}
+                                            },
+                                            {
+                                                "name": "_ns_pad0",
+                                                "type": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 120, "size": 4, "elementStride": 0}
+                                            },
+                                            {
+                                                "name": "_ns_pad1",
+                                                "type": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 124, "size": 4, "elementStride": 0}
                                             }
                                         ]
                                     }
@@ -1579,12 +1787,44 @@
                                                 "binding": {"kind": "uniform", "offset": 88, "size": 4, "elementStride": 0}
                                             },
                                             {
-                                                "name": "pad",
+                                                "name": "nine_slice_l",
                                                 "type": {
                                                     "kind": "scalar",
                                                     "scalarType": "float32"
                                                 },
                                                 "binding": {"kind": "uniform", "offset": 92, "size": 4, "elementStride": 0}
+                                            },
+                                            {
+                                                "name": "nine_slice_r",
+                                                "type": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 96, "size": 4, "elementStride": 0}
+                                            },
+                                            {
+                                                "name": "nine_slice_t",
+                                                "type": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 100, "size": 4, "elementStride": 0}
+                                            },
+                                            {
+                                                "name": "nine_slice_b",
+                                                "type": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 104, "size": 4, "elementStride": 0}
+                                            },
+                                            {
+                                                "name": "nine_slice_tiling",
+                                                "type": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "uint32"
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 108, "size": 4, "elementStride": 0}
                                             }
                                         ]
                                     }
@@ -1713,12 +1953,44 @@
                                                 "binding": {"kind": "uniform", "offset": 72, "size": 4, "elementStride": 0}
                                             },
                                             {
-                                                "name": "pad",
+                                                "name": "nine_slice_l",
                                                 "type": {
                                                     "kind": "scalar",
                                                     "scalarType": "float32"
                                                 },
                                                 "binding": {"kind": "uniform", "offset": 76, "size": 4, "elementStride": 0}
+                                            },
+                                            {
+                                                "name": "nine_slice_r",
+                                                "type": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 80, "size": 4, "elementStride": 0}
+                                            },
+                                            {
+                                                "name": "nine_slice_t",
+                                                "type": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 84, "size": 4, "elementStride": 0}
+                                            },
+                                            {
+                                                "name": "nine_slice_b",
+                                                "type": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 88, "size": 4, "elementStride": 0}
+                                            },
+                                            {
+                                                "name": "nine_slice_tiling",
+                                                "type": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "uint32"
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 92, "size": 4, "elementStride": 0}
                                             }
                                         ]
                                     }
@@ -1855,12 +2127,44 @@
                                                 "binding": {"kind": "uniform", "offset": 88, "size": 4, "elementStride": 0}
                                             },
                                             {
-                                                "name": "pad",
+                                                "name": "nine_slice_l",
                                                 "type": {
                                                     "kind": "scalar",
                                                     "scalarType": "float32"
                                                 },
                                                 "binding": {"kind": "uniform", "offset": 92, "size": 4, "elementStride": 0}
+                                            },
+                                            {
+                                                "name": "nine_slice_r",
+                                                "type": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 96, "size": 4, "elementStride": 0}
+                                            },
+                                            {
+                                                "name": "nine_slice_t",
+                                                "type": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 100, "size": 4, "elementStride": 0}
+                                            },
+                                            {
+                                                "name": "nine_slice_b",
+                                                "type": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 104, "size": 4, "elementStride": 0}
+                                            },
+                                            {
+                                                "name": "nine_slice_tiling",
+                                                "type": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "uint32"
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 108, "size": 4, "elementStride": 0}
                                             }
                                         ]
                                     }
@@ -1965,7 +2269,7 @@
                                                 "binding": {"kind": "uniform", "offset": 64, "size": 4, "elementStride": 0}
                                             },
                                             {
-                                                "name": "_pad1",
+                                                "name": "nine_slice_l",
                                                 "type": {
                                                     "kind": "scalar",
                                                     "scalarType": "float32"
@@ -2005,12 +2309,44 @@
                                                 "binding": {"kind": "uniform", "offset": 88, "size": 4, "elementStride": 0}
                                             },
                                             {
-                                                "name": "pad",
+                                                "name": "nine_slice_r",
                                                 "type": {
                                                     "kind": "scalar",
                                                     "scalarType": "float32"
                                                 },
                                                 "binding": {"kind": "uniform", "offset": 92, "size": 4, "elementStride": 0}
+                                            },
+                                            {
+                                                "name": "nine_slice_t",
+                                                "type": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 96, "size": 4, "elementStride": 0}
+                                            },
+                                            {
+                                                "name": "nine_slice_b",
+                                                "type": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 100, "size": 4, "elementStride": 0}
+                                            },
+                                            {
+                                                "name": "nine_slice_tiling",
+                                                "type": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "uint32"
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 104, "size": 4, "elementStride": 0}
+                                            },
+                                            {
+                                                "name": "_ns_pad",
+                                                "type": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 108, "size": 4, "elementStride": 0}
                                             }
                                         ]
                                     }

@@ -18,8 +18,10 @@ ParameterBlock<ShapesGpu> shapes;
 struct BoxGpu {
     float2 top_left;
     float2 size;
-    float2 x_clip;
-    float2 y_clip;
+    float nine_slice_l;        // left inset in pixels (0 = no nine-slice)
+    float nine_slice_r;        // right inset in pixels
+    float nine_slice_t;        // top inset in pixels
+    float nine_slice_b;        // bottom inset in pixels
     float corner_radius;
     float border_thickness;
     float2 gradient_direction; // normalized direction for linear gradient
@@ -31,10 +33,10 @@ struct BoxGpu {
     float2 texture_uv_size;   // pixel dimensions in atlas
     uint texture_page;        // atlas layer, 0xFFFFFFFF = no texture
     float blur_radius;
-    float pad1;
-    float pad2;
-    float pad3;
-    float pad4;
+    uint nine_slice_tiling;    // bit 0=enabled; bits 1-2=h mode; bits 3-4=v mode (0=stretch,1=tile,2=tile_fit)
+    float _ns_pad1;
+    float _ns_pad2;
+    float _ns_pad3;
 }
 
 struct CircleGpu {
@@ -51,9 +53,13 @@ struct CircleGpu {
     float dash_length;        // 0 = no dashing, >0 = dash length in pixels
     float dash_offset;        // offset for dash pattern alignment
     float blur_radius;
-    float _blur_pad0;
-    float _blur_pad1;
-    float _blur_pad2;
+    float nine_slice_l;        // left inset in pixels (0 = no nine-slice)
+    float nine_slice_r;        // right inset in pixels
+    float nine_slice_t;        // top inset in pixels
+    float nine_slice_b;        // bottom inset in pixels
+    uint nine_slice_tiling;    // bit 0=enabled; bits 1-2=h mode; bits 3-4=v mode (0=stretch,1=tile,2=tile_fit)
+    float _ns_pad0;
+    float _ns_pad1;
 }
 
 struct SegmentGpu {
@@ -67,7 +73,11 @@ struct SegmentGpu {
     float2 texture_uv_origin; // pixel coords in atlas (top-left corner)
     float2 texture_uv_size;   // pixel dimensions in atlas
     float blur_radius;
-    float pad;
+    float nine_slice_l;        // left inset in pixels (0 = no nine-slice)
+    float nine_slice_r;        // right inset in pixels
+    float nine_slice_t;        // top inset in pixels
+    float nine_slice_b;        // bottom inset in pixels
+    uint nine_slice_tiling;    // bit 0=enabled; bits 1-2=h mode; bits 3-4=v mode (0=stretch,1=tile,2=tile_fit)
 }
 
 struct GridGpu {
@@ -82,7 +92,11 @@ struct GridGpu {
     float2 texture_uv_origin; // pixel coords in atlas (top-left corner)
     float2 texture_uv_size;   // pixel dimensions in atlas
     float blur_radius;
-    float pad;
+    float nine_slice_l;        // left inset in pixels (0 = no nine-slice)
+    float nine_slice_r;        // right inset in pixels
+    float nine_slice_t;        // top inset in pixels
+    float nine_slice_b;        // bottom inset in pixels
+    uint nine_slice_tiling;    // bit 0=enabled; bits 1-2=h mode; bits 3-4=v mode (0=stretch,1=tile,2=tile_fit)
 }
 
 struct TriangleGpu {
@@ -97,7 +111,11 @@ struct TriangleGpu {
     float2 texture_uv_origin; // pixel coords in atlas (top-left corner)
     float2 texture_uv_size;   // pixel dimensions in atlas
     float blur_radius;
-    float pad;
+    float nine_slice_l;        // left inset in pixels (0 = no nine-slice)
+    float nine_slice_r;        // right inset in pixels
+    float nine_slice_t;        // top inset in pixels
+    float nine_slice_b;        // bottom inset in pixels
+    uint nine_slice_tiling;    // bit 0=enabled; bits 1-2=h mode; bits 3-4=v mode (0=stretch,1=tile,2=tile_fit)
 }
 
 struct HexagonGpu {
@@ -110,11 +128,15 @@ struct HexagonGpu {
     float4 color_start;
     float4 color_end;
     uint gradient_type;        // 0=solid, 1=linear
-    float _pad1;               // alignment for float2
+    float nine_slice_l;        // left inset in pixels (0 = no nine-slice)
     float2 texture_uv_origin;  // pixel coords in atlas (top-left corner)
     float2 texture_uv_size;    // pixel dimensions in atlas
     float blur_radius;
-    float pad;
+    float nine_slice_r;        // right inset in pixels
+    float nine_slice_t;        // top inset in pixels
+    float nine_slice_b;        // bottom inset in pixels
+    uint nine_slice_tiling;    // bit 0=enabled; bits 1-2=h mode; bits 3-4=v mode (0=stretch,1=tile,2=tile_fit)
+    float _ns_pad;
 }
 
 struct QuadraticBezierGpu {
@@ -135,6 +157,78 @@ struct Transform {
 struct ClipRect {
     float2 x_clip;
     float2 y_clip;
+}
+
+// Remap local_uv (0-1 over shape bounding box) to atlas-normalized UV using nine-slice rules.
+// nine_slice_tiling: bit 0=enabled; bits 1-2=h mode; bits 3-4=v mode
+//   mode 0=stretch, 1=tile, 2=tile_fit (scale so a whole number of copies fit)
+// Returns the atlas-space UV in [0,1].
+float2 nine_slice_uv(
+    float2 local_uv,
+    float2 shape_sz,
+    float2 tex_origin,
+    float2 tex_sz,
+    float ns_l, float ns_r, float ns_t, float ns_b,
+    uint tiling,
+    float2 atlas_size
+) {
+    float screen_x = local_uv.x * shape_sz.x;
+    float screen_y = local_uv.y * shape_sz.y;
+
+    float src_xl = tex_origin.x + ns_l;
+    float src_xr = tex_origin.x + tex_sz.x - ns_r;
+    float src_yt = tex_origin.y + ns_t;
+    float src_yb = tex_origin.y + tex_sz.y - ns_b;
+
+    float scr_xr = shape_sz.x - ns_r;
+    float scr_yb = shape_sz.y - ns_b;
+
+    uint h_mode = (tiling >> 1u) & 3u; // 0=stretch, 1=tile, 2=tile_fit
+    uint v_mode = (tiling >> 3u) & 3u;
+
+    // Region: 0=near corner, 1=middle, 2=far corner
+    uint rx = screen_x < ns_l ? 0u : (screen_x >= scr_xr ? 2u : 1u);
+    uint ry = screen_y < ns_t ? 0u : (screen_y >= scr_yb ? 2u : 1u);
+
+    float tex_x;
+    if (rx == 0u) {
+        tex_x = tex_origin.x + screen_x;
+    } else if (rx == 2u) {
+        tex_x = src_xr + (screen_x - scr_xr);
+    } else {
+        float mid_src_w = src_xr - src_xl;
+        float mid_scr_w = scr_xr - ns_l;
+        float t = (screen_x - ns_l) / max(mid_scr_w, 0.001);
+        if (h_mode == 1u && mid_src_w > 0.001) {
+            tex_x = src_xl + fmod(t * mid_scr_w, mid_src_w);
+        } else if (h_mode == 2u && mid_src_w > 0.001) {
+            float n = max(1.0, round(mid_scr_w / mid_src_w));
+            tex_x = src_xl + fmod(t * n, 1.0) * mid_src_w;
+        } else {
+            tex_x = src_xl + t * mid_src_w;
+        }
+    }
+
+    float tex_y;
+    if (ry == 0u) {
+        tex_y = tex_origin.y + screen_y;
+    } else if (ry == 2u) {
+        tex_y = src_yb + (screen_y - scr_yb);
+    } else {
+        float mid_src_h = src_yb - src_yt;
+        float mid_scr_h = scr_yb - ns_t;
+        float t = (screen_y - ns_t) / max(mid_scr_h, 0.001);
+        if (v_mode == 1u && mid_src_h > 0.001) {
+            tex_y = src_yt + fmod(t * mid_scr_h, mid_src_h);
+        } else if (v_mode == 2u && mid_src_h > 0.001) {
+            float n = max(1.0, round(mid_scr_h / mid_src_h));
+            tex_y = src_yt + fmod(t * n, 1.0) * mid_src_h;
+        } else {
+            tex_y = src_yt + t * mid_src_h;
+        }
+    }
+
+    return float2(tex_x, tex_y) / atlas_size;
 }
 
 void box_vertex(
@@ -300,7 +394,14 @@ float4 box_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, float2 s
         float2 atlas_size = float2(float(atlas_width), float(atlas_height));
 
         float2 local_uv = (p + box.size * 0.5) / box.size;
-        float2 tex_uv = (box.texture_uv_origin + box.texture_uv_size * local_uv) / atlas_size;
+        float2 tex_uv;
+        if ((box.nine_slice_tiling & 1u) != 0u) {
+            tex_uv = nine_slice_uv(local_uv, box.size, box.texture_uv_origin, box.texture_uv_size,
+                box.nine_slice_l, box.nine_slice_r, box.nine_slice_t, box.nine_slice_b,
+                box.nine_slice_tiling, atlas_size);
+        } else {
+            tex_uv = (box.texture_uv_origin + box.texture_uv_size * local_uv) / atlas_size;
+        }
 
         float lod = tex_blur_lod(box.blur_radius, box.texture_uv_size, box.size);
 
@@ -504,11 +605,18 @@ float4 circle_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, float
         shapes.atlas_texture.GetDimensions(atlas_width, atlas_height, atlas_elements);
         float2 atlas_size = float2(float(atlas_width), float(atlas_height));
 
-        // Calculate UV in atlas space (local_uv is 0-1 across the original circle bounding box, not the expanded quad)
-        float2 local_uv = (p + float2(outer_radius)) / float2(outer_radius * 2.0);
-        float2 tex_uv = (circle.texture_uv_origin + circle.texture_uv_size * local_uv) / atlas_size;
+        float2 shape_sz = float2(outer_radius * 2.0);
+        float2 local_uv = (p + float2(outer_radius)) / shape_sz;
+        float2 tex_uv;
+        if ((circle.nine_slice_tiling & 1u) != 0u) {
+            tex_uv = nine_slice_uv(local_uv, shape_sz, circle.texture_uv_origin, circle.texture_uv_size,
+                circle.nine_slice_l, circle.nine_slice_r, circle.nine_slice_t, circle.nine_slice_b,
+                circle.nine_slice_tiling, atlas_size);
+        } else {
+            tex_uv = (circle.texture_uv_origin + circle.texture_uv_size * local_uv) / atlas_size;
+        }
 
-        float lod = tex_blur_lod(circle.blur_radius, circle.texture_uv_size, float2(outer_radius * 2.0));
+        float lod = tex_blur_lod(circle.blur_radius, circle.texture_uv_size, shape_sz);
 
         // Sample texture
         float4 tex_color = shapes.atlas_texture.SampleLevel(
@@ -658,7 +766,14 @@ float4 segment_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, floa
         float2 orig_min = min(seg.start, seg.end) - float2(half_thickness, half_thickness);
         float2 orig_size = max(seg.start, seg.end) + float2(half_thickness, half_thickness) - orig_min;
         float2 local_uv = (p - orig_min) / orig_size;
-        float2 tex_uv = (seg.texture_uv_origin + seg.texture_uv_size * local_uv) / atlas_size;
+        float2 tex_uv;
+        if ((seg.nine_slice_tiling & 1u) != 0u) {
+            tex_uv = nine_slice_uv(local_uv, orig_size, seg.texture_uv_origin, seg.texture_uv_size,
+                seg.nine_slice_l, seg.nine_slice_r, seg.nine_slice_t, seg.nine_slice_b,
+                seg.nine_slice_tiling, atlas_size);
+        } else {
+            tex_uv = (seg.texture_uv_origin + seg.texture_uv_size * local_uv) / atlas_size;
+        }
 
         float lod = tex_blur_lod(seg.blur_radius, seg.texture_uv_size, orig_size);
 
@@ -762,7 +877,14 @@ float4 grid_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, float2 
         uint atlas_width, atlas_height, atlas_elements;
         shapes.atlas_texture.GetDimensions(atlas_width, atlas_height, atlas_elements);
         float2 atlas_size = float2(float(atlas_width), float(atlas_height));
-        float2 tex_uv = (grid.texture_uv_origin + grid.texture_uv_size * uv) / atlas_size;
+        float2 tex_uv;
+        if ((grid.nine_slice_tiling & 1u) != 0u) {
+            tex_uv = nine_slice_uv(uv, grid.size, grid.texture_uv_origin, grid.texture_uv_size,
+                grid.nine_slice_l, grid.nine_slice_r, grid.nine_slice_t, grid.nine_slice_b,
+                grid.nine_slice_tiling, atlas_size);
+        } else {
+            tex_uv = (grid.texture_uv_origin + grid.texture_uv_size * uv) / atlas_size;
+        }
         float lod = tex_blur_lod(grid.blur_radius, grid.texture_uv_size, grid.size);
 
         float4 tex_color = shapes.atlas_texture.SampleLevel(
@@ -880,11 +1002,18 @@ float4 triangle_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, flo
         shapes.atlas_texture.GetDimensions(atlas_width, atlas_height, atlas_elements);
         float2 atlas_size = float2(float(atlas_width), float(atlas_height));
 
-        // Calculate UV in atlas space (local_uv is 0-1 across the original triangle bounding box)
-        float2 local_uv = (p - orig_min) / (orig_max - orig_min);
-        float2 tex_uv = (tri.texture_uv_origin + tri.texture_uv_size * local_uv) / atlas_size;
+        float2 shape_sz = orig_max - orig_min;
+        float2 local_uv = (p - orig_min) / shape_sz;
+        float2 tex_uv;
+        if ((tri.nine_slice_tiling & 1u) != 0u) {
+            tex_uv = nine_slice_uv(local_uv, shape_sz, tri.texture_uv_origin, tri.texture_uv_size,
+                tri.nine_slice_l, tri.nine_slice_r, tri.nine_slice_t, tri.nine_slice_b,
+                tri.nine_slice_tiling, atlas_size);
+        } else {
+            tex_uv = (tri.texture_uv_origin + tri.texture_uv_size * local_uv) / atlas_size;
+        }
 
-        float lod = tex_blur_lod(tri.blur_radius, tri.texture_uv_size, orig_max - orig_min);
+        float lod = tex_blur_lod(tri.blur_radius, tri.texture_uv_size, shape_sz);
 
         // Sample texture
         float4 tex_color = shapes.atlas_texture.SampleLevel(
@@ -994,9 +1123,17 @@ float4 hexagon_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, floa
         shapes.atlas_texture.GetDimensions(atlas_width, atlas_height, atlas_elements);
         float2 atlas_size = float2(float(atlas_width), float(atlas_height));
         // Map p (in the 1.1547-scaled space) back to 0-1 over the original bounding box
-        float2 local_uv = (p * 0.866025 + float2(hex.size)) / float2(hex.size * 2.0);
-        float2 tex_uv = (hex.texture_uv_origin + hex.texture_uv_size * local_uv) / atlas_size;
-        float lod = tex_blur_lod(hex.blur_radius, hex.texture_uv_size, float2(hex.size * 2.0));
+        float2 shape_sz = float2(hex.size * 2.0);
+        float2 local_uv = (p * 0.866025 + float2(hex.size)) / shape_sz;
+        float2 tex_uv;
+        if ((hex.nine_slice_tiling & 1u) != 0u) {
+            tex_uv = nine_slice_uv(local_uv, shape_sz, hex.texture_uv_origin, hex.texture_uv_size,
+                hex.nine_slice_l, hex.nine_slice_r, hex.nine_slice_t, hex.nine_slice_b,
+                hex.nine_slice_tiling, atlas_size);
+        } else {
+            tex_uv = (hex.texture_uv_origin + hex.texture_uv_size * local_uv) / atlas_size;
+        }
+        float lod = tex_blur_lod(hex.blur_radius, hex.texture_uv_size, shape_sz);
 
         float4 tex_color = shapes.atlas_texture.SampleLevel(
             shapes.atlas_sampler,

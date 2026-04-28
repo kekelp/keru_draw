@@ -163,8 +163,9 @@ impl State {
             rounded_corners: RoundedCorners::ALL,
             border_thickness: 0.0,
             fill: ColorFill::Gradient(Gradient::linear(Color::new(1.0, 0.3, 0.3, 1.0), Color::new(0.3, 0.3, 1.0, 1.0), 0.0)),
-            texture: Some(self.texture_handle),
             blur: 10.0,
+            texture: Some(self.texture_handle),
+            texture_options: None,
         });
 
         // Gradient box - diagonal
@@ -175,8 +176,9 @@ impl State {
             rounded_corners: RoundedCorners::ALL,
             border_thickness: 0.0,
             fill: ColorFill::Gradient(Gradient::linear(Color::new(1.0, 0.5, 0.3, 1.0), Color::new(0.3, 1.0, 0.5, 1.0), PI * 0.25)),
-            texture: None,
             blur: 0.0,
+            texture: None,
+            texture_options: None,
         });
 
         // Box with only top corners rounded
@@ -187,8 +189,9 @@ impl State {
             rounded_corners: RoundedCorners::TOP,
             border_thickness: 5.0,
             fill: ColorFill::Color(Color { r: 0.015686, g: 0.666667, b: 0.427451, a: 1.0 }),
-            texture: None,
             blur: 0.0,
+            texture: None,
+            texture_options: None,
         });
 
         // Box with all corners rounded
@@ -199,8 +202,9 @@ impl State {
             rounded_corners: RoundedCorners::ALL,
             border_thickness: 5.0,
             fill: ColorFill::Color(Color { r: 0.8, g: 1.0, b: 0.3, a: 1.0 }),
-            texture: None,
             blur: 0.0,
+            texture: None,
+            texture_options: None,
         });
 
         // Box with only bottom-right corner rounded
@@ -211,8 +215,9 @@ impl State {
             rounded_corners: RoundedCorners::BOTTOM_RIGHT,
             border_thickness: 0.0,
             fill: ColorFill::Color(Color { r: 0.6, g: 0.3, b: 0.9, a: 1.0 }),
-            texture: None,
             blur: 0.0,
+            texture: None,
+            texture_options: None,
         });
 
         // Box with diagonal corners rounded (top-left and bottom-right)
@@ -223,8 +228,9 @@ impl State {
             rounded_corners: RoundedCorners::TOP_LEFT | RoundedCorners::BOTTOM_RIGHT,
             border_thickness: 0.0,
             fill: ColorFill::Color(Color { r: 0.9, g: 0.5, b: 0.2, a: 1.0 }),
-            texture: None,
             blur: 0.0,
+            texture: None,
+            texture_options: None,
         });
 
         // Blurred boxes
@@ -235,8 +241,9 @@ impl State {
             rounded_corners: RoundedCorners::ALL,
             border_thickness: 0.0,
             fill: ColorFill::Color(Color::new(0.2, 0.6, 1.0, 1.0)),
-            texture: None,
             blur: 5.0,
+            texture: None,
+            texture_options: None,
         });
 
         self.renderer.draw_box(Box {
@@ -246,8 +253,9 @@ impl State {
             rounded_corners: RoundedCorners::ALL,
             border_thickness: 0.0,
             fill: ColorFill::Color(Color::new(1.0, 0.3, 0.5, 1.0)),
-            texture: None,
             blur: 15.0,
+            texture: None,
+            texture_options: None,
         });
 
         // Radial gradient circle
@@ -255,8 +263,9 @@ impl State {
             center: [50.0, 150.0],
             radius: 20.0,
             fill: ColorFill::Gradient(Gradient::radial(Color::new(1.0, 1.0, 0.3, 1.0), Color::new(1.0, 0.3, 0.3, 1.0))),
-            texture: None,
             blur: 0.0,
+            texture: None,
+            texture_options: None,
         });
 
         // Linear gradient circle
@@ -264,16 +273,18 @@ impl State {
             center: [140.0, 150.0],
             radius: 30.0,
             fill: ColorFill::Gradient(Gradient::linear(Color::new(0.3, 0.7, 1.0, 1.0), Color::new(1.0, 0.3, 0.7, 1.0), PI * 0.5)),
-            texture: None,
             blur: 0.0,
+            texture: None,
+            texture_options: None,
         });
 
         self.renderer.draw_circle(Circle {
             center: [250.0, 150.0],
             radius: 40.0,
             fill: ColorFill::Color(Color { r: 0.3, g: 0.9, b: 1.0, a: 1.0 }),
-            texture: None,
             blur: 0.0,
+            texture: None,
+            texture_options: None,
         });
 
         // Blurred circles
@@ -281,16 +292,18 @@ impl State {
             center: [360.0, 95.0],
             radius: 30.0,
             fill: ColorFill::Color(Color::new(1.0, 0.8, 0.2, 1.0)),
-            texture: None,
             blur: 8.0,
+            texture: None,
+            texture_options: None,
         });
 
         self.renderer.draw_circle(Circle {
             center: [460.0, 95.0],
             radius: 30.0,
             fill: ColorFill::Color(Color::new(0.4, 1.0, 0.5, 1.0)),
-            texture: None,
             blur: 20.0,
+            texture: None,
+            texture_options: None,
         });
 
         self.renderer.draw_ring(CircleRing {
@@ -299,9 +312,10 @@ impl State {
             outer_radius: 40.0,
             fill: ColorFill::Color(Color { r: 1.0, g: 1.0, b: 0.3, a: 1.0 }),
             texture: None,
+            texture_options: None,
             dash_length: None,
-            dash_offset: 0.0,
             blur: 0.0,
+            dash_offset: 0.0,
         });
 
         self.renderer.draw_ring(CircleRing {
@@ -310,9 +324,10 @@ impl State {
             outer_radius: 45.0,
             fill: ColorFill::Color(Color { r: 1.0, g: 0.8, b: 0.3, a: 1.0 }),
             texture: None,
+            texture_options: None,
             dash_length: None,
-            dash_offset: 0.0,
             blur: 0.0,
+            dash_offset: 0.0,
         });
 
         self.renderer.draw_ring(CircleRing {
@@ -321,9 +336,10 @@ impl State {
             outer_radius: 50.0,
             fill: ColorFill::Color(Color { r: 1.0, g: 0.6, b: 0.3, a: 1.0 }),
             texture: None,
+            texture_options: None,
             dash_length: Some(15.0),  // dashed ring example
-            dash_offset: 0.0,
             blur: 0.0,
+            dash_offset: 0.0,
         });
 
         // Blurred ring
@@ -333,9 +349,10 @@ impl State {
             outer_radius: 45.0,
             fill: ColorFill::Color(Color::new(0.3, 0.9, 1.0, 1.0)),
             texture: None,
+            texture_options: None,
             dash_length: None,
-            dash_offset: 0.0,
             blur: 8.0,
+            dash_offset: 0.0,
         });
 
         self.renderer.draw_arc(CircleArc {
@@ -346,9 +363,10 @@ impl State {
             thickness: 8.0,
             fill: ColorFill::Color(Color { r: 1.0, g: 0.3, b: 1.0, a: 1.0 }),
             texture: None,
+            texture_options: None,
             dash_length: None,
-            dash_offset: 0.0,
             blur: 0.0,
+            dash_offset: 0.0,
         });
 
         self.renderer.draw_arc(CircleArc {
@@ -359,9 +377,10 @@ impl State {
             thickness: 8.0,
             fill: ColorFill::Color(Color { r: 0.8, g: 0.3, b: 1.0, a: 1.0 }),
             texture: None,
+            texture_options: None,
             dash_length: None,
-            dash_offset: 0.0,
             blur: 0.0,
+            dash_offset: 0.0,
         });
 
         // dashed arc
@@ -373,9 +392,10 @@ impl State {
             thickness: 8.0,
             fill: ColorFill::Color(Color { r: 0.6, g: 0.3, b: 1.0, a: 1.0 }),
             texture: None,
+            texture_options: None,
             dash_length: Some(10.0),
-            dash_offset: 0.0,
             blur: 3.0,
+            dash_offset: 0.0,
         });
 
         self.renderer.draw_arc(CircleArc {
@@ -386,9 +406,10 @@ impl State {
             thickness: 8.0,
             fill: ColorFill::Color(Color { r: 0.4, g: 0.3, b: 1.0, a: 1.0 }),
             texture: None,
+            texture_options: None,
             dash_length: None,
-            dash_offset: 0.0,
             blur: 0.0,
+            dash_offset: 0.0,
         });
 
         // Blurred arc
@@ -400,9 +421,10 @@ impl State {
             thickness: 10.0,
             fill: ColorFill::Color(Color::new(0.2, 0.4, 1.0, 1.0)),
             texture: None,
+            texture_options: None,
             dash_length: None,
-            dash_offset: 0.0,
             blur: 8.0,
+            dash_offset: 0.0,
         });
 
         self.renderer.draw_pie(CirclePie {
@@ -411,8 +433,9 @@ impl State {
             start_angle: 0.0,
             end_angle: PI * 0.25,
             fill: ColorFill::Color(Color { r: 0.3, g: 1.0, b: 1.0, a: 1.0 }),
-            texture: None,
             blur: 0.0,
+            texture: None,
+            texture_options: None,
         });
 
         self.renderer.draw_pie(CirclePie {
@@ -421,8 +444,9 @@ impl State {
             start_angle: 0.0,
             end_angle: PI * 0.5,
             fill: ColorFill::Color(Color { r: 0.3, g: 1.0, b: 0.8, a: 1.0 }),
-            texture: None,
             blur: 0.0,
+            texture: None,
+            texture_options: None,
         });
 
         self.renderer.draw_pie(CirclePie {
@@ -431,8 +455,9 @@ impl State {
             start_angle: 0.0,
             end_angle: PI,
             fill: ColorFill::Color(Color { r: 0.3, g: 1.0, b: 0.6, a: 1.0 }),
-            texture: None,
             blur: 0.0,
+            texture: None,
+            texture_options: None,
         });
 
         self.renderer.draw_pie(CirclePie {
@@ -441,8 +466,9 @@ impl State {
             start_angle: PI * 0.5,
             end_angle: PI * 2.0,
             fill: ColorFill::Color(Color { r: 0.3, g: 1.0, b: 0.4, a: 1.0 }),
-            texture: None,
             blur: 0.0,
+            texture: None,
+            texture_options: None,
         });
 
         // Blurred pie
@@ -452,8 +478,9 @@ impl State {
             start_angle: 0.0,
             end_angle: PI * 0.75,
             fill: ColorFill::Color(Color::new(0.9, 0.5, 0.3, 1.0)),
-            texture: None,
             blur: 10.0,
+            texture: None,
+            texture_options: None,
         });
 
         self.renderer.draw_segment(Segment {
@@ -463,8 +490,9 @@ impl State {
             fill: ColorFill::Color(Color { r: 1.0, g: 0.5, b: 0.0, a: 1.0 }),
             dash_length: None,
             dash_offset: 0.0,
-            texture: None,
             blur: 0.0,
+            texture: None,
+            texture_options: None,
         });
 
         self.renderer.draw_segment(Segment {
@@ -474,8 +502,9 @@ impl State {
             fill: ColorFill::Color(Color { r: 1.0, g: 0.6, b: 0.0, a: 1.0 }),
             dash_length: Some(10.0),
             dash_offset: 0.0,
-            texture: None,
             blur: 0.0,
+            texture: None,
+            texture_options: None,
         });
 
         self.renderer.draw_segment(Segment {
@@ -485,8 +514,9 @@ impl State {
             fill: ColorFill::Color(Color { r: 1.0, g: 0.7, b: 0.0, a: 1.0 }),
             dash_length: Some(15.0),
             dash_offset: 0.0,
-            texture: None,
             blur: 0.0,
+            texture: None,
+            texture_options: None,
         });
 
         self.renderer.draw_segment(Segment {
@@ -496,8 +526,9 @@ impl State {
             fill: ColorFill::Color(Color { r: 1.0, g: 0.8, b: 0.0, a: 1.0 }),
             dash_length: Some(5.0),
             dash_offset: 0.0,
-            texture: None,
             blur: 0.0,
+            texture: None,
+            texture_options: None,
         });
 
         // Gradient segments forming an X
@@ -508,8 +539,9 @@ impl State {
             fill: ColorFill::Gradient(Gradient::linear(Color::new(1.0, 0.9, 0.2, 0.7), Color::new(0.2, 0.9, 1.0, 0.7), 0.0)), // angle is ignored for segments
             dash_length: Some(8.0),
             dash_offset: 0.0,
-            texture: None,
             blur: 0.0,
+            texture: None,
+            texture_options: None,
         });
         self.renderer.draw_segment(Segment {
             start: [370.0, 540.0],
@@ -518,8 +550,9 @@ impl State {
             fill: ColorFill::Gradient(Gradient::linear(Color::new(1.0, 0.2, 0.9, 0.8), Color::new(0.2, 1.0, 0.9, 0.8), 0.0)), // angle is ignored for segments
             dash_length: None,
             dash_offset: 0.0,
-            texture: None,
             blur: 0.0,
+            texture: None,
+            texture_options: None,
         });
 
         // Blurred segment
@@ -530,8 +563,9 @@ impl State {
             fill: ColorFill::Color(Color::new(0.3, 0.7, 1.0, 1.0)),
             dash_length: None,
             dash_offset: 0.0,
-            texture: None,
             blur: 6.0,
+            texture: None,
+            texture_options: None,
         });
 
         // Blurred triangle
@@ -540,8 +574,9 @@ impl State {
             p1: [440.0, 615.0],
             p2: [520.0, 615.0],
             fill: ColorFill::Color(Color::new(1.0, 0.4, 0.8, 1.0)),
-            texture: Some(self.texture_handle),
             blur: 8.0,
+            texture: Some(self.texture_handle),
+            texture_options: None,
         });
 
         // Square grid
@@ -553,8 +588,9 @@ impl State {
             line_thickness: 2.0,
             color: Color::new(0.5, 0.5, 1.0, 0.5),
             grid_type: GridType::Square,
-            texture: None,
             blur: 0.0,
+            texture: None,
+            texture_options: None,
         });
 
         // Hexagonal grid
@@ -566,8 +602,9 @@ impl State {
             line_thickness: 2.0,
             color: Color::new(1.0, 0.0, 0.0, 0.5),
             grid_type: GridType::Hexagonal,
-            texture: None,
             blur: 0.0,
+            texture: None,
+            texture_options: None,
         });
 
         // Blurred grid
@@ -579,8 +616,9 @@ impl State {
             line_thickness: 2.0,
             color: Color::new(0.3, 0.8, 0.5, 1.0),
             grid_type: GridType::Square,
-            texture: None,
             blur: 4.0,
+            texture: None,
+            texture_options: None,
         });
 
         // Hexagons - solid filled
@@ -590,8 +628,9 @@ impl State {
             rotation: 0.0,
             fill: ColorFill::Color(Color { r: 0.2, g: 0.7, b: 0.9, a: 1.0 }),
             stroke_thickness: 0.0,
-            texture: None,
             blur: 0.0,
+            texture: None,
+            texture_options: None,
         });
 
         // Hexagon - gradient filled
@@ -604,8 +643,9 @@ impl State {
                 Color::new(0.5, 0.3, 1.0, 1.0),
                 PI * 0.25,
             )),            stroke_thickness: 0.0,
-            texture: None,
             blur: 0.0,
+            texture: None,
+            texture_options: None,
         });
 
         // Hexagon - stroke only
@@ -615,8 +655,9 @@ impl State {
             rotation: 0.0,
             fill: ColorFill::Color(Color { r: 0.9, g: 0.5, b: 0.2, a: 1.0 }),
             stroke_thickness: 4.0,
-            texture: None,
             blur: 0.0,
+            texture: None,
+            texture_options: None,
         });
 
         // Hexagon - rotated (pointy-top)
@@ -626,8 +667,9 @@ impl State {
             rotation: PI / 6.0, // 30 degrees for pointy-top
             fill: ColorFill::Color(Color { r: 0.5, g: 0.9, b: 0.3, a: 1.0 }),
             stroke_thickness: 0.0,
-            texture: None,
             blur: 0.0,
+            texture: None,
+            texture_options: None,
         });
 
         // Hexagon with texture
@@ -637,8 +679,9 @@ impl State {
             rotation: 0.0,
             fill: ColorFill::Color(Color { r: 1.0, g: 1.0, b: 1.0, a: 1.0 }),
             stroke_thickness: 0.0,
-            texture: Some(self.texture_handle),
             blur: 10.0,
+            texture: Some(self.texture_handle),
+            texture_options: None,
         });
 
         // Blurred hexagon
@@ -648,8 +691,9 @@ impl State {
             rotation: 0.0,
             fill: ColorFill::Color(Color::new(0.8, 0.4, 0.2, 1.0)),
             stroke_thickness: 0.0,
-            texture: None,
             blur: 10.0,
+            texture: None,
+            texture_options: None,
         });
 
         // Dashed box outline (no rounded corners)
@@ -659,8 +703,8 @@ impl State {
             corner_radius: 0.0,
             thickness: 3.0,
             color: Color { r: 1.0, g: 0.5, b: 0.2, a: 1.0 },
-            dash_length: 10.0,
             blur: 3.0,
+            dash_length: 10.0,
         });
 
         // Dashed box outline (with rounded corners)
@@ -670,8 +714,8 @@ impl State {
             corner_radius: 15.0,
             thickness: 3.0,
             color: Color { r: 0.2, g: 0.8, b: 1.0, a: 1.0 },
-            dash_length: 8.0,
             blur: 0.0,
+            dash_length: 8.0,
         });
 
         // Dashed hexagon outline
@@ -681,8 +725,8 @@ impl State {
             rotation: 0.0,
             thickness: 3.0,
             color: Color { r: 0.8, g: 0.3, b: 1.0, a: 1.0 },
-            dash_length: 12.0,
             blur: 3.0,
+            dash_length: 12.0,
         });
 
         // Dashed hexagon outline (rotated)
@@ -692,8 +736,8 @@ impl State {
             rotation: PI / 6.0,
             thickness: 3.0,
             color: Color { r: 0.3, g: 1.0, b: 0.5, a: 1.0 },
-            dash_length: 8.0,
             blur: 0.0,
+            dash_length: 8.0,
         });
 
         // Quadratic bezier curve
@@ -702,8 +746,8 @@ impl State {
             p1: [770.0, 470.0],
             p2: [820.0, 520.0],
             thickness: 4.0,
-            color: Color { r: 0.9, g: 0.2, b: 0.6, a: 1.0 },
             blur: 0.0,
+            color: Color { r: 0.9, g: 0.2, b: 0.6, a: 1.0 },
         });
 
         // Blurred quadratic bezier
@@ -712,8 +756,8 @@ impl State {
             p1: [770.0, 520.0],
             p2: [820.0, 570.0],
             thickness: 6.0,
-            color: Color::new(0.2, 0.8, 0.4, 1.0),
             blur: 8.0,
+            color: Color::new(0.2, 0.8, 0.4, 1.0),
         });
 
         self.renderer.draw_text_box(&self.text_box3);

@@ -158,6 +158,68 @@ impl std::hash::Hash for Gradient {
     }
 }
 
+/// Pixel insets from each edge of a source image that define the 9 slice regions.
+/// Each value is a distance in source image pixels from the respective edge.
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
+pub struct NineSliceMargins {
+    pub top: f32,
+    pub right: f32,
+    pub bottom: f32,
+    pub left: f32,
+}
+
+impl NineSliceMargins {
+    pub const ZERO: Self = Self { top: 0.0, right: 0.0, bottom: 0.0, left: 0.0 };
+
+    pub const fn uniform(v: f32) -> Self {
+        Self { top: v, right: v, bottom: v, left: v }
+    }
+
+    pub const fn new(top: f32, right: f32, bottom: f32, left: f32) -> Self {
+        Self { top, right, bottom, left }
+    }
+}
+
+impl std::hash::Hash for NineSliceMargins {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.top.to_bits().hash(state);
+        self.right.to_bits().hash(state);
+        self.bottom.to_bits().hash(state);
+        self.left.to_bits().hash(state);
+    }
+}
+
+/// How a non-corner region of a bordered texture is filled along one axis.
+#[repr(u32)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub enum TileMode {
+    /// Stretch the region to fill the available space.
+    #[default]
+    Stretch = 0,
+    /// Repeat the region at its natural size.
+    Tile = 1,
+    /// Repeat the region, scaled so a whole number of copies fit exactly.
+    TileFit = 2,
+}
+
+/// Texture sampling options: border insets for 9-slice scaling and per-axis tiling modes.
+///
+/// Used alongside `texture: Option<LoadedImage>` on shape structs.
+/// Nine-slice margins default to `None` (no slicing) and tiling defaults to `Stretch`.
+#[derive(Debug, Clone, Copy, Default)]
+pub struct TextureOptions {
+    /// Nine-slice margins.
+    pub nine_slice: Option<NineSliceMargins>,
+    /// Horizontal tile/stretch mode.
+    ///
+    /// If `nine_slice` is not `None`, it will not apply to the corner regions
+    pub tile_x: TileMode,
+    /// Vertical tile/stretch mode.
+    ///
+    /// If `nine_slice` is not `None`, it will not apply to the corner regions
+    pub tile_y: TileMode,
+}
+
 /// Parameters for drawing a box/rectangle
 #[derive(Debug, Clone)]
 pub struct Box {
@@ -168,6 +230,7 @@ pub struct Box {
     pub border_thickness: f32,
     pub fill: ColorFill,
     pub texture: Option<LoadedImage>,
+    pub texture_options: Option<TextureOptions>,
     pub blur: f32,
 }
 
@@ -178,6 +241,7 @@ pub struct Circle {
     pub radius: f32,
     pub fill: ColorFill,
     pub texture: Option<LoadedImage>,
+    pub texture_options: Option<TextureOptions>,
     pub blur: f32,
 }
 
@@ -189,6 +253,7 @@ pub struct CircleRing {
     pub outer_radius: f32,
     pub fill: ColorFill,
     pub texture: Option<LoadedImage>,
+    pub texture_options: Option<TextureOptions>,
     pub dash_length: Option<f32>,
     pub dash_offset: f32,
     pub blur: f32,
@@ -204,6 +269,7 @@ pub struct CircleArc {
     pub thickness: f32,
     pub fill: ColorFill,
     pub texture: Option<LoadedImage>,
+    pub texture_options: Option<TextureOptions>,
     pub dash_length: Option<f32>,
     pub dash_offset: f32,
     pub blur: f32,
@@ -218,6 +284,7 @@ pub struct CirclePie {
     pub end_angle: f32,
     pub fill: ColorFill,
     pub texture: Option<LoadedImage>,
+    pub texture_options: Option<TextureOptions>,
     pub blur: f32,
 }
 
@@ -231,6 +298,7 @@ pub struct Segment {
     pub dash_length: Option<f32>,
     pub dash_offset: f32,
     pub texture: Option<LoadedImage>,
+    pub texture_options: Option<TextureOptions>,
     pub blur: f32,
 }
 
@@ -252,6 +320,7 @@ pub struct Grid {
     pub color: Color,
     pub grid_type: GridType,
     pub texture: Option<LoadedImage>,
+    pub texture_options: Option<TextureOptions>,
     pub blur: f32,
 }
 
@@ -263,6 +332,7 @@ pub struct Triangle {
     pub p2: [f32; 2],
     pub fill: ColorFill,
     pub texture: Option<LoadedImage>,
+    pub texture_options: Option<TextureOptions>,
     pub blur: f32,
 }
 
@@ -275,6 +345,7 @@ pub struct Hexagon {
     pub fill: ColorFill,
     pub stroke_thickness: f32,  // 0 = filled, >0 = stroke only
     pub texture: Option<LoadedImage>,
+    pub texture_options: Option<TextureOptions>,
     pub blur: f32,
 }
 
@@ -324,16 +395,23 @@ fn fill_gpu(fill: ColorFill) -> ([f32; 2], Color, Color, u32) {
     }
 }
 
-fn texture_gpu(texture: Option<LoadedImage>) -> ([f32; 2], [f32; 2], u32) {
-    let (texture_uv_origin, texture_uv_size, texture_page) = match texture {
-        Some(image) => (
-            [image.alloc.rectangle.min.x as f32, image.alloc.rectangle.min.y as f32],
-            [image.width as f32, image.height as f32],
-            image.page as u32,
-        ),
-        None => ([0.0, 0.0], [0.0, 0.0], u32::MAX),
-    };
-    return (texture_uv_origin, texture_uv_size, texture_page);
+// Returns (uv_origin, uv_size, page, ns_l, ns_r, ns_t, ns_b, tiling_flags)
+fn texture_options_gpu(texture: Option<LoadedImage>, opts: Option<TextureOptions>) -> ([f32; 2], [f32; 2], u32, f32, f32, f32, f32, u32) {
+    match texture {
+        None => ([0.0, 0.0], [0.0, 0.0], u32::MAX, 0.0, 0.0, 0.0, 0.0, 0),
+        Some(image) => {
+            let uv_origin = [image.alloc.rectangle.min.x as f32, image.alloc.rectangle.min.y as f32];
+            let uv_size = [image.width as f32, image.height as f32];
+            let page = image.page as u32;
+            let opts = opts.unwrap_or_default();
+            let has_insets = opts.nine_slice.is_some();
+            let has_tiling = opts.tile_x != TileMode::Stretch || opts.tile_y != TileMode::Stretch;
+            let enabled = (has_insets || has_tiling) as u32;
+            let flags: u32 = enabled | ((opts.tile_x as u32) << 1) | ((opts.tile_y as u32) << 3);
+            let i = opts.nine_slice.unwrap_or_default();
+            (uv_origin, uv_size, page, i.left, i.right, i.top, i.bottom, flags)
+        }
+    }
 }
 
 /// A screen-space rectangle in pixel coordinates.
@@ -710,8 +788,7 @@ impl Renderer {
     // Shape drawing methods
     pub fn draw_box(&mut self, params: Box) {
         let (gradient_direction, color_start, color_end, gradient_type) = fill_gpu(params.fill);
-
-        let (texture_uv_origin, texture_uv_size, texture_page) = texture_gpu(params.texture);
+        let (texture_uv_origin, texture_uv_size, texture_page, nine_slice_l, nine_slice_r, nine_slice_t, nine_slice_b, nine_slice_tiling) = texture_options_gpu(params.texture, params.texture_options);
 
         let index = self.shapes.boxes.len();
         self.shapes.boxes.push(shapes::BoxGpu {
@@ -728,6 +805,11 @@ impl Renderer {
             texture_uv_size,
             texture_page,
             blur_radius: params.blur,
+            nine_slice_l,
+            nine_slice_r,
+            nine_slice_t,
+            nine_slice_b,
+            nine_slice_tiling,
             ..Default::default()
         });
         self.push_instance(Instance {
@@ -756,14 +838,14 @@ impl Renderer {
             border_thickness: 0.0,
             fill: ColorFill::Color(Color::WHITE),
             texture: Some(image),
+            texture_options: None,
             blur: 0.0,
         });
     }
 
     pub fn draw_circle(&mut self, params: Circle) {
         let (gradient_direction, color_start, color_end, gradient_type) = fill_gpu(params.fill);
-
-        let (texture_uv_origin, texture_uv_size, texture_page) = texture_gpu(params.texture);
+        let (texture_uv_origin, texture_uv_size, texture_page, nine_slice_l, nine_slice_r, nine_slice_t, nine_slice_b, nine_slice_tiling) = texture_options_gpu(params.texture, params.texture_options);
 
         let index = self.shapes.circles.len();
         self.shapes.circles.push(shapes::CircleGpu {
@@ -780,7 +862,8 @@ impl Renderer {
             dash_length: 0.0,
             dash_offset: 0.0,
             blur_radius: params.blur,
-            _blur_pad: [0.0; 3],
+            nine_slice_l, nine_slice_r, nine_slice_t, nine_slice_b, nine_slice_tiling,
+            _ns_pad: [0.0; 2],
         });
         self.push_instance(Instance {
             p_type: primitive::CIRCLE,
@@ -792,8 +875,7 @@ impl Renderer {
 
     pub fn draw_ring(&mut self, params: CircleRing) {
         let (gradient_direction, color_start, color_end, gradient_type) = fill_gpu(params.fill);
-
-        let (texture_uv_origin, texture_uv_size, texture_page) = texture_gpu(params.texture);
+        let (texture_uv_origin, texture_uv_size, texture_page, nine_slice_l, nine_slice_r, nine_slice_t, nine_slice_b, nine_slice_tiling) = texture_options_gpu(params.texture, params.texture_options);
 
         let index = self.shapes.circles.len();
         self.shapes.circles.push(shapes::CircleGpu {
@@ -810,7 +892,8 @@ impl Renderer {
             dash_length: params.dash_length.unwrap_or(0.0),
             dash_offset: params.dash_offset,
             blur_radius: params.blur,
-            _blur_pad: [0.0; 3],
+            nine_slice_l, nine_slice_r, nine_slice_t, nine_slice_b, nine_slice_tiling,
+            _ns_pad: [0.0; 2],
         });
         self.push_instance(Instance {
             p_type: primitive::CIRCLE,
@@ -822,8 +905,7 @@ impl Renderer {
 
     pub fn draw_arc(&mut self, params: CircleArc) {
         let (gradient_direction, color_start, color_end, gradient_type) = fill_gpu(params.fill);
-
-        let (texture_uv_origin, texture_uv_size, texture_page) = texture_gpu(params.texture);
+        let (texture_uv_origin, texture_uv_size, texture_page, nine_slice_l, nine_slice_r, nine_slice_t, nine_slice_b, nine_slice_tiling) = texture_options_gpu(params.texture, params.texture_options);
 
         let index = self.shapes.circles.len();
         self.shapes.circles.push(shapes::CircleGpu {
@@ -840,7 +922,8 @@ impl Renderer {
             dash_length: params.dash_length.unwrap_or(0.0),
             dash_offset: params.dash_offset,
             blur_radius: params.blur,
-            _blur_pad: [0.0; 3],
+            nine_slice_l, nine_slice_r, nine_slice_t, nine_slice_b, nine_slice_tiling,
+            _ns_pad: [0.0; 2],
         });
         self.push_instance(Instance {
             p_type: primitive::CIRCLE,
@@ -852,8 +935,7 @@ impl Renderer {
 
     pub fn draw_pie(&mut self, params: CirclePie) {
         let (gradient_direction, color_start, color_end, gradient_type) = fill_gpu(params.fill);
-
-        let (texture_uv_origin, texture_uv_size, texture_page) = texture_gpu(params.texture);
+        let (texture_uv_origin, texture_uv_size, texture_page, nine_slice_l, nine_slice_r, nine_slice_t, nine_slice_b, nine_slice_tiling) = texture_options_gpu(params.texture, params.texture_options);
 
         let index = self.shapes.circles.len();
         self.shapes.circles.push(shapes::CircleGpu {
@@ -870,7 +952,8 @@ impl Renderer {
             dash_length: 0.0,
             dash_offset: 0.0,
             blur_radius: params.blur,
-            _blur_pad: [0.0; 3],
+            nine_slice_l, nine_slice_r, nine_slice_t, nine_slice_b, nine_slice_tiling,
+            _ns_pad: [0.0; 2],
         });
         self.push_instance(Instance {
             p_type: primitive::CIRCLE,
@@ -887,8 +970,7 @@ impl Renderer {
                 (g.color_start, g.color_end, 1)
             }
         };
-
-        let (texture_uv_origin, texture_uv_size, texture_page) = texture_gpu(params.texture);
+        let (texture_uv_origin, texture_uv_size, texture_page, nine_slice_l, nine_slice_r, nine_slice_t, nine_slice_b, nine_slice_tiling) = texture_options_gpu(params.texture, params.texture_options);
 
         let index = self.shapes.segments.len();
         self.shapes.segments.push(shapes::SegmentGpu {
@@ -902,7 +984,7 @@ impl Renderer {
             texture_uv_origin,
             texture_uv_size,
             blur_radius: params.blur,
-            pad: 0.0,
+            nine_slice_l, nine_slice_r, nine_slice_t, nine_slice_b, nine_slice_tiling,
         });
         self.push_instance(Instance {
             p_type: primitive::SEGMENT,
@@ -913,7 +995,7 @@ impl Renderer {
     }
 
     pub fn draw_grid(&mut self, params: Grid) {
-        let (texture_uv_origin, texture_uv_size, texture_page) = texture_gpu(params.texture);
+        let (texture_uv_origin, texture_uv_size, texture_page, nine_slice_l, nine_slice_r, nine_slice_t, nine_slice_b, nine_slice_tiling) = texture_options_gpu(params.texture, params.texture_options);
 
         let index = self.shapes.grids.len();
         self.shapes.grids.push(shapes::GridGpu {
@@ -928,7 +1010,7 @@ impl Renderer {
             texture_uv_origin,
             texture_uv_size,
             blur_radius: params.blur,
-            pad: 0.0,
+            nine_slice_l, nine_slice_r, nine_slice_t, nine_slice_b, nine_slice_tiling,
         });
         self.push_instance(Instance {
             p_type: primitive::GRID,
@@ -940,8 +1022,7 @@ impl Renderer {
 
     pub fn draw_triangle(&mut self, params: Triangle) {
         let (gradient_direction, color_start, color_end, gradient_type) = fill_gpu(params.fill);
-
-        let (texture_uv_origin, texture_uv_size, texture_page) = texture_gpu(params.texture);
+        let (texture_uv_origin, texture_uv_size, texture_page, nine_slice_l, nine_slice_r, nine_slice_t, nine_slice_b, nine_slice_tiling) = texture_options_gpu(params.texture, params.texture_options);
 
         let index = self.shapes.triangles.len();
         self.shapes.triangles.push(shapes::TriangleGpu {
@@ -956,7 +1037,7 @@ impl Renderer {
             texture_uv_origin,
             texture_uv_size,
             blur_radius: params.blur,
-            pad: 0.0,
+            nine_slice_l, nine_slice_r, nine_slice_t, nine_slice_b, nine_slice_tiling,
         });
         self.push_instance(Instance {
             p_type: primitive::TRIANGLE,
@@ -968,8 +1049,7 @@ impl Renderer {
 
     pub fn draw_hexagon(&mut self, params: Hexagon) {
         let (gradient_direction, color_start, color_end, gradient_type) = fill_gpu(params.fill);
-
-        let (texture_uv_origin, texture_uv_size, texture_page) = texture_gpu(params.texture);
+        let (texture_uv_origin, texture_uv_size, texture_page, nine_slice_l, nine_slice_r, nine_slice_t, nine_slice_b, nine_slice_tiling) = texture_options_gpu(params.texture, params.texture_options);
 
         let index = self.shapes.hexagons.len();
         self.shapes.hexagons.push(shapes::HexagonGpu {
@@ -982,11 +1062,12 @@ impl Renderer {
             color_start,
             color_end,
             gradient_type,
-            _pad1: 0.0,
+            nine_slice_l,
             texture_uv_origin,
             texture_uv_size,
             blur_radius: params.blur,
-            pad: 0.0,
+            nine_slice_r, nine_slice_t, nine_slice_b, nine_slice_tiling,
+            _ns_pad: 0.0,
         });
         self.push_instance(Instance {
             p_type: primitive::HEXAGON,
@@ -1033,6 +1114,7 @@ impl Renderer {
                 dash_length: Some(params.dash_length),
                 dash_offset: offset,
                 texture: None,
+                texture_options: None,
                 blur: params.blur,
             });
             offset += w;
@@ -1045,6 +1127,7 @@ impl Renderer {
                 dash_length: Some(params.dash_length),
                 dash_offset: offset,
                 texture: None,
+                texture_options: None,
                 blur: params.blur,
             });
             offset += h;
@@ -1057,6 +1140,7 @@ impl Renderer {
                 dash_length: Some(params.dash_length),
                 dash_offset: offset,
                 texture: None,
+                texture_options: None,
                 blur: params.blur,
             });
             offset += w;
@@ -1069,6 +1153,7 @@ impl Renderer {
                 dash_length: Some(params.dash_length),
                 dash_offset: offset,
                 texture: None,
+                texture_options: None,
                 blur: params.blur,
             });
         } else {
@@ -1086,6 +1171,7 @@ impl Renderer {
                 dash_length: Some(params.dash_length),
                 dash_offset: offset,
                 texture: None,
+                texture_options: None,
                 blur: params.blur,
             });
             offset += top_len;
@@ -1098,6 +1184,7 @@ impl Renderer {
                 thickness: params.thickness,
                 fill,
                 texture: None,
+                texture_options: None,
                 dash_length: Some(params.dash_length),
                 dash_offset: offset,
                 blur: params.blur,
@@ -1113,6 +1200,7 @@ impl Renderer {
                 dash_length: Some(params.dash_length),
                 dash_offset: offset,
                 texture: None,
+                texture_options: None,
                 blur: params.blur,
             });
             offset += right_len;
@@ -1125,6 +1213,7 @@ impl Renderer {
                 thickness: params.thickness,
                 fill,
                 texture: None,
+                texture_options: None,
                 dash_length: Some(params.dash_length),
                 dash_offset: offset,
                 blur: params.blur,
@@ -1139,6 +1228,7 @@ impl Renderer {
                 dash_length: Some(params.dash_length),
                 dash_offset: offset,
                 texture: None,
+                texture_options: None,
                 blur: params.blur,
             });
             offset += top_len;
@@ -1151,6 +1241,7 @@ impl Renderer {
                 thickness: params.thickness,
                 fill,
                 texture: None,
+                texture_options: None,
                 dash_length: Some(params.dash_length),
                 dash_offset: offset,
                 blur: params.blur,
@@ -1165,6 +1256,7 @@ impl Renderer {
                 dash_length: Some(params.dash_length),
                 dash_offset: offset,
                 texture: None,
+                texture_options: None,
                 blur: params.blur,
             });
             offset += right_len;
@@ -1177,6 +1269,7 @@ impl Renderer {
                 thickness: params.thickness,
                 fill,
                 texture: None,
+                texture_options: None,
                 dash_length: Some(params.dash_length),
                 dash_offset: offset,
                 blur: params.blur,
@@ -1214,6 +1307,7 @@ impl Renderer {
                 dash_length: Some(params.dash_length),
                 dash_offset: offset,
                 texture: None,
+                texture_options: None,
                 blur: params.blur,
             });
             offset += edge_len;

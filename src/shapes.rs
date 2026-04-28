@@ -19,8 +19,10 @@ use crate::Color;
 pub struct BoxGpu {
     pub top_left: [f32; 2],
     pub size: [f32; 2],
-    pub _pad1: [f32; 2],
-    pub _pad2: [f32; 2],
+    pub nine_slice_l: f32,           // left inset in pixels (0 = no nine-slice)
+    pub nine_slice_r: f32,           // right inset in pixels
+    pub nine_slice_t: f32,           // top inset in pixels
+    pub nine_slice_b: f32,           // bottom inset in pixels
     pub corner_radius: f32,
     pub border_thickness: f32,
     pub gradient_direction: [f32; 2],
@@ -32,7 +34,8 @@ pub struct BoxGpu {
     pub texture_uv_size: [f32; 2],   // pixel dimensions in atlas
     pub texture_page: u32,           // atlas layer, u32::MAX = no texture
     pub blur_radius: f32,
-    pub pad: [f32; 4],               // padding to 128 bytes (16-byte aligned)
+    pub nine_slice_tiling: u32,      // bit 0=enabled; bits 1-2=h mode; bits 3-4=v mode (0=stretch,1=tile,2=tile_fit)
+    pub _ns_pad: [f32; 3],           // padding to 128 bytes (16-byte aligned)
 }
 
 #[repr(C)]
@@ -51,7 +54,12 @@ pub struct CircleGpu {
     pub dash_length: f32,            // 0 = no dashing, >0 = dash length in pixels
     pub dash_offset: f32,            // offset for dash pattern alignment
     pub blur_radius: f32,
-    pub _blur_pad: [f32; 3],
+    pub nine_slice_l: f32,           // left inset in pixels (0 = no nine-slice)
+    pub nine_slice_r: f32,           // right inset in pixels
+    pub nine_slice_t: f32,           // top inset in pixels
+    pub nine_slice_b: f32,           // bottom inset in pixels
+    pub nine_slice_tiling: u32,      // bit 0=enabled; bits 1-2=h mode; bits 3-4=v mode (0=stretch,1=tile,2=tile_fit)
+    pub _ns_pad: [f32; 2],           // padding to 128 bytes (16-byte aligned)
 }
 
 #[repr(C)]
@@ -67,7 +75,11 @@ pub struct SegmentGpu {
     pub texture_uv_origin: [f32; 2], // pixel coords in atlas (top-left corner)
     pub texture_uv_size: [f32; 2],   // pixel dimensions in atlas
     pub blur_radius: f32,
-    pub pad: f32,
+    pub nine_slice_l: f32,           // left inset in pixels (0 = no nine-slice)
+    pub nine_slice_r: f32,           // right inset in pixels
+    pub nine_slice_t: f32,           // top inset in pixels
+    pub nine_slice_b: f32,           // bottom inset in pixels
+    pub nine_slice_tiling: u32,      // bit 0=enabled; bits 1-2=h mode; bits 3-4=v mode (0=stretch,1=tile,2=tile_fit)
 }
 
 #[repr(C)]
@@ -84,7 +96,11 @@ pub struct GridGpu {
     pub texture_uv_origin: [f32; 2], // pixel coords in atlas (top-left corner)
     pub texture_uv_size: [f32; 2],   // pixel dimensions in atlas
     pub blur_radius: f32,
-    pub pad: f32,
+    pub nine_slice_l: f32,           // left inset in pixels (0 = no nine-slice)
+    pub nine_slice_r: f32,           // right inset in pixels
+    pub nine_slice_t: f32,           // top inset in pixels
+    pub nine_slice_b: f32,           // bottom inset in pixels
+    pub nine_slice_tiling: u32,      // bit 0=enabled; bits 1-2=h mode; bits 3-4=v mode (0=stretch,1=tile,2=tile_fit)
 }
 
 #[repr(C)]
@@ -101,7 +117,11 @@ pub struct TriangleGpu {
     pub texture_uv_origin: [f32; 2], // pixel coords in atlas (top-left corner)
     pub texture_uv_size: [f32; 2],   // pixel dimensions in atlas
     pub blur_radius: f32,
-    pub pad: f32,
+    pub nine_slice_l: f32,           // left inset in pixels (0 = no nine-slice)
+    pub nine_slice_r: f32,           // right inset in pixels
+    pub nine_slice_t: f32,           // top inset in pixels
+    pub nine_slice_b: f32,           // bottom inset in pixels
+    pub nine_slice_tiling: u32,      // bit 0=enabled; bits 1-2=h mode; bits 3-4=v mode (0=stretch,1=tile,2=tile_fit)
 }
 
 #[repr(C)]
@@ -116,11 +136,15 @@ pub struct HexagonGpu {
     pub color_start: Color,
     pub color_end: Color,
     pub gradient_type: u32,
-    pub _pad1: f32,
+    pub nine_slice_l: f32,           // left inset in pixels (0 = no nine-slice)
     pub texture_uv_origin: [f32; 2],
     pub texture_uv_size: [f32; 2],
     pub blur_radius: f32,
-    pub pad: f32,
+    pub nine_slice_r: f32,           // right inset in pixels
+    pub nine_slice_t: f32,           // top inset in pixels
+    pub nine_slice_b: f32,           // bottom inset in pixels
+    pub nine_slice_tiling: u32,      // bit 0=enabled; bits 1-2=h mode; bits 3-4=v mode (0=stretch,1=tile,2=tile_fit)
+    pub _ns_pad: f32,                // padding to 112 bytes (16-byte aligned)
 }
 
 #[repr(C)]
