@@ -24,7 +24,7 @@ impl Color {
     pub const KERU_BLUE:   Color = Color { r: 0.31,g:  0.31, b: 1.0, a: 1.0 };
     pub const KERU_RED:    Color = Color { r: 1.0, g: 0.31, b: 0.31, a: 1.0 };
     pub const KERU_PINK:   Color = Color { r: 0.65, g: 0.31, b: 0.65, a: 1.0 };
-    pub const KERU_GREEN:  Color = Color { r: 0.1, g: 1.0, b: 0.1, a: 1.0 };
+    pub const KERU_GREEN:  Color = Color { r: 0.1, g: 0.85, b: 0.1, a: 0.85 };
     pub const KERU_BLACK: Color = Color { r: 0.07, g: 0.07, b: 0.09, a: 1.0 };
     
     pub const DEBUG_RED:   Color = Color { r: 1.0, g: 0.0, b: 0.0, a: 0.3 };
