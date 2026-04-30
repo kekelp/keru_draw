@@ -48,6 +48,24 @@ impl Color {
         )
     }
 
+    /// Create a color from a hex string like `"#ff00ff"` (alpha=1.0).
+    pub const fn from_hex_str(hex: &str) -> Color {
+        // Hopefully the const means that this all happens at compile time.
+        let b = hex.as_bytes();
+        if b.len() != 7 {
+            panic!("hex color must be 7 bytes, e.g. \"#ff00ff\"");
+        }
+        if b[0] != b'#' {
+            panic!("hex color must start with '#'");
+        }
+        Color::rgba_u8(
+            hex_bytes_to_u8(b[1], b[2]),
+            hex_bytes_to_u8(b[3], b[4]),
+            hex_bytes_to_u8(b[5], b[6]),
+            255,
+        )
+    }
+
     /// Create a color from u8 RGBA values.
     pub const fn rgba_u8(r: u8, g: u8, b: u8, a: u8) -> Color {
         Color {
@@ -115,4 +133,17 @@ impl Hash for ColorFill {
             },
         }
     }
+}
+
+const fn hex_byte_to_u8(b: u8) -> u8 {
+    match b {
+        b'0'..=b'9' => b - b'0',
+        b'a'..=b'f' => b - b'a' + 10,
+        b'A'..=b'F' => b - b'A' + 10,
+        _ => panic!("invalid hex digit"),
+    }
+}
+
+const fn hex_bytes_to_u8(high: u8, low: u8) -> u8 {
+    hex_byte_to_u8(high) * 16 + hex_byte_to_u8(low)
 }

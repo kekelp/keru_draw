@@ -81,12 +81,16 @@ struct SegmentGpu {
 }
 
 struct GridGpu {
+    float4 color_start;
+    float4 color_end;
     float2 top_left;
     float2 size;
     float2 offset;
     float lattice_size;
     float line_thickness;
-    float4 color;
+    float2 gradient_direction; // normalized direction for linear gradient
+    float _pad;
+    uint gradient_type; // 0=solid, 1=linear
     uint grid_type; // 0=square, 1=hex
     uint texture_page;        // atlas layer, 0xFFFFFFFF = no texture
     float2 texture_uv_origin; // pixel coords in atlas (top-left corner)
@@ -379,7 +383,9 @@ float4 box_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, float2 s
     float4 color;
     if (box.gradient_type == 1) {
         // Linear gradient
-        float t = dot(p, box.gradient_direction) / length(box.size * 0.5);
+        // Max projection of the rectangle onto gradient_direction: half_w*|cos| + half_h*|sin|
+        float divisor = dot(abs(box.gradient_direction), box.size * 0.5);
+        float t = dot(p, box.gradient_direction) / max(divisor, 0.001);
         t = t * 0.5 + 0.5; // Remap from [-1,1] to [0,1]
         color = gradient_oklab(box.color_start, box.color_end, clamp(t, 0.0, 1.0));
     } else {
@@ -872,7 +878,19 @@ float4 grid_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, float2 
         discard;
     }
 
-    float4 color = grid.color;
+    // Calculate gradient/solid color
+    float4 color;
+    float2 p = uv * grid.size - grid.size * 0.5;
+    if (grid.gradient_type == 1) {
+        // Linear gradient
+        float divisor = dot(abs(grid.gradient_direction), grid.size * 0.5);
+        float t = dot(p, grid.gradient_direction) / max(divisor, 0.001);
+        t = t * 0.5 + 0.5; // Remap from [-1,1] to [0,1]
+        color = gradient_oklab(grid.color_start, grid.color_end, clamp(t, 0.0, 1.0));
+    } else {
+        // Solid color (gradient_type == 0)
+        color = grid.color_start;
+    }
 
     if (surface_is_srgb) {
         color.rgb = srgb_to_linear3(color.rgb);
@@ -986,11 +1004,15 @@ float4 triangle_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, flo
     float4 color;
     if (tri.gradient_type == 1) {
         // Linear gradient
-        float2 centroid = (tri.p0 + tri.p1 + tri.p2) / 3.0;
-        float2 pos = p - centroid;
-        float tri_size = length(orig_max - orig_min);
-        float t = dot(pos, tri.gradient_direction) / (tri_size * 0.5);
-        t = t * 0.5 + 0.5; // Remap from [-1,1] to [0,1]
+        // Project all 3 vertices onto gradient_direction to find the true [min, max] range.
+        float2 dir = tri.gradient_direction;
+        float proj0 = dot(tri.p0, dir);
+        float proj1 = dot(tri.p1, dir);
+        float proj2 = dot(tri.p2, dir);
+        float min_proj = min(proj0, min(proj1, proj2));
+        float max_proj = max(proj0, max(proj1, proj2));
+        float range = max_proj - min_proj;
+        float t = range > 0.001 ? (dot(p, dir) - min_proj) / range : 0.5;
         color = gradient_oklab(tri.color_start, tri.color_end, clamp(t, 0.0, 1.0));
     } else {
         // Solid color (gradient_type == 0)
@@ -1111,7 +1133,14 @@ float4 hexagon_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, floa
     float4 color;
     if (hex.gradient_type == 1) {
         // Linear gradient
-        float t = dot(p, hex.gradient_direction) / hex.size;
+        // Support of the hexagon in gradient_direction: max dot product over all 6 vertices.
+        float support = 0.0;
+        for (int k = 0; k < 6; k++) {
+            float angle = hex.rotation + float(k) * 1.04719755; // π/3
+            float2 vertex = float2(cos(angle), sin(angle)) * hex.size;
+            support = max(support, dot(vertex, hex.gradient_direction));
+        }
+        float t = dot(p, hex.gradient_direction) / max(support, 0.001);
         t = t * 0.5 + 0.5; // Remap from [-1,1] to [0,1]
         color = gradient_oklab(hex.color_start, hex.color_end, clamp(t, 0.0, 1.0));
     } else {

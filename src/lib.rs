@@ -141,6 +141,14 @@ impl Gradient {
             angle: 0.0,
         }
     }
+
+    pub fn with_alpha(self, alpha: f32) -> Gradient {
+        Self {
+            color_start: self.color_start.with_alpha(alpha),
+            color_end: self.color_end.with_alpha(alpha),
+            ..self
+        }
+    }
 }
 
 impl std::hash::Hash for Gradient {
@@ -329,7 +337,7 @@ pub struct Grid {
     pub lattice_size: f32,
     pub offset: [f32; 2],
     pub line_thickness: f32,
-    pub color: Color,
+    pub fill: ColorFill,
     pub grid_type: GridType,
     pub texture: Option<LoadedImage>,
     pub texture_options: Option<TextureOptions>,
@@ -1007,6 +1015,7 @@ impl Renderer {
     }
 
     pub fn draw_grid(&mut self, params: Grid) {
+        let (gradient_direction, color_start, color_end, gradient_type) = fill_gpu(params.fill);
         let (texture_uv_origin, texture_uv_size, texture_page, nine_slice_l, nine_slice_r, nine_slice_t, nine_slice_b, nine_slice_tiling) = texture_options_gpu(params.texture, params.texture_options);
 
         let index = self.shapes.grids.len();
@@ -1016,7 +1025,11 @@ impl Renderer {
             offset: params.offset,
             lattice_size: params.lattice_size,
             line_thickness: params.line_thickness,
-            color: params.color,
+            gradient_direction,
+            _pad: 0.0,
+            color_start,
+            color_end,
+            gradient_type,
             grid_type: params.grid_type as u32,
             texture_page,
             texture_uv_origin,

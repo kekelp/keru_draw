@@ -85,12 +85,16 @@ pub struct SegmentGpu {
 #[repr(C)]
 #[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct GridGpu {
+    pub color_start: Color,
+    pub color_end: Color,
     pub top_left: [f32; 2],
     pub size: [f32; 2],
     pub offset: [f32; 2],
     pub lattice_size: f32,
     pub line_thickness: f32,
-    pub color: Color,
+    pub gradient_direction: [f32; 2],
+    pub _pad: f32,
+    pub gradient_type: u32, // 0=solid, 1=linear
     pub grid_type: u32, // 0=square, 1=hex
     pub texture_page: u32,           // atlas layer, u32::MAX = no texture
     pub texture_uv_origin: [f32; 2], // pixel coords in atlas (top-left corner)

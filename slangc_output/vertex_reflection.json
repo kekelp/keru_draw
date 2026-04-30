@@ -613,6 +613,30 @@
                                     "name": "GridGpu",
                                     "fields": [
                                         {
+                                            "name": "color_start",
+                                            "type": {
+                                                "kind": "vector",
+                                                "elementCount": 4,
+                                                "elementType": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                }
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 0, "size": 16, "elementStride": 4}
+                                        },
+                                        {
+                                            "name": "color_end",
+                                            "type": {
+                                                "kind": "vector",
+                                                "elementCount": 4,
+                                                "elementType": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                }
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 16, "size": 16, "elementStride": 4}
+                                        },
+                                        {
                                             "name": "top_left",
                                             "type": {
                                                 "kind": "vector",
@@ -622,7 +646,7 @@
                                                     "scalarType": "float32"
                                                 }
                                             },
-                                            "binding": {"kind": "uniform", "offset": 0, "size": 8, "elementStride": 4}
+                                            "binding": {"kind": "uniform", "offset": 32, "size": 8, "elementStride": 4}
                                         },
                                         {
                                             "name": "size",
@@ -634,7 +658,7 @@
                                                     "scalarType": "float32"
                                                 }
                                             },
-                                            "binding": {"kind": "uniform", "offset": 8, "size": 8, "elementStride": 4}
+                                            "binding": {"kind": "uniform", "offset": 40, "size": 8, "elementStride": 4}
                                         },
                                         {
                                             "name": "offset",
@@ -646,7 +670,7 @@
                                                     "scalarType": "float32"
                                                 }
                                             },
-                                            "binding": {"kind": "uniform", "offset": 16, "size": 8, "elementStride": 4}
+                                            "binding": {"kind": "uniform", "offset": 48, "size": 8, "elementStride": 4}
                                         },
                                         {
                                             "name": "lattice_size",
@@ -654,7 +678,7 @@
                                                 "kind": "scalar",
                                                 "scalarType": "float32"
                                             },
-                                            "binding": {"kind": "uniform", "offset": 24, "size": 4, "elementStride": 0}
+                                            "binding": {"kind": "uniform", "offset": 56, "size": 4, "elementStride": 0}
                                         },
                                         {
                                             "name": "line_thickness",
@@ -662,50 +686,10 @@
                                                 "kind": "scalar",
                                                 "scalarType": "float32"
                                             },
-                                            "binding": {"kind": "uniform", "offset": 28, "size": 4, "elementStride": 0}
+                                            "binding": {"kind": "uniform", "offset": 60, "size": 4, "elementStride": 0}
                                         },
                                         {
-                                            "name": "color",
-                                            "type": {
-                                                "kind": "vector",
-                                                "elementCount": 4,
-                                                "elementType": {
-                                                    "kind": "scalar",
-                                                    "scalarType": "float32"
-                                                }
-                                            },
-                                            "binding": {"kind": "uniform", "offset": 32, "size": 16, "elementStride": 4}
-                                        },
-                                        {
-                                            "name": "grid_type",
-                                            "type": {
-                                                "kind": "scalar",
-                                                "scalarType": "uint32"
-                                            },
-                                            "binding": {"kind": "uniform", "offset": 48, "size": 4, "elementStride": 0}
-                                        },
-                                        {
-                                            "name": "texture_page",
-                                            "type": {
-                                                "kind": "scalar",
-                                                "scalarType": "uint32"
-                                            },
-                                            "binding": {"kind": "uniform", "offset": 52, "size": 4, "elementStride": 0}
-                                        },
-                                        {
-                                            "name": "texture_uv_origin",
-                                            "type": {
-                                                "kind": "vector",
-                                                "elementCount": 2,
-                                                "elementType": {
-                                                    "kind": "scalar",
-                                                    "scalarType": "float32"
-                                                }
-                                            },
-                                            "binding": {"kind": "uniform", "offset": 56, "size": 8, "elementStride": 4}
-                                        },
-                                        {
-                                            "name": "texture_uv_size",
+                                            "name": "gradient_direction",
                                             "type": {
                                                 "kind": "vector",
                                                 "elementCount": 2,
@@ -717,7 +701,7 @@
                                             "binding": {"kind": "uniform", "offset": 64, "size": 8, "elementStride": 4}
                                         },
                                         {
-                                            "name": "blur_radius",
+                                            "name": "_pad",
                                             "type": {
                                                 "kind": "scalar",
                                                 "scalarType": "float32"
@@ -725,12 +709,68 @@
                                             "binding": {"kind": "uniform", "offset": 72, "size": 4, "elementStride": 0}
                                         },
                                         {
+                                            "name": "gradient_type",
+                                            "type": {
+                                                "kind": "scalar",
+                                                "scalarType": "uint32"
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 76, "size": 4, "elementStride": 0}
+                                        },
+                                        {
+                                            "name": "grid_type",
+                                            "type": {
+                                                "kind": "scalar",
+                                                "scalarType": "uint32"
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 80, "size": 4, "elementStride": 0}
+                                        },
+                                        {
+                                            "name": "texture_page",
+                                            "type": {
+                                                "kind": "scalar",
+                                                "scalarType": "uint32"
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 84, "size": 4, "elementStride": 0}
+                                        },
+                                        {
+                                            "name": "texture_uv_origin",
+                                            "type": {
+                                                "kind": "vector",
+                                                "elementCount": 2,
+                                                "elementType": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                }
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 88, "size": 8, "elementStride": 4}
+                                        },
+                                        {
+                                            "name": "texture_uv_size",
+                                            "type": {
+                                                "kind": "vector",
+                                                "elementCount": 2,
+                                                "elementType": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                }
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 96, "size": 8, "elementStride": 4}
+                                        },
+                                        {
+                                            "name": "blur_radius",
+                                            "type": {
+                                                "kind": "scalar",
+                                                "scalarType": "float32"
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 104, "size": 4, "elementStride": 0}
+                                        },
+                                        {
                                             "name": "nine_slice_l",
                                             "type": {
                                                 "kind": "scalar",
                                                 "scalarType": "float32"
                                             },
-                                            "binding": {"kind": "uniform", "offset": 76, "size": 4, "elementStride": 0}
+                                            "binding": {"kind": "uniform", "offset": 108, "size": 4, "elementStride": 0}
                                         },
                                         {
                                             "name": "nine_slice_r",
@@ -738,7 +778,7 @@
                                                 "kind": "scalar",
                                                 "scalarType": "float32"
                                             },
-                                            "binding": {"kind": "uniform", "offset": 80, "size": 4, "elementStride": 0}
+                                            "binding": {"kind": "uniform", "offset": 112, "size": 4, "elementStride": 0}
                                         },
                                         {
                                             "name": "nine_slice_t",
@@ -746,7 +786,7 @@
                                                 "kind": "scalar",
                                                 "scalarType": "float32"
                                             },
-                                            "binding": {"kind": "uniform", "offset": 84, "size": 4, "elementStride": 0}
+                                            "binding": {"kind": "uniform", "offset": 116, "size": 4, "elementStride": 0}
                                         },
                                         {
                                             "name": "nine_slice_b",
@@ -754,7 +794,7 @@
                                                 "kind": "scalar",
                                                 "scalarType": "float32"
                                             },
-                                            "binding": {"kind": "uniform", "offset": 88, "size": 4, "elementStride": 0}
+                                            "binding": {"kind": "uniform", "offset": 120, "size": 4, "elementStride": 0}
                                         },
                                         {
                                             "name": "nine_slice_tiling",
@@ -762,7 +802,7 @@
                                                 "kind": "scalar",
                                                 "scalarType": "uint32"
                                             },
-                                            "binding": {"kind": "uniform", "offset": 92, "size": 4, "elementStride": 0}
+                                            "binding": {"kind": "uniform", "offset": 124, "size": 4, "elementStride": 0}
                                         }
                                     ]
                                 }
@@ -1841,6 +1881,30 @@
                                         "name": "GridGpu",
                                         "fields": [
                                             {
+                                                "name": "color_start",
+                                                "type": {
+                                                    "kind": "vector",
+                                                    "elementCount": 4,
+                                                    "elementType": {
+                                                        "kind": "scalar",
+                                                        "scalarType": "float32"
+                                                    }
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 0, "size": 16, "elementStride": 4}
+                                            },
+                                            {
+                                                "name": "color_end",
+                                                "type": {
+                                                    "kind": "vector",
+                                                    "elementCount": 4,
+                                                    "elementType": {
+                                                        "kind": "scalar",
+                                                        "scalarType": "float32"
+                                                    }
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 16, "size": 16, "elementStride": 4}
+                                            },
+                                            {
                                                 "name": "top_left",
                                                 "type": {
                                                     "kind": "vector",
@@ -1850,7 +1914,7 @@
                                                         "scalarType": "float32"
                                                     }
                                                 },
-                                                "binding": {"kind": "uniform", "offset": 0, "size": 8, "elementStride": 4}
+                                                "binding": {"kind": "uniform", "offset": 32, "size": 8, "elementStride": 4}
                                             },
                                             {
                                                 "name": "size",
@@ -1862,7 +1926,7 @@
                                                         "scalarType": "float32"
                                                     }
                                                 },
-                                                "binding": {"kind": "uniform", "offset": 8, "size": 8, "elementStride": 4}
+                                                "binding": {"kind": "uniform", "offset": 40, "size": 8, "elementStride": 4}
                                             },
                                             {
                                                 "name": "offset",
@@ -1874,7 +1938,7 @@
                                                         "scalarType": "float32"
                                                     }
                                                 },
-                                                "binding": {"kind": "uniform", "offset": 16, "size": 8, "elementStride": 4}
+                                                "binding": {"kind": "uniform", "offset": 48, "size": 8, "elementStride": 4}
                                             },
                                             {
                                                 "name": "lattice_size",
@@ -1882,7 +1946,7 @@
                                                     "kind": "scalar",
                                                     "scalarType": "float32"
                                                 },
-                                                "binding": {"kind": "uniform", "offset": 24, "size": 4, "elementStride": 0}
+                                                "binding": {"kind": "uniform", "offset": 56, "size": 4, "elementStride": 0}
                                             },
                                             {
                                                 "name": "line_thickness",
@@ -1890,50 +1954,10 @@
                                                     "kind": "scalar",
                                                     "scalarType": "float32"
                                                 },
-                                                "binding": {"kind": "uniform", "offset": 28, "size": 4, "elementStride": 0}
+                                                "binding": {"kind": "uniform", "offset": 60, "size": 4, "elementStride": 0}
                                             },
                                             {
-                                                "name": "color",
-                                                "type": {
-                                                    "kind": "vector",
-                                                    "elementCount": 4,
-                                                    "elementType": {
-                                                        "kind": "scalar",
-                                                        "scalarType": "float32"
-                                                    }
-                                                },
-                                                "binding": {"kind": "uniform", "offset": 32, "size": 16, "elementStride": 4}
-                                            },
-                                            {
-                                                "name": "grid_type",
-                                                "type": {
-                                                    "kind": "scalar",
-                                                    "scalarType": "uint32"
-                                                },
-                                                "binding": {"kind": "uniform", "offset": 48, "size": 4, "elementStride": 0}
-                                            },
-                                            {
-                                                "name": "texture_page",
-                                                "type": {
-                                                    "kind": "scalar",
-                                                    "scalarType": "uint32"
-                                                },
-                                                "binding": {"kind": "uniform", "offset": 52, "size": 4, "elementStride": 0}
-                                            },
-                                            {
-                                                "name": "texture_uv_origin",
-                                                "type": {
-                                                    "kind": "vector",
-                                                    "elementCount": 2,
-                                                    "elementType": {
-                                                        "kind": "scalar",
-                                                        "scalarType": "float32"
-                                                    }
-                                                },
-                                                "binding": {"kind": "uniform", "offset": 56, "size": 8, "elementStride": 4}
-                                            },
-                                            {
-                                                "name": "texture_uv_size",
+                                                "name": "gradient_direction",
                                                 "type": {
                                                     "kind": "vector",
                                                     "elementCount": 2,
@@ -1945,7 +1969,7 @@
                                                 "binding": {"kind": "uniform", "offset": 64, "size": 8, "elementStride": 4}
                                             },
                                             {
-                                                "name": "blur_radius",
+                                                "name": "_pad",
                                                 "type": {
                                                     "kind": "scalar",
                                                     "scalarType": "float32"
@@ -1953,12 +1977,68 @@
                                                 "binding": {"kind": "uniform", "offset": 72, "size": 4, "elementStride": 0}
                                             },
                                             {
+                                                "name": "gradient_type",
+                                                "type": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "uint32"
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 76, "size": 4, "elementStride": 0}
+                                            },
+                                            {
+                                                "name": "grid_type",
+                                                "type": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "uint32"
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 80, "size": 4, "elementStride": 0}
+                                            },
+                                            {
+                                                "name": "texture_page",
+                                                "type": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "uint32"
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 84, "size": 4, "elementStride": 0}
+                                            },
+                                            {
+                                                "name": "texture_uv_origin",
+                                                "type": {
+                                                    "kind": "vector",
+                                                    "elementCount": 2,
+                                                    "elementType": {
+                                                        "kind": "scalar",
+                                                        "scalarType": "float32"
+                                                    }
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 88, "size": 8, "elementStride": 4}
+                                            },
+                                            {
+                                                "name": "texture_uv_size",
+                                                "type": {
+                                                    "kind": "vector",
+                                                    "elementCount": 2,
+                                                    "elementType": {
+                                                        "kind": "scalar",
+                                                        "scalarType": "float32"
+                                                    }
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 96, "size": 8, "elementStride": 4}
+                                            },
+                                            {
+                                                "name": "blur_radius",
+                                                "type": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 104, "size": 4, "elementStride": 0}
+                                            },
+                                            {
                                                 "name": "nine_slice_l",
                                                 "type": {
                                                     "kind": "scalar",
                                                     "scalarType": "float32"
                                                 },
-                                                "binding": {"kind": "uniform", "offset": 76, "size": 4, "elementStride": 0}
+                                                "binding": {"kind": "uniform", "offset": 108, "size": 4, "elementStride": 0}
                                             },
                                             {
                                                 "name": "nine_slice_r",
@@ -1966,7 +2046,7 @@
                                                     "kind": "scalar",
                                                     "scalarType": "float32"
                                                 },
-                                                "binding": {"kind": "uniform", "offset": 80, "size": 4, "elementStride": 0}
+                                                "binding": {"kind": "uniform", "offset": 112, "size": 4, "elementStride": 0}
                                             },
                                             {
                                                 "name": "nine_slice_t",
@@ -1974,7 +2054,7 @@
                                                     "kind": "scalar",
                                                     "scalarType": "float32"
                                                 },
-                                                "binding": {"kind": "uniform", "offset": 84, "size": 4, "elementStride": 0}
+                                                "binding": {"kind": "uniform", "offset": 116, "size": 4, "elementStride": 0}
                                             },
                                             {
                                                 "name": "nine_slice_b",
@@ -1982,7 +2062,7 @@
                                                     "kind": "scalar",
                                                     "scalarType": "float32"
                                                 },
-                                                "binding": {"kind": "uniform", "offset": 88, "size": 4, "elementStride": 0}
+                                                "binding": {"kind": "uniform", "offset": 120, "size": 4, "elementStride": 0}
                                             },
                                             {
                                                 "name": "nine_slice_tiling",
@@ -1990,7 +2070,7 @@
                                                     "kind": "scalar",
                                                     "scalarType": "uint32"
                                                 },
-                                                "binding": {"kind": "uniform", "offset": 92, "size": 4, "elementStride": 0}
+                                                "binding": {"kind": "uniform", "offset": 124, "size": 4, "elementStride": 0}
                                             }
                                         ]
                                     }
