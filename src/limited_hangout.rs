@@ -16,7 +16,7 @@ impl Renderer {
 
 impl<'a> DrawContext<'a> {
     /// Draw a box/rectangle.
-    pub fn draw_box(&mut self, params: Box) {
+    pub fn draw_box(&mut self, params: Rectangle) {
         self.renderer.draw_box(params);
     }
 

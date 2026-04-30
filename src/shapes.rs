@@ -16,7 +16,7 @@ use crate::Color;
 
 #[repr(C)]
 #[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable, Default)]
-pub struct BoxGpu {
+pub struct RectangleGpu {
     pub top_left: [f32; 2],
     pub size: [f32; 2],
     pub nine_slice_l: f32,           // left inset in pixels (0 = no nine-slice)
@@ -163,7 +163,7 @@ pub struct QuadraticBezierGpu {
 }
 
 pub struct Shapes {
-    pub(crate) boxes: GpuVec<BoxGpu>,
+    pub(crate) boxes: GpuVec<RectangleGpu>,
     pub(crate) circles: GpuVec<CircleGpu>,
     pub(crate) segments: GpuVec<SegmentGpu>,
     pub(crate) grids: GpuVec<GridGpu>,

@@ -159,7 +159,7 @@ impl State {
         self.renderer.prepare_text();
 
         // Gradient box - horizontal
-        self.renderer.draw_box(Box {
+        self.renderer.draw_box(Rectangle {
             top_left: [20.0, 20.0],
             size: [80.0, 60.0],
             corner_radius: 0.0,
@@ -172,7 +172,7 @@ impl State {
         });
 
         // Gradient box - diagonal
-        self.renderer.draw_box(Box {
+        self.renderer.draw_box(Rectangle {
             top_left: [120.0, 20.0],
             size: [80.0, 60.0],
             corner_radius: 5.0,
@@ -185,7 +185,7 @@ impl State {
         });
 
         // Box with only top corners rounded
-        self.renderer.draw_box(Box {
+        self.renderer.draw_box(Rectangle {
             top_left: [220.0, 20.0],
             size: [80.0, 60.0],
             corner_radius: 16.0,
@@ -198,7 +198,7 @@ impl State {
         });
 
         // Box with all corners rounded
-        self.renderer.draw_box(Box {
+        self.renderer.draw_box(Rectangle {
             top_left: [320.0, 20.0],
             size: [80.0, 60.0],
             corner_radius: 30.0,
@@ -211,7 +211,7 @@ impl State {
         });
 
         // Box with only bottom-right corner rounded
-        self.renderer.draw_box(Box {
+        self.renderer.draw_box(Rectangle {
             top_left: [420.0, 20.0],
             size: [80.0, 60.0],
             corner_radius: 20.0,
@@ -224,7 +224,7 @@ impl State {
         });
 
         // Box with diagonal corners rounded (top-left and bottom-right)
-        self.renderer.draw_box(Box {
+        self.renderer.draw_box(Rectangle {
             top_left: [520.0, 20.0],
             size: [80.0, 60.0],
             corner_radius: 15.0,
@@ -237,7 +237,7 @@ impl State {
         });
 
         // Blurred boxes
-        self.renderer.draw_box(Box {
+        self.renderer.draw_box(Rectangle {
             top_left: [650.0, 20.0],
             size: [80.0, 60.0],
             corner_radius: 8.0,
@@ -249,7 +249,7 @@ impl State {
             texture_options: None,
         });
 
-        self.renderer.draw_box(Box {
+        self.renderer.draw_box(Rectangle {
             top_left: [680.0, 20.0],
             size: [80.0, 60.0],
             corner_radius: 8.0,
@@ -773,7 +773,7 @@ impl State {
         let x = 1100.0;
 
         // Box: nine-slice, all-stretch (default)
-        self.renderer.draw_box(Box {
+        self.renderer.draw_box(Rectangle {
             top_left: [x, 20.0],
             size: [450.0, 130.0],
             corner_radius: 0.0,
@@ -789,7 +789,7 @@ impl State {
         });
 
         // Box: nine-slice, tile middle horizontally
-        self.renderer.draw_box(Box {
+        self.renderer.draw_box(Rectangle {
             top_left: [x, 170.0],
             size: [450.0, 130.0],
             corner_radius: 0.0,
@@ -806,7 +806,7 @@ impl State {
         });
 
         // Box: nine-slice, tile_fit both axes
-        self.renderer.draw_box(Box {
+        self.renderer.draw_box(Rectangle {
             top_left: [x, 320.0],
             size: [450.0, 130.0],
             corner_radius: 0.0,
@@ -823,7 +823,7 @@ impl State {
         });
 
         // Box: no nine-slice, tile both axes (repeating texture)
-        self.renderer.draw_box(Box {
+        self.renderer.draw_box(Rectangle {
             top_left: [x, 470.0],
             size: [200.0, 200.0],
             corner_radius: 12.0,

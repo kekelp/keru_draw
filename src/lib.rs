@@ -242,7 +242,7 @@ impl TextureOptions {
 
 /// Parameters for drawing a box/rectangle
 #[derive(Debug, Clone)]
-pub struct Box {
+pub struct Rectangle {
     pub top_left: [f32; 2],
     pub size: [f32; 2],
     pub corner_radius: f32,
@@ -736,7 +736,7 @@ impl Renderer {
     fn create_shapes_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
         let entries = &[
             GpuSlab::<ClipRectOrTransform>::bind_group_layout_entry(0),
-            GpuVec::<BoxGpu>::bind_group_layout_entry(1),
+            GpuVec::<RectangleGpu>::bind_group_layout_entry(1),
             GpuVec::<CircleGpu>::bind_group_layout_entry(2),
             GpuVec::<SegmentGpu>::bind_group_layout_entry(3),
             GpuVec::<GridGpu>::bind_group_layout_entry(4),
@@ -806,12 +806,12 @@ impl Renderer {
     }
 
     // Shape drawing methods
-    pub fn draw_box(&mut self, params: Box) {
+    pub fn draw_box(&mut self, params: Rectangle) {
         let (gradient_direction, color_start, color_end, gradient_type) = fill_gpu(params.fill);
         let (texture_uv_origin, texture_uv_size, texture_page, nine_slice_l, nine_slice_r, nine_slice_t, nine_slice_b, nine_slice_tiling) = texture_options_gpu(params.texture, params.texture_options);
 
         let index = self.shapes.boxes.len();
-        self.shapes.boxes.push(shapes::BoxGpu {
+        self.shapes.boxes.push(shapes::RectangleGpu {
             top_left: params.top_left,
             size: params.size,
             corner_radius: params.corner_radius,
@@ -850,7 +850,7 @@ impl Renderer {
         width: f32,
         height: f32,
     ) {
-        self.draw_box(Box {
+        self.draw_box(Rectangle {
             top_left: [x, y],
             size: [width, height],
             corner_radius: 0.0,

@@ -2,7 +2,7 @@ import quad;
 
 struct ShapesGpu {
     StructuredBuffer<float4> clip_rects_or_transforms;
-    StructuredBuffer<BoxGpu> boxes;
+    StructuredBuffer<RectangleGpu> boxes;
     StructuredBuffer<CircleGpu> circles;
     StructuredBuffer<SegmentGpu> segments;
     StructuredBuffer<GridGpu> grids;
@@ -15,7 +15,7 @@ struct ShapesGpu {
 
 ParameterBlock<ShapesGpu> shapes;
 
-struct BoxGpu {
+struct RectangleGpu {
     float2 top_left;
     float2 size;
     float nine_slice_l;        // left inset in pixels (0 = no nine-slice)
@@ -249,7 +249,7 @@ void box_vertex(
     out float2 uv,
     out float2 screen_pos,
 ) {
-    var box: BoxGpu = shapes.boxes[instanceIndex];
+    var box: RectangleGpu = shapes.boxes[instanceIndex];
     float blur_margin = box.blur_radius * 3.0;
     float2 expanded_top_left = box.top_left - float2(blur_margin, blur_margin);
     float2 expanded_size = box.size + float2(blur_margin * 2.0, blur_margin * 2.0);
@@ -334,7 +334,7 @@ float sd_rounded_box(float2 p, float2 size, float4 r) {
 }
 
 float4 box_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, float2 screen_pos, bool surface_is_srgb, float transform_scale): SV_Target {
-    var box: BoxGpu = shapes.boxes[primitiveIndex];
+    var box: RectangleGpu = shapes.boxes[primitiveIndex];
     var clip: ClipRect = reinterpret<ClipRect>(shapes.clip_rects_or_transforms[clipRectIndex]);
 
     if (screen_pos.x < clip.x_clip.x || screen_pos.x > clip.x_clip.y ||
