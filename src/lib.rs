@@ -605,7 +605,7 @@ impl Renderer {
         let text = Text::new(&device, &queue, surface_format);
 
         let shapes = Shapes::new(&device);
-        let image_renderer = ImageRenderer::new(&device, &queue, surface_format);
+        let image_renderer = ImageRenderer::new(&device, &queue);
 
         let mut clip_rects_or_transforms: GpuSlab<ClipRectOrTransform> = GpuSlab::new(&device, 64, "keru_draw clip_rects and transforms");
         let _ = clip_rects_or_transforms.insert(Transform::identity().into()); // index 0: identity transform

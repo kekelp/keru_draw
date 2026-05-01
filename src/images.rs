@@ -56,8 +56,6 @@ pub struct ImageRenderer {
 
     needs_texture_array_rebuild: bool,
 
-    surface_is_srgb: bool,
-
     /// Cache of raw SVG data for rerasterization
     svg_data_cache: HashMap<u64, Vec<u8>>,
     /// Counter for generating unique IDs
@@ -66,16 +64,14 @@ pub struct ImageRenderer {
 
 impl ImageRenderer {
     /// Create a new ImageRenderer with default atlas size of 4096x4096
-    pub fn new(device: &Device, _queue: &Queue, surface_format: TextureFormat) -> Self {
-        Self::new_with_atlas_size(device, _queue, surface_format, 4096)
+    pub fn new(device: &Device, _queue: &Queue) -> Self {
+        Self::new_with_atlas_size(device, _queue, 4096)
     }
 
     /// Create a new ImageRenderer with custom atlas size
-    pub fn new_with_atlas_size(device: &Device, _queue: &Queue, surface_format: TextureFormat, atlas_size: u32) -> Self {
-        let surface_is_srgb = surface_format.is_srgb();
-
+    pub fn new_with_atlas_size(device: &Device, _queue: &Queue, atlas_size: u32) -> Self {
         // Create initial texture array with 1 layer
-        let texture_array = create_texture_array(device, atlas_size, 1, surface_is_srgb);
+        let texture_array = create_texture_array(device, atlas_size, 1);
 
         let sampler = device.create_sampler(&SamplerDescriptor {
             label: Some("Image Atlas Sampler"),
@@ -105,7 +101,6 @@ impl ImageRenderer {
             mip_pipeline,
             mip_bind_group_layout,
             needs_texture_array_rebuild: false,
-            surface_is_srgb,
             svg_data_cache: HashMap::new(),
             next_id: 1,
         }
@@ -331,7 +326,7 @@ impl ImageRenderer {
     fn rebuild_texture_array(&mut self, device: &Device, queue: &Queue) {
         let num_pages = self.atlas_pages.len().max(1);
 
-        self.texture_array = create_texture_array(device, self.atlas_size, num_pages as u32, self.surface_is_srgb);
+        self.texture_array = create_texture_array(device, self.atlas_size, num_pages as u32);
 
         // Upload all pages
         for (page_idx, page) in self.atlas_pages.iter_mut().enumerate() {
@@ -398,13 +393,7 @@ impl ImageRenderer {
     }
 }
 
-fn create_texture_array(device: &Device, size: u32, layers: u32, surface_is_srgb: bool) -> Texture {
-
-    let format = if surface_is_srgb {
-        TextureFormat::Rgba8UnormSrgb
-    } else {
-        TextureFormat::Rgba8Unorm
-    };
+fn create_texture_array(device: &Device, size: u32, layers: u32) -> Texture {
 
     device.create_texture(&TextureDescriptor {
         label: Some("Image Atlas Texture Array"),
@@ -416,10 +405,12 @@ fn create_texture_array(device: &Device, size: u32, layers: u32, surface_is_srgb
         mip_level_count: MIP_LEVELS,
         sample_count: 1,
         dimension: TextureDimension::D2,
-        format,
+        // Must be Rgba8Unorm: STORAGE_BINDING is not allowed on sRGB formats, and view_formats
+        // can't include sRGB either when STORAGE_BINDING is set. Atlas data is linear; the
+        // surface handles sRGB conversion.
+        format: TextureFormat::Rgba8Unorm,
         usage: TextureUsages::TEXTURE_BINDING | TextureUsages::COPY_DST | TextureUsages::STORAGE_BINDING,
-        // Rgba8Unorm view needed for storage binding (storage textures don't accept sRGB formats)
-        view_formats: &[TextureFormat::Rgba8Unorm],
+        view_formats: &[],
     })
 }
 

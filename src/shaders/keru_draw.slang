@@ -397,7 +397,6 @@ float4 box_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, float2 s
         color.rgb = srgb_to_linear3(color.rgb);
     }
 
-    // Texture color doesn't need srgb adjustment, because the texture atlas is already with the same srgb-ness of the final surface.
     // Sample texture if enabled (texture_page != 0xFFFFFFFF)
     if (box.texture_page != 0xFFFFFFFFu) {
         // Get atlas dimensions
@@ -423,6 +422,11 @@ float4 box_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, float2 s
             float3(tex_uv, float(box.texture_page)),
             lod
         );
+
+        // Atlas is Rgba8Unorm (linear read); linearize sRGB-encoded image data when surface is sRGB.
+        if (surface_is_srgb) {
+            tex_color = srgb_to_linear4(tex_color);
+        }
 
         // Multiply texture color with fill color (tinting)
         color = tex_color * color;
@@ -637,6 +641,10 @@ float4 circle_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, float
             lod
         );
 
+        if (srgb) {
+            tex_color = srgb_to_linear4(tex_color);
+        }
+
         // Multiply texture color with fill color (tinting)
         color = tex_color * color;
     }
@@ -794,6 +802,9 @@ float4 segment_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, floa
             float3(tex_uv, float(seg.texture_page)),
             lod
         );
+        if (srgb) {
+            tex_color = srgb_to_linear4(tex_color);
+        }
         color = tex_color * color;
     }
 
@@ -916,6 +927,9 @@ float4 grid_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, float2 
             float3(tex_uv, float(grid.texture_page)),
             lod
         );
+        if (surface_is_srgb) {
+            tex_color = srgb_to_linear4(tex_color);
+        }
         color = tex_color * color;
     }
 
@@ -1050,6 +1064,10 @@ float4 triangle_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, flo
             lod
         );
 
+        if (surface_is_srgb) {
+            tex_color = srgb_to_linear4(tex_color);
+        }
+
         // Multiply texture color with fill color (tinting)
         color = tex_color * color;
     }
@@ -1175,6 +1193,9 @@ float4 hexagon_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, floa
             float3(tex_uv, float(hex.texture_page)),
             lod
         );
+        if (surface_is_srgb) {
+            tex_color = srgb_to_linear4(tex_color);
+        }
         color = tex_color * color;
     }
 

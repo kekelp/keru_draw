@@ -32,7 +32,7 @@
                                 "baseShape": "structuredBuffer",
                                 "resultType": {
                                     "kind": "struct",
-                                    "name": "BoxGpu",
+                                    "name": "RectangleGpu",
                                     "fields": [
                                         {
                                             "name": "top_left",
@@ -1300,7 +1300,7 @@
                                     "baseShape": "structuredBuffer",
                                     "resultType": {
                                         "kind": "struct",
-                                        "name": "BoxGpu",
+                                        "name": "RectangleGpu",
                                         "fields": [
                                             {
                                                 "name": "top_left",
