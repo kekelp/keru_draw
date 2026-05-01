@@ -12,4 +12,3 @@ It uses the `slang` shader language, which allows the megashader to have a degre
 
 The `slang` shaders are compiled into `spir-v` files that are committed in the repository, so the slang compiler is not needed to build and use this crate.
 
-![Screenshot of the example](screenshot.png)
