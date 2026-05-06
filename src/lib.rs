@@ -12,7 +12,6 @@ pub use limited_hangout::*;
 use gpu_vec::GpuVec;
 use gpu_slab::{GpuSlab, GpuSlabItem};
 use std::hash::{Hash, Hasher};
-use std::time::Duration;
 
 #[derive(Debug, Clone, Copy)]
 pub struct InstanceRange { pub start: usize, pub end: usize }
@@ -56,7 +55,6 @@ pub use keru_text::{
 // Re-export font properties from parley
 pub use keru_text::parley::{FontWeight, FontStyle, LineHeight};
 pub use images::{ImageRenderer, LoadedImage};
-use wgpu_profiler::{GpuProfiler, GpuProfilerSettings};
 
 pub use euclid;
 
@@ -564,7 +562,6 @@ pub struct Renderer {
     instances: GpuVec<Instance>,
     current_transform: TransformHandle,
     current_clip_rect: usize,
-    pub gpu_profiler: GpuProfiler,
     // Deferred mode
     deferred_mode: bool,
     deferred_mode_start: usize,
@@ -706,21 +703,6 @@ impl Renderer {
             wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
         );
 
-        let features = device.features();
-        let timestamp_queries_supported = features.contains(wgpu::Features::TIMESTAMP_QUERY)
-            && features.contains(wgpu::Features::TIMESTAMP_QUERY_INSIDE_ENCODERS);
-
-        #[cfg(debug_assertions)]
-        let enable_timer_queries = timestamp_queries_supported;
-        #[cfg(not(debug_assertions))]
-        let enable_timer_queries = false;
-
-        let gpu_profiler = GpuProfiler::new(&device, GpuProfilerSettings {
-            enable_timer_queries,
-            enable_debug_groups: false,
-            max_num_pending_frames: 3,
-        }).unwrap();
-
         Self {
             deferred_mode: false,
             deferred_mode_start: 0,
@@ -729,7 +711,7 @@ impl Renderer {
             queue: queue.clone(),
             current_transform: TransformHandle { index: 0, text_transform: keru_text::GroupTransformHandle::IDENTITY },
             current_clip_rect: 1, // "No clip" is at slot index 1
-            render_pipeline, shapes, clip_rects_or_transforms, image_renderer, text, shapes_bind_group, instances, gpu_profiler
+            render_pipeline, shapes, clip_rects_or_transforms, image_renderer, text, shapes_bind_group, instances
         }
     }
 
@@ -1608,8 +1590,6 @@ impl Renderer {
             label: Some("keru_draw autorender render encoder"),
         });
 
-        let query = self.gpu_profiler.begin_query("Render", &mut encoder);
-
         {
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("keru_draw autorender render pass"),
@@ -1630,25 +1610,7 @@ impl Renderer {
             self.render(&mut render_pass);
         }
 
-        self.gpu_profiler.end_query(&mut encoder, query);
-        self.gpu_profiler.resolve_queries(&mut encoder);
-
         self.queue.submit(std::iter::once(encoder.finish()));
-
-        self.gpu_profiler.end_frame().unwrap();
-
-        #[cfg(debug_assertions)]
-        {
-            let profiling_data = self.gpu_profiler.process_finished_frame(self.queue.get_timestamp_period());
-            if let Some(profiling_data) = profiling_data {
-                for p in profiling_data {
-                    if let Some(time) = p.time {
-                        let dur = Duration::from_secs_f64(time.end - time.start);
-                        println!("Gpu time ({}): {:?}", p.label, dur);
-                    }
-                }
-            }
-        }
 
         output.present();
     }
