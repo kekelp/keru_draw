@@ -96,7 +96,7 @@ impl State {
         );
         let text_edit = renderer.text.add_text_edit(
             "🌈Bottom text".to_owned(),
-            (500.0, 400.0),
+            Some((500.0, 400.0)),
             (280.0, 150.0),
             0.0,
         );
@@ -104,7 +104,7 @@ impl State {
 
         let text_box1 = renderer.text.add_text_box(
             "Using rotation or zoom on text and SVGs can look quite disappointing, because they are pre-rasterized on the CPU.".to_owned(),
-            (0.0, 0.0),
+            Some((0.0, 0.0)),
             (200.0, 50.0),
             0.0,
         );
@@ -117,7 +117,7 @@ impl State {
 
         let text_box2 = renderer.text.add_text_box(
             "90 degree rotations are fine.".to_owned(),
-            (0.0, 0.0),
+            Some((0.0, 0.0)),
             (200.0, 60.0),
             0.0,
         );
@@ -130,7 +130,7 @@ impl State {
 
         let text_box3 = renderer.text.add_text_box(
             "What kind of renderer doesn't have a hex grid primitive?".to_owned(),
-            (750.0, 600.0),
+            Some((750.0, 600.0)),
             (250.0, 100.0),
             0.0,
         );
@@ -876,6 +876,8 @@ impl State {
 
         self.renderer.draw_text_box(&self.text_box2);
         
+        self.renderer.draw_text_decorations();
+
         self.renderer.autorender(&self.surface, wgpu::Color { r: 1.0, g: 1.0, b: 1.0, a: 1.0 });
 
         Ok(())

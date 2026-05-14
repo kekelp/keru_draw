@@ -1356,6 +1356,23 @@ impl Renderer {
         }
     }
 
+    /// Draw decoration quads (selection rects + cursor blink rect) for all text edits.
+    ///
+    /// Decoration quads are shared across all text boxes, so this should be called once per frame
+    /// after all `draw_text_edit` calls.
+    pub fn draw_text_decorations(&mut self) {
+        let decoration_range = self.text.decoration_quad_range();
+
+        for q in (decoration_range.0)..(decoration_range.1) {
+            self.push_instance(Instance {
+                p_type: primitive::TEXT,
+                p_index: q as u32,
+                transform_index: self.current_transform.index as u32,
+                clip_rect_index: self.current_clip_rect as u32,
+            });
+        }
+    }
+
     /// Begin recording a new frame.
     ///
     /// This only clears the main instance buffer, not the shape data, transforms, clip_rects, or deferred instances, so they can be reused.
@@ -1621,6 +1638,7 @@ impl Renderer {
     }
 }
 
+#[cfg(debug_assertions)] 
 fn assert_imported_keru_text_shader_matches() {
     let imported_shader = include_str!("shaders/keru_text.slang");
     let original_shader = keru_text::Text::composable_shader_source();
