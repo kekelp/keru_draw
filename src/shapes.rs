@@ -7,9 +7,10 @@ use crate::Color;
 pub struct GradientGpu {
     pub color_start: Color,
     pub color_end: Color,
-    pub gradient_direction: [f32; 2], // normalized direction for linear gradient
+    pub p0: [f32; 2], // gradient start point (absolute screen coords); for radial: center
+    pub p1: [f32; 2], // gradient end point; for radial: any point at the outer radius
     pub gradient_type: u32, // 0=solid, 1=linear, 2=radial
-    pub _pad: u32,
+    pub _pad: [u32; 3],
 }
 
 

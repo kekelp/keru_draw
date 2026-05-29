@@ -4,6 +4,7 @@ struct ResourceSlot {
     float4 a;
     float4 b;
     float4 c;
+    float4 d;
 }
 
 struct ShapesGpu {
@@ -24,9 +25,11 @@ ParameterBlock<ShapesGpu> shapes;
 struct GradientGpu {
     float4 color_start;
     float4 color_end;
-    float2 gradient_direction; // normalized direction for linear gradient
+    float2 p0; // gradient start (absolute screen coords); for radial: center
+    float2 p1; // gradient end; for radial: any point at outer radius
     uint gradient_type; // 0=solid, 1=linear, 2=radial
-    uint _pad;
+    uint _pad0;
+    float2 _pad1;
 }
 
 struct RectangleGpu {
@@ -398,16 +401,16 @@ float4 box_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, float2 s
 
     // Calculate gradient/solid color
     var grad: GradientGpu = reinterpret<GradientGpu>(shapes.resources[box.gradient_index]);
+    float2 pixel_pos_box = p + box.top_left + box.size * 0.5;
     float4 color;
     if (grad.gradient_type == 1) {
-        // Linear gradient
-        // Max projection of the rectangle onto gradient_direction: half_w*|cos| + half_h*|sin|
-        float divisor = dot(abs(grad.gradient_direction), box.size * 0.5);
-        float t = dot(p, grad.gradient_direction) / max(divisor, 0.001);
-        t = t * 0.5 + 0.5; // Remap from [-1,1] to [0,1]
+        float2 dir = grad.p1 - grad.p0;
+        float t = dot(pixel_pos_box - grad.p0, dir) / max(dot(dir, dir), 0.001);
+        color = gradient_oklab(grad.color_start, grad.color_end, clamp(t, 0.0, 1.0));
+    } else if (grad.gradient_type == 2) {
+        float t = length(pixel_pos_box - grad.p0) / max(length(grad.p1 - grad.p0), 0.001);
         color = gradient_oklab(grad.color_start, grad.color_end, clamp(t, 0.0, 1.0));
     } else {
-        // Solid color (gradient_type == 0)
         color = grad.color_start;
     }
 
@@ -615,18 +618,16 @@ float4 circle_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, float
 
     // Calculate gradient color
     var grad: GradientGpu = reinterpret<GradientGpu>(shapes.resources[circle.gradient_index]);
+    float2 pixel_pos_circle = p + circle.center;
     float4 color;
     if (grad.gradient_type == 1) {
-        // Linear gradient
-        float t = dot(p, grad.gradient_direction) / outer_radius;
-        t = t * 0.5 + 0.5; // Remap from [-1,1] to [0,1]
+        float2 dir = grad.p1 - grad.p0;
+        float t = dot(pixel_pos_circle - grad.p0, dir) / max(dot(dir, dir), 0.001);
         color = gradient_oklab(grad.color_start, grad.color_end, clamp(t, 0.0, 1.0));
     } else if (grad.gradient_type == 2) {
-        // Radial gradient: t=0 at inner edge, t=1 at outer edge.
-        float t = (length(p) - inner_radius) / max(outer_radius - inner_radius, 0.001);
+        float t = length(pixel_pos_circle - grad.p0) / max(length(grad.p1 - grad.p0), 0.001);
         color = gradient_oklab(grad.color_start, grad.color_end, clamp(t, 0.0, 1.0));
     } else {
-        // Solid color (gradient_type == 0)
         color = grad.color_start;
     }
 
@@ -782,16 +783,13 @@ float4 segment_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, floa
     var grad: GradientGpu = reinterpret<GradientGpu>(shapes.resources[seg.gradient_index]);
     float4 color;
     if (grad.gradient_type == 1) {
-        // Linear gradient along segment
-        float2 seg_vec = seg.end - seg.start;
-        float seg_len = length(seg_vec);
-        float t = 0.5;
-        if (seg_len > 0.001) {
-            t = dot(p - seg.start, seg_vec) / (seg_len * seg_len);
-        }
+        float2 dir = grad.p1 - grad.p0;
+        float t = dot(p - grad.p0, dir) / max(dot(dir, dir), 0.001);
+        color = gradient_oklab(grad.color_start, grad.color_end, clamp(t, 0.0, 1.0));
+    } else if (grad.gradient_type == 2) {
+        float t = length(p - grad.p0) / max(length(grad.p1 - grad.p0), 0.001);
         color = gradient_oklab(grad.color_start, grad.color_end, clamp(t, 0.0, 1.0));
     } else {
-        // Solid color (gradient_type == 0)
         color = grad.color_start;
     }
 
@@ -914,14 +912,15 @@ float4 grid_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, float2 
     var grad: GradientGpu = reinterpret<GradientGpu>(shapes.resources[grid.gradient_index]);
     float4 color;
     float2 p = uv * grid.size - grid.size * 0.5;
+    float2 pixel_pos_grid = p + grid.top_left + grid.size * 0.5;
     if (grad.gradient_type == 1) {
-        // Linear gradient
-        float divisor = dot(abs(grad.gradient_direction), grid.size * 0.5);
-        float t = dot(p, grad.gradient_direction) / max(divisor, 0.001);
-        t = t * 0.5 + 0.5; // Remap from [-1,1] to [0,1]
+        float2 dir = grad.p1 - grad.p0;
+        float t = dot(pixel_pos_grid - grad.p0, dir) / max(dot(dir, dir), 0.001);
+        color = gradient_oklab(grad.color_start, grad.color_end, clamp(t, 0.0, 1.0));
+    } else if (grad.gradient_type == 2) {
+        float t = length(pixel_pos_grid - grad.p0) / max(length(grad.p1 - grad.p0), 0.001);
         color = gradient_oklab(grad.color_start, grad.color_end, clamp(t, 0.0, 1.0));
     } else {
-        // Solid color (gradient_type == 0)
         color = grad.color_start;
     }
 
@@ -1040,19 +1039,13 @@ float4 triangle_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, flo
     var grad: GradientGpu = reinterpret<GradientGpu>(shapes.resources[tri.gradient_index]);
     float4 color;
     if (grad.gradient_type == 1) {
-        // Linear gradient
-        // Project all 3 vertices onto gradient_direction to find the true [min, max] range.
-        float2 dir = grad.gradient_direction;
-        float proj0 = dot(tri.p0, dir);
-        float proj1 = dot(tri.p1, dir);
-        float proj2 = dot(tri.p2, dir);
-        float min_proj = min(proj0, min(proj1, proj2));
-        float max_proj = max(proj0, max(proj1, proj2));
-        float range = max_proj - min_proj;
-        float t = range > 0.001 ? (dot(p, dir) - min_proj) / range : 0.5;
+        float2 dir = grad.p1 - grad.p0;
+        float t = dot(p - grad.p0, dir) / max(dot(dir, dir), 0.001);
+        color = gradient_oklab(grad.color_start, grad.color_end, clamp(t, 0.0, 1.0));
+    } else if (grad.gradient_type == 2) {
+        float t = length(p - grad.p0) / max(length(grad.p1 - grad.p0), 0.001);
         color = gradient_oklab(grad.color_start, grad.color_end, clamp(t, 0.0, 1.0));
     } else {
-        // Solid color (gradient_type == 0)
         color = grad.color_start;
     }
 
@@ -1172,21 +1165,16 @@ float4 hexagon_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, floa
 
     // Calculate gradient color
     var grad: GradientGpu = reinterpret<GradientGpu>(shapes.resources[hex.gradient_index]);
+    float2 pixel_pos_hex = p + hex.center;
     float4 color;
     if (grad.gradient_type == 1) {
-        // Linear gradient
-        // Support of the hexagon in gradient_direction: max dot product over all 6 vertices.
-        float support = 0.0;
-        for (int k = 0; k < 6; k++) {
-            float angle = hex.rotation + float(k) * 1.04719755; // π/3
-            float2 vertex = float2(cos(angle), sin(angle)) * hex.size;
-            support = max(support, dot(vertex, grad.gradient_direction));
-        }
-        float t = dot(p, grad.gradient_direction) / max(support, 0.001);
-        t = t * 0.5 + 0.5; // Remap from [-1,1] to [0,1]
+        float2 dir = grad.p1 - grad.p0;
+        float t = dot(pixel_pos_hex - grad.p0, dir) / max(dot(dir, dir), 0.001);
+        color = gradient_oklab(grad.color_start, grad.color_end, clamp(t, 0.0, 1.0));
+    } else if (grad.gradient_type == 2) {
+        float t = length(pixel_pos_hex - grad.p0) / max(length(grad.p1 - grad.p0), 0.001);
         color = gradient_oklab(grad.color_start, grad.color_end, clamp(t, 0.0, 1.0));
     } else {
-        // Solid color (gradient_type == 0)
         color = grad.color_start;
     }
 

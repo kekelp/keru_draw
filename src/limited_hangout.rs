@@ -145,9 +145,15 @@ impl<'a> DrawContext<'a> {
     }
 
     /// Remove a loaded image and free its atlas space..
-    /// 
+    ///
     /// Must be unloaded manually with [`Self::unload_image()`].
     pub fn unload_image(&mut self, loaded: &LoadedImage) {
         self.renderer.image_renderer.unload_image(loaded);
+    }
+
+    /// Store a gradient in the resource buffer and return a handle that can be reused
+    /// across multiple draw calls via [`ColorFill::StoredGradient`].
+    pub fn create_gradient(&mut self, gradient: crate::shapes::GradientGpu) -> GradientHandle {
+        self.renderer.create_gradient(gradient)
     }
 }

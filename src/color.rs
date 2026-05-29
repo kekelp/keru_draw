@@ -120,7 +120,6 @@ pub struct GradientHandle(pub(crate) u32);
 pub enum ColorFill {
     Color(Color),
     Gradient(Gradient),
-    /// A gradient that was already stored via [`Renderer::create_gradient`].
     StoredGradient(GradientHandle),
 }
 
