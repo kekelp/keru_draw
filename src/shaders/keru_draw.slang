@@ -26,7 +26,7 @@ struct GradientGpu {
     float4 color_start;
     float4 color_end;
     float2 p0; // gradient start (absolute screen coords); for radial: center
-    float2 p1; // gradient end; for radial: any point at outer radius
+    float2 p1; // gradient end; for radial: p1.x = outer_radius, p1.y = inner_radius (flat region)
     uint gradient_type; // 0=solid, 1=linear, 2=radial
     uint _pad0;
     float2 _pad1;
@@ -408,7 +408,7 @@ float4 box_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, float2 s
         float t = dot(pixel_pos_box - grad.p0, dir) / max(dot(dir, dir), 0.001);
         color = gradient_oklab(grad.color_start, grad.color_end, clamp(t, 0.0, 1.0));
     } else if (grad.gradient_type == 2) {
-        float t = length(pixel_pos_box - grad.p0) / max(length(grad.p1 - grad.p0), 0.001);
+        float t = (length(pixel_pos_box - grad.p0) - grad.p1.y) / max(grad.p1.x - grad.p1.y, 0.001);
         color = gradient_oklab(grad.color_start, grad.color_end, clamp(t, 0.0, 1.0));
     } else {
         color = grad.color_start;
@@ -625,7 +625,7 @@ float4 circle_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, float
         float t = dot(pixel_pos_circle - grad.p0, dir) / max(dot(dir, dir), 0.001);
         color = gradient_oklab(grad.color_start, grad.color_end, clamp(t, 0.0, 1.0));
     } else if (grad.gradient_type == 2) {
-        float t = length(pixel_pos_circle - grad.p0) / max(length(grad.p1 - grad.p0), 0.001);
+        float t = (length(pixel_pos_circle - grad.p0) - grad.p1.y) / max(grad.p1.x - grad.p1.y, 0.001);
         color = gradient_oklab(grad.color_start, grad.color_end, clamp(t, 0.0, 1.0));
     } else {
         color = grad.color_start;
@@ -787,7 +787,7 @@ float4 segment_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, floa
         float t = dot(p - grad.p0, dir) / max(dot(dir, dir), 0.001);
         color = gradient_oklab(grad.color_start, grad.color_end, clamp(t, 0.0, 1.0));
     } else if (grad.gradient_type == 2) {
-        float t = length(p - grad.p0) / max(length(grad.p1 - grad.p0), 0.001);
+        float t = (length(p - grad.p0) - grad.p1.y) / max(grad.p1.x - grad.p1.y, 0.001);
         color = gradient_oklab(grad.color_start, grad.color_end, clamp(t, 0.0, 1.0));
     } else {
         color = grad.color_start;
@@ -918,7 +918,7 @@ float4 grid_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, float2 
         float t = dot(pixel_pos_grid - grad.p0, dir) / max(dot(dir, dir), 0.001);
         color = gradient_oklab(grad.color_start, grad.color_end, clamp(t, 0.0, 1.0));
     } else if (grad.gradient_type == 2) {
-        float t = length(pixel_pos_grid - grad.p0) / max(length(grad.p1 - grad.p0), 0.001);
+        float t = (length(pixel_pos_grid - grad.p0) - grad.p1.y) / max(grad.p1.x - grad.p1.y, 0.001);
         color = gradient_oklab(grad.color_start, grad.color_end, clamp(t, 0.0, 1.0));
     } else {
         color = grad.color_start;
@@ -1043,7 +1043,7 @@ float4 triangle_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, flo
         float t = dot(p - grad.p0, dir) / max(dot(dir, dir), 0.001);
         color = gradient_oklab(grad.color_start, grad.color_end, clamp(t, 0.0, 1.0));
     } else if (grad.gradient_type == 2) {
-        float t = length(p - grad.p0) / max(length(grad.p1 - grad.p0), 0.001);
+        float t = (length(p - grad.p0) - grad.p1.y) / max(grad.p1.x - grad.p1.y, 0.001);
         color = gradient_oklab(grad.color_start, grad.color_end, clamp(t, 0.0, 1.0));
     } else {
         color = grad.color_start;
@@ -1172,7 +1172,7 @@ float4 hexagon_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, floa
         float t = dot(pixel_pos_hex - grad.p0, dir) / max(dot(dir, dir), 0.001);
         color = gradient_oklab(grad.color_start, grad.color_end, clamp(t, 0.0, 1.0));
     } else if (grad.gradient_type == 2) {
-        float t = length(pixel_pos_hex - grad.p0) / max(length(grad.p1 - grad.p0), 0.001);
+        float t = (length(pixel_pos_hex - grad.p0) - grad.p1.y) / max(grad.p1.x - grad.p1.y, 0.001);
         color = gradient_oklab(grad.color_start, grad.color_end, clamp(t, 0.0, 1.0));
     } else {
         color = grad.color_start;

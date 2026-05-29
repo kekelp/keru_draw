@@ -100,6 +100,9 @@ pub struct Gradient {
     pub color_end: Color,
     pub gradient_type: GradientType,
     pub angle: f32,
+    /// For radial gradients: radius (in pixels) of the flat `color_start` region at the center.
+    /// Pixels inside this radius get `color_start` with no blending. Defaults to 0.
+    pub inner_radius: f32,
 }
 
 impl Gradient {
@@ -109,6 +112,7 @@ impl Gradient {
             color_end,
             gradient_type: GradientType::Linear,
             angle: 0.0,
+            inner_radius: 0.0,
         }
     }
 
@@ -128,6 +132,7 @@ impl Gradient {
             color_end,
             gradient_type: GradientType::Linear,
             angle,
+            inner_radius: 0.0,
         }
     }
 
@@ -137,7 +142,13 @@ impl Gradient {
             color_end,
             gradient_type: GradientType::Radial,
             angle: 0.0,
+            inner_radius: 0.0,
         }
+    }
+
+    pub const fn with_inner_radius(mut self, inner_radius: f32) -> Self {
+        self.inner_radius = inner_radius;
+        self
     }
 
     pub fn with_alpha(self, alpha: f32) -> Gradient {
@@ -416,7 +427,7 @@ fn gradient_gpu_circle(fill: ColorFill, center: [f32; 2], outer_radius: f32) -> 
                     let (dx, dy) = (g.angle.cos() * outer_radius, g.angle.sin() * outer_radius);
                     ([center[0] - dx, center[1] - dy], [center[0] + dx, center[1] + dy])
                 }
-                GradientType::Radial => (center, [center[0] + outer_radius, center[1]]),
+                GradientType::Radial => (center, [outer_radius, g.inner_radius]),
             };
             shapes::GradientGpu {
                 color_start: g.color_start, color_end: g.color_end,
@@ -444,7 +455,7 @@ fn gradient_gpu_rect(fill: ColorFill, top_left: [f32; 2], size: [f32; 2]) -> sha
                 }
                 GradientType::Radial => {
                     let r = (size[0] * size[0] + size[1] * size[1]).sqrt() * 0.5;
-                    (center, [center[0] + r, center[1]])
+                    (center, [r, g.inner_radius])
                 }
             };
             shapes::GradientGpu {
@@ -470,7 +481,7 @@ fn gradient_gpu_segment(fill: ColorFill, start: [f32; 2], end: [f32; 2]) -> shap
                     let dx = end[0] - start[0];
                     let dy = end[1] - start[1];
                     let r = (dx * dx + dy * dy).sqrt() * 0.5;
-                    (center, [center[0] + r, center[1]])
+                    (center, [r, g.inner_radius])
                 }
             };
             shapes::GradientGpu {
@@ -881,8 +892,12 @@ impl Renderer {
 
     // Shape drawing methods
     pub fn draw_box(&mut self, params: Rectangle) {
-        let g = gradient_gpu_rect(params.fill.clone(), params.top_left, params.size);
-        let gradient_index = push_gradient_fill(&mut self.resources, &mut self.shapes.gradient_indices, params.fill, g);
+        let gradient_index = if let ColorFill::StoredGradient(h) = params.fill {
+            h.0
+        } else {
+            let g = gradient_gpu_rect(params.fill, params.top_left, params.size);
+            push_gradient(&mut self.resources, &mut self.shapes.gradient_indices, g)
+        };
         let (texture_uv_origin, texture_uv_size, texture_page, nine_slice_l, nine_slice_r, nine_slice_t, nine_slice_b, nine_slice_tiling) = texture_options_gpu(params.texture, params.texture_options);
 
         let index = self.shapes.boxes.len();
@@ -939,8 +954,12 @@ impl Renderer {
     }
 
     pub fn draw_circle(&mut self, params: Circle) {
-        let g = gradient_gpu_circle(params.fill, params.center, params.radius);
-        let gradient_index = push_gradient_fill(&mut self.resources, &mut self.shapes.gradient_indices, params.fill, g);
+        let gradient_index = if let ColorFill::StoredGradient(g) = params.fill {
+            g.0
+        } else {
+            let g = gradient_gpu_circle(params.fill, params.center, params.radius);
+            push_gradient_fill(&mut self.resources, &mut self.shapes.gradient_indices, params.fill, g)
+        };
         let (texture_uv_origin, texture_uv_size, texture_page, nine_slice_l, nine_slice_r, nine_slice_t, nine_slice_b, nine_slice_tiling) = texture_options_gpu(params.texture, params.texture_options);
 
         let index = self.shapes.circles.len();
@@ -970,8 +989,12 @@ impl Renderer {
     }
 
     pub fn draw_ring(&mut self, params: CircleRing) {
-        let g = gradient_gpu_circle(params.fill.clone(), params.center, params.outer_radius);
-        let gradient_index = push_gradient_fill(&mut self.resources, &mut self.shapes.gradient_indices, params.fill, g);
+        let gradient_index = if let ColorFill::StoredGradient(h) = params.fill {
+            h.0
+        } else {
+            let g = gradient_gpu_circle(params.fill, params.center, params.outer_radius);
+            push_gradient(&mut self.resources, &mut self.shapes.gradient_indices, g)
+        };
         let (texture_uv_origin, texture_uv_size, texture_page, nine_slice_l, nine_slice_r, nine_slice_t, nine_slice_b, nine_slice_tiling) = texture_options_gpu(params.texture, params.texture_options);
 
         let index = self.shapes.circles.len();
@@ -1002,8 +1025,14 @@ impl Renderer {
 
     pub fn draw_arc(&mut self, params: CircleArc) {
         let outer_radius = params.radius + params.thickness * 0.5;
-        let g = gradient_gpu_circle(params.fill.clone(), params.center, outer_radius);
-        let gradient_index = push_gradient_fill(&mut self.resources, &mut self.shapes.gradient_indices, params.fill, g);
+
+        let gradient_index = if let ColorFill::StoredGradient(g) = params.fill {
+            g.0
+        } else {
+            let g = gradient_gpu_circle(params.fill, params.center, outer_radius);
+            push_gradient_fill(&mut self.resources, &mut self.shapes.gradient_indices, params.fill, g)
+        };
+
         let (texture_uv_origin, texture_uv_size, texture_page, nine_slice_l, nine_slice_r, nine_slice_t, nine_slice_b, nine_slice_tiling) = texture_options_gpu(params.texture, params.texture_options);
 
         let index = self.shapes.circles.len();
@@ -1033,8 +1062,12 @@ impl Renderer {
     }
 
     pub fn draw_pie(&mut self, params: CirclePie) {
-        let g = gradient_gpu_circle(params.fill.clone(), params.center, params.radius);
-        let gradient_index = push_gradient_fill(&mut self.resources, &mut self.shapes.gradient_indices, params.fill, g);
+        let gradient_index = if let ColorFill::StoredGradient(h) = params.fill {
+            h.0
+        } else {
+            let g = gradient_gpu_circle(params.fill, params.center, params.radius);
+            push_gradient(&mut self.resources, &mut self.shapes.gradient_indices, g)
+        };
         let (texture_uv_origin, texture_uv_size, texture_page, nine_slice_l, nine_slice_r, nine_slice_t, nine_slice_b, nine_slice_tiling) = texture_options_gpu(params.texture, params.texture_options);
 
         let index = self.shapes.circles.len();
@@ -1064,8 +1097,12 @@ impl Renderer {
     }
 
     pub fn draw_segment(&mut self, params: Segment) {
-        let g = gradient_gpu_segment(params.fill.clone(), params.start, params.end);
-        let gradient_index = push_gradient_fill(&mut self.resources, &mut self.shapes.gradient_indices, params.fill, g);
+        let gradient_index = if let ColorFill::StoredGradient(h) = params.fill {
+            h.0
+        } else {
+            let g = gradient_gpu_segment(params.fill, params.start, params.end);
+            push_gradient(&mut self.resources, &mut self.shapes.gradient_indices, g)
+        };
         let (texture_uv_origin, texture_uv_size, texture_page, nine_slice_l, nine_slice_r, nine_slice_t, nine_slice_b, nine_slice_tiling) = texture_options_gpu(params.texture, params.texture_options);
 
         let index = self.shapes.segments.len();
@@ -1091,8 +1128,12 @@ impl Renderer {
     }
 
     pub fn draw_grid(&mut self, params: Grid) {
-        let g = gradient_gpu_rect(params.fill.clone(), params.top_left, params.size);
-        let gradient_index = push_gradient_fill(&mut self.resources, &mut self.shapes.gradient_indices, params.fill, g);
+        let gradient_index = if let ColorFill::StoredGradient(h) = params.fill {
+            h.0
+        } else {
+            let g = gradient_gpu_rect(params.fill, params.top_left, params.size);
+            push_gradient(&mut self.resources, &mut self.shapes.gradient_indices, g)
+        };
         let (texture_uv_origin, texture_uv_size, texture_page, nine_slice_l, nine_slice_r, nine_slice_t, nine_slice_b, nine_slice_tiling) = texture_options_gpu(params.texture, params.texture_options);
 
         let index = self.shapes.grids.len();
@@ -1123,8 +1164,12 @@ impl Renderer {
     }
 
     pub fn draw_triangle(&mut self, params: Triangle) {
-        let g = gradient_gpu_triangle(params.fill.clone(), params.p0, params.p1, params.p2);
-        let gradient_index = push_gradient_fill(&mut self.resources, &mut self.shapes.gradient_indices, params.fill, g);
+        let gradient_index = if let ColorFill::StoredGradient(h) = params.fill {
+            h.0
+        } else {
+            let g = gradient_gpu_triangle(params.fill, params.p0, params.p1, params.p2);
+            push_gradient(&mut self.resources, &mut self.shapes.gradient_indices, g)
+        };
         let (texture_uv_origin, texture_uv_size, texture_page, nine_slice_l, nine_slice_r, nine_slice_t, nine_slice_b, nine_slice_tiling) = texture_options_gpu(params.texture, params.texture_options);
 
         let index = self.shapes.triangles.len();
@@ -1151,8 +1196,12 @@ impl Renderer {
     }
 
     pub fn draw_hexagon(&mut self, params: Hexagon) {
-        let g = gradient_gpu_circle(params.fill.clone(), params.center, params.size);
-        let gradient_index = push_gradient_fill(&mut self.resources, &mut self.shapes.gradient_indices, params.fill, g);
+        let gradient_index = if let ColorFill::StoredGradient(h) = params.fill {
+            h.0
+        } else {
+            let g = gradient_gpu_circle(params.fill, params.center, params.size);
+            push_gradient(&mut self.resources, &mut self.shapes.gradient_indices, g)
+        };
         let (texture_uv_origin, texture_uv_size, texture_page, nine_slice_l, nine_slice_r, nine_slice_t, nine_slice_b, nine_slice_tiling) = texture_options_gpu(params.texture, params.texture_options);
 
         let index = self.shapes.hexagons.len();

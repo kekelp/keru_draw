@@ -8,7 +8,7 @@ pub struct GradientGpu {
     pub color_start: Color,
     pub color_end: Color,
     pub p0: [f32; 2], // gradient start point (absolute screen coords); for radial: center
-    pub p1: [f32; 2], // gradient end point; for radial: any point at the outer radius
+    pub p1: [f32; 2], // gradient end point; for radial: [outer_radius, inner_radius]
     pub gradient_type: u32, // 0=solid, 1=linear, 2=radial
     pub _pad: [u32; 3],
 }

@@ -100,6 +100,7 @@ impl Color {
         color_end: Self::KERU_RED,
         gradient_type: GradientType::Linear,
         angle: -0.785398, // -45 degrees
+        inner_radius: 0.0,
     });
 
     pub const KERU_GRAD_FW: ColorFill = ColorFill::Gradient(Gradient {
@@ -107,6 +108,7 @@ impl Color {
         color_end: Self::KERU_RED,
         gradient_type: GradientType::Linear,
         angle: 0.785398, // 45 degrees
+        inner_radius: 0.0,
     });
 }
 
