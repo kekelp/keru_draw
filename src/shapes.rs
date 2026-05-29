@@ -2,6 +2,15 @@ use crate::gpu_vec::GpuVec;
 use crate::Color;
 
 
+#[repr(C)]
+#[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable, Default)]
+pub struct GradientGpu {
+    pub color_start: Color,
+    pub color_end: Color,
+    pub gradient_direction: [f32; 2], // normalized direction for linear gradient
+    pub gradient_type: u32, // 0=solid, 1=linear, 2=radial
+    pub _pad: u32,
+}
 
 
 
@@ -28,7 +37,7 @@ pub struct RectangleGpu {
     pub gradient_direction: [f32; 2],
     pub color_start: Color,
     pub color_end: Color,
-    pub gradient_type: u32, // 0=solid, 1=linear
+    pub gradient_index: u32, // index into gradients buffer
     pub rounded_corners: u32, // bitflags: 1=top-left, 2=top-right, 4=bottom-left, 8=bottom-right
     pub texture_uv_origin: [f32; 2], // pixel coords in atlas (top-left corner)
     pub texture_uv_size: [f32; 2],   // pixel dimensions in atlas
@@ -47,7 +56,7 @@ pub struct CircleGpu {
     pub radii: [f32; 2],      // [inner_radius, outer_radius]
     pub angles: [f32; 2],     // [start_angle, end_angle] in radians
     pub gradient_direction: [f32; 2],
-    pub gradient_type: u32, // 0=solid, 1=linear, 2=radial
+    pub gradient_index: u32, // index into gradients buffer
     pub texture_page: u32,           // atlas layer, u32::MAX = no texture
     pub texture_uv_origin: [f32; 2], // pixel coords in atlas (top-left corner)
     pub texture_uv_size: [f32; 2],   // pixel dimensions in atlas
@@ -70,7 +79,7 @@ pub struct SegmentGpu {
     pub color_start: Color,
     pub color_end: Color,
     pub thickness_dash: [f32; 4], // [thickness, dash_length, dash_offset, unused]
-    pub gradient_type: u32, // 0=solid, 1=linear along segment
+    pub gradient_index: u32, // index into gradients buffer
     pub texture_page: u32,           // atlas layer, u32::MAX = no texture
     pub texture_uv_origin: [f32; 2], // pixel coords in atlas (top-left corner)
     pub texture_uv_size: [f32; 2],   // pixel dimensions in atlas
@@ -94,7 +103,7 @@ pub struct GridGpu {
     pub line_thickness: f32,
     pub gradient_direction: [f32; 2],
     pub _pad: f32,
-    pub gradient_type: u32, // 0=solid, 1=linear
+    pub gradient_index: u32, // index into gradients buffer
     pub grid_type: u32, // 0=square, 1=hex
     pub texture_page: u32,           // atlas layer, u32::MAX = no texture
     pub texture_uv_origin: [f32; 2], // pixel coords in atlas (top-left corner)
@@ -116,7 +125,7 @@ pub struct TriangleGpu {
     pub gradient_direction: [f32; 2],
     pub color_start: Color,
     pub color_end: Color,
-    pub gradient_type: u32, // 0=solid, 1=linear
+    pub gradient_index: u32, // index into gradients buffer
     pub texture_page: u32,           // atlas layer, u32::MAX = no texture
     pub texture_uv_origin: [f32; 2], // pixel coords in atlas (top-left corner)
     pub texture_uv_size: [f32; 2],   // pixel dimensions in atlas
@@ -139,7 +148,7 @@ pub struct HexagonGpu {
     pub texture_page: u32,
     pub color_start: Color,
     pub color_end: Color,
-    pub gradient_type: u32,
+    pub gradient_index: u32, // index into gradients buffer
     pub nine_slice_l: f32,           // left inset in pixels (0 = no nine-slice)
     pub texture_uv_origin: [f32; 2],
     pub texture_uv_size: [f32; 2],
@@ -159,10 +168,12 @@ pub struct QuadraticBezierGpu {
     pub p2: [f32; 2],
     pub thickness: f32,
     pub blur_radius: f32,
-    pub color: Color,
+    pub gradient_index: u32, // index into gradients buffer (replaces color: Color, same 16 bytes)
+    pub _color_unused: [f32; 3],
 }
 
 pub struct Shapes {
+    pub(crate) gradients: GpuVec<GradientGpu>,
     pub(crate) boxes: GpuVec<RectangleGpu>,
     pub(crate) circles: GpuVec<CircleGpu>,
     pub(crate) segments: GpuVec<SegmentGpu>,
@@ -174,6 +185,7 @@ pub struct Shapes {
 
 impl Shapes {
     pub fn new(device: &wgpu::Device) -> Self {
+        let gradients = GpuVec::new(device, 256, "keru_draw gradients");
         let boxes = GpuVec::new(device, 64, "keru_draw boxes");
         let circles = GpuVec::new(device, 64, "keru_draw circles");
         let segments = GpuVec::new(device, 64, "keru_draw segments");
@@ -183,6 +195,7 @@ impl Shapes {
         let quadratic_beziers = GpuVec::new(device, 64, "keru_draw quadratic_beziers");
 
         Self {
+            gradients,
             boxes,
             circles,
             segments,
@@ -194,6 +207,7 @@ impl Shapes {
     }
 
     pub fn clear(&mut self) {
+        self.gradients.clear();
         self.boxes.clear();
         self.circles.clear();
         self.segments.clear();
@@ -204,6 +218,7 @@ impl Shapes {
     }
 
     pub fn load_to_gpu(&mut self, device: &wgpu::Device, queue: &wgpu::Queue) -> bool {
+        let gradients_changed = self.gradients.load_to_gpu(device, queue);
         let boxes_changed = self.boxes.load_to_gpu(device, queue);
         let circles_changed = self.circles.load_to_gpu(device, queue);
         let segments_changed = self.segments.load_to_gpu(device, queue);
@@ -212,6 +227,6 @@ impl Shapes {
         let hexagons_changed = self.hexagons.load_to_gpu(device, queue);
         let quadratic_beziers_changed = self.quadratic_beziers.load_to_gpu(device, queue);
 
-        boxes_changed || circles_changed || segments_changed || grids_changed || triangles_changed || hexagons_changed || quadratic_beziers_changed
+        gradients_changed || boxes_changed || circles_changed || segments_changed || grids_changed || triangles_changed || hexagons_changed || quadratic_beziers_changed
     }
 }

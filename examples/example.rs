@@ -54,13 +54,18 @@ impl State {
             .request_device(&wgpu::DeviceDescriptor {
                 label: None,
                 required_features: wgpu::Features::TIMESTAMP_QUERY | wgpu::Features::TIMESTAMP_QUERY_INSIDE_ENCODERS,
-                required_limits: wgpu::Limits::default(),
+                required_limits: wgpu::Limits {
+                    max_storage_buffers_per_shader_stage: 16,
+                    ..wgpu::Limits::default()
+                },
                 memory_hints: wgpu::MemoryHints::default(),
                 experimental_features: wgpu::ExperimentalFeatures::disabled(),
                 trace: wgpu::Trace::Off,
             })
             .await
             .unwrap();
+
+        dbg!(device.limits());
 
         let surface_caps = surface.get_capabilities(&adapter);
         let surface_format = surface_caps

@@ -11,9 +11,18 @@ struct ShapesGpu {
     StructuredBuffer<QuadraticBezierGpu> quadratic_beziers;
     Texture2DArray<float4> atlas_texture;
     SamplerState atlas_sampler;
+    StructuredBuffer<GradientGpu> gradients;
 }
 
 ParameterBlock<ShapesGpu> shapes;
+
+struct GradientGpu {
+    float4 color_start;
+    float4 color_end;
+    float2 gradient_direction; // normalized direction for linear gradient
+    uint gradient_type; // 0=solid, 1=linear, 2=radial
+    uint _pad;
+}
 
 struct RectangleGpu {
     float2 top_left;
@@ -24,10 +33,10 @@ struct RectangleGpu {
     float nine_slice_b;        // bottom inset in pixels
     float corner_radius;
     float border_thickness;
-    float2 gradient_direction; // normalized direction for linear gradient
-    float4 color_start;
-    float4 color_end;
-    uint gradient_type; // 0=solid, 1=linear
+    float2 gradient_direction; // unused (kept for layout compatibility)
+    float4 color_start;        // unused
+    float4 color_end;          // unused
+    uint gradient_index; // index into gradients buffer
     uint rounded_corners; // bitflags: 1=top-left, 2=top-right, 4=bottom-left, 8=bottom-right
     float2 texture_uv_origin; // pixel coords in atlas (top-left corner)
     float2 texture_uv_size;   // pixel dimensions in atlas
@@ -45,8 +54,8 @@ struct CircleGpu {
     float2 center;
     float2 radii;
     float2 angles;
-    float2 gradient_direction; // normalized direction for linear gradient
-    uint gradient_type; // 0=solid, 1=linear, 2=radial
+    float2 gradient_direction; // unused (kept for layout compatibility)
+    uint gradient_index; // index into gradients buffer
     uint texture_page;        // atlas layer, 0xFFFFFFFF = no texture
     float2 texture_uv_origin; // pixel coords in atlas (top-left corner)
     float2 texture_uv_size;   // pixel dimensions in atlas
@@ -65,10 +74,10 @@ struct CircleGpu {
 struct SegmentGpu {
     float2 start;
     float2 end;
-    float4 color_start;
-    float4 color_end;
+    float4 color_start;  // unused
+    float4 color_end;    // unused
     float4 thickness_dash;
-    uint gradient_type; // 0=solid, 1=linear along segment
+    uint gradient_index; // index into gradients buffer
     uint texture_page;        // atlas layer, 0xFFFFFFFF = no texture
     float2 texture_uv_origin; // pixel coords in atlas (top-left corner)
     float2 texture_uv_size;   // pixel dimensions in atlas
@@ -81,16 +90,16 @@ struct SegmentGpu {
 }
 
 struct GridGpu {
-    float4 color_start;
-    float4 color_end;
+    float4 color_start;  // unused
+    float4 color_end;    // unused
     float2 top_left;
     float2 size;
     float2 offset;
     float lattice_size;
     float line_thickness;
-    float2 gradient_direction; // normalized direction for linear gradient
+    float2 gradient_direction; // unused (kept for layout compatibility)
     float _pad;
-    uint gradient_type; // 0=solid, 1=linear
+    uint gradient_index; // index into gradients buffer
     uint grid_type; // 0=square, 1=hex
     uint texture_page;        // atlas layer, 0xFFFFFFFF = no texture
     float2 texture_uv_origin; // pixel coords in atlas (top-left corner)
@@ -107,10 +116,10 @@ struct TriangleGpu {
     float2 p0;
     float2 p1;
     float2 p2;
-    float2 gradient_direction; // normalized direction for linear gradient
-    float4 color_start;
-    float4 color_end;
-    uint gradient_type; // 0=solid, 1=linear
+    float2 gradient_direction; // unused (kept for layout compatibility)
+    float4 color_start;        // unused
+    float4 color_end;          // unused
+    uint gradient_index; // index into gradients buffer
     uint texture_page;        // atlas layer, 0xFFFFFFFF = no texture
     float2 texture_uv_origin; // pixel coords in atlas (top-left corner)
     float2 texture_uv_size;   // pixel dimensions in atlas
@@ -126,12 +135,12 @@ struct HexagonGpu {
     float2 center;
     float size;                // distance from center to vertex
     float rotation;            // rotation in radians
-    float2 gradient_direction; // normalized direction for linear gradient
+    float2 gradient_direction; // unused (kept for layout compatibility)
     float stroke_thickness;    // 0 = filled, >0 = stroke only
     uint texture_page;         // atlas layer, 0xFFFFFFFF = no texture
-    float4 color_start;
-    float4 color_end;
-    uint gradient_type;        // 0=solid, 1=linear
+    float4 color_start;        // unused
+    float4 color_end;          // unused
+    uint gradient_index;       // index into gradients buffer
     float nine_slice_l;        // left inset in pixels (0 = no nine-slice)
     float2 texture_uv_origin;  // pixel coords in atlas (top-left corner)
     float2 texture_uv_size;    // pixel dimensions in atlas
@@ -149,7 +158,10 @@ struct QuadraticBezierGpu {
     float2 p2;
     float thickness;
     float blur_radius;
-    float4 color;
+    uint gradient_index; // index into gradients buffer (replaces color: float4, same 16 bytes)
+    float _cu1;
+    float _cu2;
+    float _cu3;
 }
 
 struct Transform {
@@ -380,17 +392,18 @@ float4 box_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, float2 s
     }
 
     // Calculate gradient/solid color
+    var grad: GradientGpu = shapes.gradients[box.gradient_index];
     float4 color;
-    if (box.gradient_type == 1) {
+    if (grad.gradient_type == 1) {
         // Linear gradient
         // Max projection of the rectangle onto gradient_direction: half_w*|cos| + half_h*|sin|
-        float divisor = dot(abs(box.gradient_direction), box.size * 0.5);
-        float t = dot(p, box.gradient_direction) / max(divisor, 0.001);
+        float divisor = dot(abs(grad.gradient_direction), box.size * 0.5);
+        float t = dot(p, grad.gradient_direction) / max(divisor, 0.001);
         t = t * 0.5 + 0.5; // Remap from [-1,1] to [0,1]
-        color = gradient_oklab(box.color_start, box.color_end, clamp(t, 0.0, 1.0));
+        color = gradient_oklab(grad.color_start, grad.color_end, clamp(t, 0.0, 1.0));
     } else {
         // Solid color (gradient_type == 0)
-        color = box.color_start;
+        color = grad.color_start;
     }
 
     if (surface_is_srgb) {
@@ -596,19 +609,20 @@ float4 circle_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, float
     }
 
     // Calculate gradient color
+    var grad: GradientGpu = shapes.gradients[circle.gradient_index];
     float4 color;
-    if (circle.gradient_type == 1) {
+    if (grad.gradient_type == 1) {
         // Linear gradient
-        float t = dot(p, circle.gradient_direction) / outer_radius;
+        float t = dot(p, grad.gradient_direction) / outer_radius;
         t = t * 0.5 + 0.5; // Remap from [-1,1] to [0,1]
-        color = gradient_oklab(circle.color_start, circle.color_end, clamp(t, 0.0, 1.0));
-    } else if (circle.gradient_type == 2) {
+        color = gradient_oklab(grad.color_start, grad.color_end, clamp(t, 0.0, 1.0));
+    } else if (grad.gradient_type == 2) {
         // Radial gradient: t=0 at inner edge, t=1 at outer edge.
         float t = (length(p) - inner_radius) / max(outer_radius - inner_radius, 0.001);
-        color = gradient_oklab(circle.color_start, circle.color_end, clamp(t, 0.0, 1.0));
+        color = gradient_oklab(grad.color_start, grad.color_end, clamp(t, 0.0, 1.0));
     } else {
         // Solid color (gradient_type == 0)
-        color = circle.color_start;
+        color = grad.color_start;
     }
 
     if (srgb) {
@@ -760,8 +774,9 @@ float4 segment_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, floa
     }
 
     // Calculate gradient color
+    var grad: GradientGpu = shapes.gradients[seg.gradient_index];
     float4 color;
-    if (seg.gradient_type == 1) {
+    if (grad.gradient_type == 1) {
         // Linear gradient along segment
         float2 seg_vec = seg.end - seg.start;
         float seg_len = length(seg_vec);
@@ -769,10 +784,10 @@ float4 segment_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, floa
         if (seg_len > 0.001) {
             t = dot(p - seg.start, seg_vec) / (seg_len * seg_len);
         }
-        color = gradient_oklab(seg.color_start, seg.color_end, clamp(t, 0.0, 1.0));
+        color = gradient_oklab(grad.color_start, grad.color_end, clamp(t, 0.0, 1.0));
     } else {
         // Solid color (gradient_type == 0)
-        color = seg.color_start;
+        color = grad.color_start;
     }
 
     if (srgb) {
@@ -891,17 +906,18 @@ float4 grid_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, float2 
     }
 
     // Calculate gradient/solid color
+    var grad: GradientGpu = shapes.gradients[grid.gradient_index];
     float4 color;
     float2 p = uv * grid.size - grid.size * 0.5;
-    if (grid.gradient_type == 1) {
+    if (grad.gradient_type == 1) {
         // Linear gradient
-        float divisor = dot(abs(grid.gradient_direction), grid.size * 0.5);
-        float t = dot(p, grid.gradient_direction) / max(divisor, 0.001);
+        float divisor = dot(abs(grad.gradient_direction), grid.size * 0.5);
+        float t = dot(p, grad.gradient_direction) / max(divisor, 0.001);
         t = t * 0.5 + 0.5; // Remap from [-1,1] to [0,1]
-        color = gradient_oklab(grid.color_start, grid.color_end, clamp(t, 0.0, 1.0));
+        color = gradient_oklab(grad.color_start, grad.color_end, clamp(t, 0.0, 1.0));
     } else {
         // Solid color (gradient_type == 0)
-        color = grid.color_start;
+        color = grad.color_start;
     }
 
     if (surface_is_srgb) {
@@ -1016,11 +1032,12 @@ float4 triangle_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, flo
     }
 
     // Calculate gradient color
+    var grad: GradientGpu = shapes.gradients[tri.gradient_index];
     float4 color;
-    if (tri.gradient_type == 1) {
+    if (grad.gradient_type == 1) {
         // Linear gradient
         // Project all 3 vertices onto gradient_direction to find the true [min, max] range.
-        float2 dir = tri.gradient_direction;
+        float2 dir = grad.gradient_direction;
         float proj0 = dot(tri.p0, dir);
         float proj1 = dot(tri.p1, dir);
         float proj2 = dot(tri.p2, dir);
@@ -1028,10 +1045,10 @@ float4 triangle_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, flo
         float max_proj = max(proj0, max(proj1, proj2));
         float range = max_proj - min_proj;
         float t = range > 0.001 ? (dot(p, dir) - min_proj) / range : 0.5;
-        color = gradient_oklab(tri.color_start, tri.color_end, clamp(t, 0.0, 1.0));
+        color = gradient_oklab(grad.color_start, grad.color_end, clamp(t, 0.0, 1.0));
     } else {
         // Solid color (gradient_type == 0)
-        color = tri.color_start;
+        color = grad.color_start;
     }
 
     if (surface_is_srgb) {
@@ -1149,22 +1166,23 @@ float4 hexagon_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, floa
     }
 
     // Calculate gradient color
+    var grad: GradientGpu = shapes.gradients[hex.gradient_index];
     float4 color;
-    if (hex.gradient_type == 1) {
+    if (grad.gradient_type == 1) {
         // Linear gradient
         // Support of the hexagon in gradient_direction: max dot product over all 6 vertices.
         float support = 0.0;
         for (int k = 0; k < 6; k++) {
             float angle = hex.rotation + float(k) * 1.04719755; // π/3
             float2 vertex = float2(cos(angle), sin(angle)) * hex.size;
-            support = max(support, dot(vertex, hex.gradient_direction));
+            support = max(support, dot(vertex, grad.gradient_direction));
         }
-        float t = dot(p, hex.gradient_direction) / max(support, 0.001);
+        float t = dot(p, grad.gradient_direction) / max(support, 0.001);
         t = t * 0.5 + 0.5; // Remap from [-1,1] to [0,1]
-        color = gradient_oklab(hex.color_start, hex.color_end, clamp(t, 0.0, 1.0));
+        color = gradient_oklab(grad.color_start, grad.color_end, clamp(t, 0.0, 1.0));
     } else {
         // Solid color (gradient_type == 0)
-        color = hex.color_start;
+        color = grad.color_start;
     }
 
     if (surface_is_srgb) {
@@ -1323,7 +1341,8 @@ float4 quadratic_bezier_fragment(uint primitiveIndex, uint clipRectIndex, float2
         discard;
     }
 
-    float4 color = seg.color;
+    var grad: GradientGpu = shapes.gradients[seg.gradient_index];
+    float4 color = grad.color_start;
 
     if (srgb) {
         color.rgb = srgb_to_linear3(color.rgb);

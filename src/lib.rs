@@ -404,13 +404,26 @@ pub struct DashedHexagonOutline {
     pub blur: f32,
 }
 
-fn fill_gpu(fill: ColorFill) -> ([f32; 2], Color, Color, u32) {
-    match fill {
-        ColorFill::Color(color) => ([1.0, 0.0], color, color, 0),
-        ColorFill::Gradient(g) => {
-            ([g.angle.cos(), g.angle.sin()], g.color_start, g.color_end, g.gradient_type as u32)
-        }
-    }
+fn push_gradient(gradients: &mut GpuVec<shapes::GradientGpu>, fill: ColorFill) -> u32 {
+    let index = gradients.len() as u32;
+    let gradient = match fill {
+        ColorFill::Color(color) => shapes::GradientGpu {
+            color_start: color,
+            color_end: color,
+            gradient_direction: [1.0, 0.0],
+            gradient_type: 0,
+            _pad: 0,
+        },
+        ColorFill::Gradient(g) => shapes::GradientGpu {
+            color_start: g.color_start,
+            color_end: g.color_end,
+            gradient_direction: [g.angle.cos(), g.angle.sin()],
+            gradient_type: g.gradient_type as u32,
+            _pad: 0,
+        },
+    };
+    gradients.push(gradient);
+    index
 }
 
 // Returns (uv_origin, uv_size, page, ns_l, ns_r, ns_t, ns_b, tiling_flags)
@@ -743,6 +756,8 @@ impl Renderer {
                 ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
                 count: None,
             },
+            // Gradients buffer
+            GpuVec::<shapes::GradientGpu>::bind_group_layout_entry(10),
         ];
 
         device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
@@ -783,13 +798,14 @@ impl Renderer {
                     binding: 9,
                     resource: wgpu::BindingResource::Sampler(&image_renderer.sampler),
                 },
+                shapes.gradients.bind_group_entry(10),
             ],
         })
     }
 
     // Shape drawing methods
     pub fn draw_box(&mut self, params: Rectangle) {
-        let (gradient_direction, color_start, color_end, gradient_type) = fill_gpu(params.fill);
+        let gradient_index = push_gradient(&mut self.shapes.gradients, params.fill);
         let (texture_uv_origin, texture_uv_size, texture_page, nine_slice_l, nine_slice_r, nine_slice_t, nine_slice_b, nine_slice_tiling) = texture_options_gpu(params.texture, params.texture_options);
 
         let index = self.shapes.boxes.len();
@@ -798,10 +814,10 @@ impl Renderer {
             size: params.size,
             corner_radius: params.corner_radius,
             border_thickness: params.border_thickness,
-            gradient_direction,
-            color_start,
-            color_end,
-            gradient_type,
+            gradient_direction: [0.0; 2],
+            color_start: Color::default(),
+            color_end: Color::default(),
+            gradient_index,
             rounded_corners: params.rounded_corners.bits(),
             texture_uv_origin,
             texture_uv_size,
@@ -846,7 +862,7 @@ impl Renderer {
     }
 
     pub fn draw_circle(&mut self, params: Circle) {
-        let (gradient_direction, color_start, color_end, gradient_type) = fill_gpu(params.fill);
+        let gradient_index = push_gradient(&mut self.shapes.gradients, params.fill);
         let (texture_uv_origin, texture_uv_size, texture_page, nine_slice_l, nine_slice_r, nine_slice_t, nine_slice_b, nine_slice_tiling) = texture_options_gpu(params.texture, params.texture_options);
 
         let index = self.shapes.circles.len();
@@ -854,10 +870,10 @@ impl Renderer {
             center: params.center,
             radii: [0.0, params.radius],
             angles: [0.0, std::f32::consts::TAU],
-            gradient_direction,
-            color_start,
-            color_end,
-            gradient_type,
+            gradient_direction: [0.0; 2],
+            color_start: Color::default(),
+            color_end: Color::default(),
+            gradient_index,
             texture_page,
             texture_uv_origin,
             texture_uv_size,
@@ -876,7 +892,7 @@ impl Renderer {
     }
 
     pub fn draw_ring(&mut self, params: CircleRing) {
-        let (gradient_direction, color_start, color_end, gradient_type) = fill_gpu(params.fill);
+        let gradient_index = push_gradient(&mut self.shapes.gradients, params.fill);
         let (texture_uv_origin, texture_uv_size, texture_page, nine_slice_l, nine_slice_r, nine_slice_t, nine_slice_b, nine_slice_tiling) = texture_options_gpu(params.texture, params.texture_options);
 
         let index = self.shapes.circles.len();
@@ -884,10 +900,10 @@ impl Renderer {
             center: params.center,
             radii: [params.inner_radius, params.outer_radius],
             angles: [0.0, std::f32::consts::TAU],
-            gradient_direction,
-            color_start,
-            color_end,
-            gradient_type,
+            gradient_direction: [0.0; 2],
+            color_start: Color::default(),
+            color_end: Color::default(),
+            gradient_index,
             texture_page,
             texture_uv_origin,
             texture_uv_size,
@@ -906,7 +922,7 @@ impl Renderer {
     }
 
     pub fn draw_arc(&mut self, params: CircleArc) {
-        let (gradient_direction, color_start, color_end, gradient_type) = fill_gpu(params.fill);
+        let gradient_index = push_gradient(&mut self.shapes.gradients, params.fill);
         let (texture_uv_origin, texture_uv_size, texture_page, nine_slice_l, nine_slice_r, nine_slice_t, nine_slice_b, nine_slice_tiling) = texture_options_gpu(params.texture, params.texture_options);
 
         let index = self.shapes.circles.len();
@@ -914,10 +930,10 @@ impl Renderer {
             center: params.center,
             radii: [params.radius - params.thickness * 0.5, params.radius + params.thickness * 0.5],
             angles: [params.start_angle, params.end_angle],
-            gradient_direction,
-            color_start,
-            color_end,
-            gradient_type,
+            gradient_direction: [0.0; 2],
+            color_start: Color::default(),
+            color_end: Color::default(),
+            gradient_index,
             texture_page,
             texture_uv_origin,
             texture_uv_size,
@@ -936,7 +952,7 @@ impl Renderer {
     }
 
     pub fn draw_pie(&mut self, params: CirclePie) {
-        let (gradient_direction, color_start, color_end, gradient_type) = fill_gpu(params.fill);
+        let gradient_index = push_gradient(&mut self.shapes.gradients, params.fill);
         let (texture_uv_origin, texture_uv_size, texture_page, nine_slice_l, nine_slice_r, nine_slice_t, nine_slice_b, nine_slice_tiling) = texture_options_gpu(params.texture, params.texture_options);
 
         let index = self.shapes.circles.len();
@@ -944,10 +960,10 @@ impl Renderer {
             center: params.center,
             radii: [0.0, params.radius],
             angles: [params.start_angle, params.end_angle],
-            gradient_direction,
-            color_start,
-            color_end,
-            gradient_type,
+            gradient_direction: [0.0; 2],
+            color_start: Color::default(),
+            color_end: Color::default(),
+            gradient_index,
             texture_page,
             texture_uv_origin,
             texture_uv_size,
@@ -966,22 +982,17 @@ impl Renderer {
     }
 
     pub fn draw_segment(&mut self, params: Segment) {
-        let (color_start, color_end, gradient_type) = match params.fill {
-            ColorFill::Color(color) => (color, color, 0),
-            ColorFill::Gradient(g) => {
-                (g.color_start, g.color_end, 1)
-            }
-        };
+        let gradient_index = push_gradient(&mut self.shapes.gradients, params.fill);
         let (texture_uv_origin, texture_uv_size, texture_page, nine_slice_l, nine_slice_r, nine_slice_t, nine_slice_b, nine_slice_tiling) = texture_options_gpu(params.texture, params.texture_options);
 
         let index = self.shapes.segments.len();
         self.shapes.segments.push(shapes::SegmentGpu {
             start: params.start,
             end: params.end,
-            color_start,
-            color_end,
+            color_start: Color::default(),
+            color_end: Color::default(),
             thickness_dash: [params.thickness, params.dash_length.unwrap_or(0.0), params.dash_offset, 0.0],
-            gradient_type,
+            gradient_index,
             texture_page,
             texture_uv_origin,
             texture_uv_size,
@@ -997,7 +1008,7 @@ impl Renderer {
     }
 
     pub fn draw_grid(&mut self, params: Grid) {
-        let (gradient_direction, color_start, color_end, gradient_type) = fill_gpu(params.fill);
+        let gradient_index = push_gradient(&mut self.shapes.gradients, params.fill);
         let (texture_uv_origin, texture_uv_size, texture_page, nine_slice_l, nine_slice_r, nine_slice_t, nine_slice_b, nine_slice_tiling) = texture_options_gpu(params.texture, params.texture_options);
 
         let index = self.shapes.grids.len();
@@ -1007,11 +1018,11 @@ impl Renderer {
             offset: params.offset,
             lattice_size: params.lattice_size,
             line_thickness: params.line_thickness,
-            gradient_direction,
+            gradient_direction: [0.0; 2],
             _pad: 0.0,
-            color_start,
-            color_end,
-            gradient_type,
+            color_start: Color::default(),
+            color_end: Color::default(),
+            gradient_index,
             grid_type: params.grid_type as u32,
             texture_page,
             texture_uv_origin,
@@ -1028,7 +1039,7 @@ impl Renderer {
     }
 
     pub fn draw_triangle(&mut self, params: Triangle) {
-        let (gradient_direction, color_start, color_end, gradient_type) = fill_gpu(params.fill);
+        let gradient_index = push_gradient(&mut self.shapes.gradients, params.fill);
         let (texture_uv_origin, texture_uv_size, texture_page, nine_slice_l, nine_slice_r, nine_slice_t, nine_slice_b, nine_slice_tiling) = texture_options_gpu(params.texture, params.texture_options);
 
         let index = self.shapes.triangles.len();
@@ -1036,10 +1047,10 @@ impl Renderer {
             p0: params.p0,
             p1: params.p1,
             p2: params.p2,
-            gradient_direction,
-            color_start,
-            color_end,
-            gradient_type,
+            gradient_direction: [0.0; 2],
+            color_start: Color::default(),
+            color_end: Color::default(),
+            gradient_index,
             texture_page,
             texture_uv_origin,
             texture_uv_size,
@@ -1055,7 +1066,7 @@ impl Renderer {
     }
 
     pub fn draw_hexagon(&mut self, params: Hexagon) {
-        let (gradient_direction, color_start, color_end, gradient_type) = fill_gpu(params.fill);
+        let gradient_index = push_gradient(&mut self.shapes.gradients, params.fill);
         let (texture_uv_origin, texture_uv_size, texture_page, nine_slice_l, nine_slice_r, nine_slice_t, nine_slice_b, nine_slice_tiling) = texture_options_gpu(params.texture, params.texture_options);
 
         let index = self.shapes.hexagons.len();
@@ -1063,12 +1074,12 @@ impl Renderer {
             center: params.center,
             size: params.size,
             rotation: params.rotation,
-            gradient_direction,
+            gradient_direction: [0.0; 2],
             stroke_thickness: params.stroke_thickness,
             texture_page,
-            color_start,
-            color_end,
-            gradient_type,
+            color_start: Color::default(),
+            color_end: Color::default(),
+            gradient_index,
             nine_slice_l,
             texture_uv_origin,
             texture_uv_size,
@@ -1085,6 +1096,7 @@ impl Renderer {
     }
 
     pub fn draw_quadratic_bezier(&mut self, params: QuadraticBezier) {
+        let gradient_index = push_gradient(&mut self.shapes.gradients, ColorFill::Color(params.color));
         let index = self.shapes.quadratic_beziers.len();
         self.shapes.quadratic_beziers.push(shapes::QuadraticBezierGpu {
             p0: params.p0,
@@ -1092,7 +1104,8 @@ impl Renderer {
             p2: params.p2,
             thickness: params.thickness,
             blur_radius: params.blur,
-            color: params.color,
+            gradient_index,
+            _color_unused: [0.0; 3],
         });
         self.push_instance(Instance {
             p_type: primitive::QUADRATIC_BEZIER,
