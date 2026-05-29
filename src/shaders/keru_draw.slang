@@ -536,6 +536,7 @@ float4 circle_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, float
 
     // Convert UV to position relative to circle center, accounting for blur-expanded bounding quad
     float outer_radius = circle.radii.y;
+    float inner_radius = circle.radii.x;
     float blur_margin = circle.blur_radius * 3.0;
     float2 p = (uv - 0.5) * float2((outer_radius + blur_margin) * 2.0);
 
@@ -602,8 +603,8 @@ float4 circle_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, float
         t = t * 0.5 + 0.5; // Remap from [-1,1] to [0,1]
         color = gradient_oklab(circle.color_start, circle.color_end, clamp(t, 0.0, 1.0));
     } else if (circle.gradient_type == 2) {
-        // Radial gradient
-        float t = length(p) / outer_radius;
+        // Radial gradient: t=0 at inner edge, t=1 at outer edge.
+        float t = (length(p) - inner_radius) / max(outer_radius - inner_radius, 0.001);
         color = gradient_oklab(circle.color_start, circle.color_end, clamp(t, 0.0, 1.0));
     } else {
         // Solid color (gradient_type == 0)
