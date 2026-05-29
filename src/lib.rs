@@ -404,8 +404,7 @@ pub struct DashedHexagonOutline {
     pub blur: f32,
 }
 
-fn push_gradient(gradients: &mut GpuVec<shapes::GradientGpu>, fill: ColorFill) -> u32 {
-    let index = gradients.len() as u32;
+fn push_gradient(resources: &mut GpuSlab<ResourceSlot>, gradient_indices: &mut Vec<usize>, fill: ColorFill) -> u32 {
     let gradient = match fill {
         ColorFill::Color(color) => shapes::GradientGpu {
             color_start: color,
@@ -422,8 +421,9 @@ fn push_gradient(gradients: &mut GpuVec<shapes::GradientGpu>, fill: ColorFill) -
             _pad: 0,
         },
     };
-    gradients.push(gradient);
-    index
+    let index = resources.insert(gradient.into());
+    gradient_indices.push(index);
+    index as u32
 }
 
 // Returns (uv_origin, uv_size, page, ns_l, ns_r, ns_t, ns_b, tiling_flags)
@@ -512,54 +512,52 @@ impl Transform {
     }
 }
 
-pub type ClipRectOrTransform = [f32; 4];
-impl From<Transform> for ClipRectOrTransform {
+// 48-byte raw slot that can hold a Transform, ClipRect, or GradientGpu.
+// All this crap is needed because of the absolutely insane limit `max_storage_buffers_per_shader_stage: 8`.
+// No actual GPU has such a limit, but if we don't obey, keru_draw and keru would crash on everyone's wgpu loop until they request the higher limit manually.
+// https://github.com/gpuweb/gpuweb/issues/4235
+// https://vulkan.gpuinfo.org/displaydevicelimit.php?name=maxDescriptorSetStorageBuffers&platform=all 
+pub type ResourceSlot = [f32; 12];
+
+impl From<Transform> for ResourceSlot {
     fn from(t: Transform) -> Self {
-        [t.offset[0], t.offset[1], t.scale, t._padding]
+        let mut s = [0f32; 12];
+        s[0] = t.offset[0]; s[1] = t.offset[1]; s[2] = t.scale; s[3] = t._padding;
+        s
     }
 }
-impl From<ClipRectOrTransform> for Transform {
-    fn from(s: ClipRectOrTransform) -> Self {
-        Self {
-            offset: [s[0], s[1]],
-            scale: s[2],
-            _padding: s[3],
-        }
+impl From<ResourceSlot> for Transform {
+    fn from(s: ResourceSlot) -> Self {
+        Self { offset: [s[0], s[1]], scale: s[2], _padding: s[3] }
     }
 }
-impl From<ClipRect> for ClipRectOrTransform {
+impl From<ClipRect> for ResourceSlot {
     fn from(c: ClipRect) -> Self {
-        [c.x_clip[0], c.x_clip[1], c.y_clip[0], c.y_clip[1]]
+        let mut s = [0f32; 12];
+        s[0] = c.x_clip[0]; s[1] = c.x_clip[1]; s[2] = c.y_clip[0]; s[3] = c.y_clip[1];
+        s
     }
 }
-impl From<ClipRectOrTransform> for ClipRect {
-    fn from(s: ClipRectOrTransform) -> Self {
-        Self {
-            x_clip: [s[0], s[1]],
-            y_clip: [s[2], s[3]],
-        }
+impl From<ResourceSlot> for ClipRect {
+    fn from(s: ResourceSlot) -> Self {
+        Self { x_clip: [s[0], s[1]], y_clip: [s[2], s[3]] }
+    }
+}
+impl From<shapes::GradientGpu> for ResourceSlot {
+    fn from(g: shapes::GradientGpu) -> Self {
+        bytemuck::cast(g)
     }
 }
 
-// GpuSlabItem implementation for ClipRectOrTransform.
-// When a slot is free, we store the next_free index in the first element (as f32 bits).
+// GpuSlabItem for ResourceSlot: store the free-list pointer in the first f32's bits.
 // u32::MAX means None.
-impl GpuSlabItem for ClipRectOrTransform {
+impl GpuSlabItem for ResourceSlot {
     fn next_free(&self) -> Option<usize> {
         let bits = self[0].to_bits();
-        if bits == u32::MAX {
-            None
-        } else {
-            Some(bits as usize)
-        }
+        if bits == u32::MAX { None } else { Some(bits as usize) }
     }
-
     fn set_next_free(&mut self, i: Option<usize>) {
-        let bits = match i {
-            Some(idx) => idx as u32,
-            None => u32::MAX,
-        };
-        self[0] = f32::from_bits(bits);
+        self[0] = f32::from_bits(match i { Some(idx) => idx as u32, None => u32::MAX });
     }
 }
 
@@ -570,7 +568,7 @@ pub struct Renderer {
     pub image_renderer: ImageRenderer,
     pub text: Text,
     shapes: Shapes,
-    clip_rects_or_transforms: GpuSlab<ClipRectOrTransform>,
+    resources: GpuSlab<ResourceSlot>,
     shapes_bind_group: wgpu::BindGroup,
     instances: GpuVec<Instance>,
     current_transform: TransformHandle,
@@ -617,9 +615,9 @@ impl Renderer {
         let shapes = Shapes::new(&device);
         let image_renderer = ImageRenderer::new(&device, &queue);
 
-        let mut clip_rects_or_transforms: GpuSlab<ClipRectOrTransform> = GpuSlab::new(&device, 64, "keru_draw clip_rects and transforms");
-        let _ = clip_rects_or_transforms.insert(Transform::identity().into()); // index 0: identity transform
-        let _ = clip_rects_or_transforms.insert(ClipRect::NO_CLIPPING.into()); // index 1: no clip
+        let mut resources: GpuSlab<ResourceSlot> = GpuSlab::new(&device, 64, "keru_draw clip_rects and transforms");
+        let _ = resources.insert(Transform::identity().into()); // index 0: identity transform
+        let _ = resources.insert(ClipRect::NO_CLIPPING.into()); // index 1: no clip
 
         // Create merged bind group layout for shapes + images
         let shapes_bind_group_layout = Self::create_shapes_bind_group_layout(&device);
@@ -628,7 +626,7 @@ impl Renderer {
         let shapes_bind_group = Self::create_shapes_bind_group(
             &device,
             &shapes_bind_group_layout,
-            &clip_rects_or_transforms,
+            &resources,
             &shapes,
             &image_renderer,
         );
@@ -724,13 +722,13 @@ impl Renderer {
             queue: queue.clone(),
             current_transform: TransformHandle { index: 0, text_transform: keru_text::GroupTransformHandle::IDENTITY },
             current_clip_rect: 1, // "No clip" is at slot index 1
-            render_pipeline, shapes, clip_rects_or_transforms, image_renderer, text, shapes_bind_group, instances
+            render_pipeline, shapes, resources, image_renderer, text, shapes_bind_group, instances
         }
     }
 
     fn create_shapes_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
         let entries = &[
-            GpuSlab::<ClipRectOrTransform>::bind_group_layout_entry(0),
+            GpuSlab::<ResourceSlot>::bind_group_layout_entry(0),
             GpuVec::<RectangleGpu>::bind_group_layout_entry(1),
             GpuVec::<CircleGpu>::bind_group_layout_entry(2),
             GpuVec::<SegmentGpu>::bind_group_layout_entry(3),
@@ -756,8 +754,6 @@ impl Renderer {
                 ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
                 count: None,
             },
-            // Gradients buffer
-            GpuVec::<shapes::GradientGpu>::bind_group_layout_entry(10),
         ];
 
         device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
@@ -769,7 +765,7 @@ impl Renderer {
     fn create_shapes_bind_group(
         device: &wgpu::Device,
         layout: &wgpu::BindGroupLayout,
-        clip_rects_or_transforms: &GpuSlab<ClipRectOrTransform>,
+        resources: &GpuSlab<ResourceSlot>,
         shapes: &Shapes,
         image_renderer: &ImageRenderer,
     ) -> wgpu::BindGroup {
@@ -782,7 +778,7 @@ impl Renderer {
             label: Some("Shapes+Images Bind Group"),
             layout,
             entries: &[
-                clip_rects_or_transforms.bind_group_entry(0),
+                resources.bind_group_entry(0),
                 shapes.boxes.bind_group_entry(1),
                 shapes.circles.bind_group_entry(2),
                 shapes.segments.bind_group_entry(3),
@@ -798,14 +794,13 @@ impl Renderer {
                     binding: 9,
                     resource: wgpu::BindingResource::Sampler(&image_renderer.sampler),
                 },
-                shapes.gradients.bind_group_entry(10),
             ],
         })
     }
 
     // Shape drawing methods
     pub fn draw_box(&mut self, params: Rectangle) {
-        let gradient_index = push_gradient(&mut self.shapes.gradients, params.fill);
+        let gradient_index = push_gradient(&mut self.resources, &mut self.shapes.gradient_indices, params.fill);
         let (texture_uv_origin, texture_uv_size, texture_page, nine_slice_l, nine_slice_r, nine_slice_t, nine_slice_b, nine_slice_tiling) = texture_options_gpu(params.texture, params.texture_options);
 
         let index = self.shapes.boxes.len();
@@ -862,7 +857,7 @@ impl Renderer {
     }
 
     pub fn draw_circle(&mut self, params: Circle) {
-        let gradient_index = push_gradient(&mut self.shapes.gradients, params.fill);
+        let gradient_index = push_gradient(&mut self.resources, &mut self.shapes.gradient_indices, params.fill);
         let (texture_uv_origin, texture_uv_size, texture_page, nine_slice_l, nine_slice_r, nine_slice_t, nine_slice_b, nine_slice_tiling) = texture_options_gpu(params.texture, params.texture_options);
 
         let index = self.shapes.circles.len();
@@ -892,7 +887,7 @@ impl Renderer {
     }
 
     pub fn draw_ring(&mut self, params: CircleRing) {
-        let gradient_index = push_gradient(&mut self.shapes.gradients, params.fill);
+        let gradient_index = push_gradient(&mut self.resources, &mut self.shapes.gradient_indices, params.fill);
         let (texture_uv_origin, texture_uv_size, texture_page, nine_slice_l, nine_slice_r, nine_slice_t, nine_slice_b, nine_slice_tiling) = texture_options_gpu(params.texture, params.texture_options);
 
         let index = self.shapes.circles.len();
@@ -922,7 +917,7 @@ impl Renderer {
     }
 
     pub fn draw_arc(&mut self, params: CircleArc) {
-        let gradient_index = push_gradient(&mut self.shapes.gradients, params.fill);
+        let gradient_index = push_gradient(&mut self.resources, &mut self.shapes.gradient_indices, params.fill);
         let (texture_uv_origin, texture_uv_size, texture_page, nine_slice_l, nine_slice_r, nine_slice_t, nine_slice_b, nine_slice_tiling) = texture_options_gpu(params.texture, params.texture_options);
 
         let index = self.shapes.circles.len();
@@ -952,7 +947,7 @@ impl Renderer {
     }
 
     pub fn draw_pie(&mut self, params: CirclePie) {
-        let gradient_index = push_gradient(&mut self.shapes.gradients, params.fill);
+        let gradient_index = push_gradient(&mut self.resources, &mut self.shapes.gradient_indices, params.fill);
         let (texture_uv_origin, texture_uv_size, texture_page, nine_slice_l, nine_slice_r, nine_slice_t, nine_slice_b, nine_slice_tiling) = texture_options_gpu(params.texture, params.texture_options);
 
         let index = self.shapes.circles.len();
@@ -982,7 +977,7 @@ impl Renderer {
     }
 
     pub fn draw_segment(&mut self, params: Segment) {
-        let gradient_index = push_gradient(&mut self.shapes.gradients, params.fill);
+        let gradient_index = push_gradient(&mut self.resources, &mut self.shapes.gradient_indices, params.fill);
         let (texture_uv_origin, texture_uv_size, texture_page, nine_slice_l, nine_slice_r, nine_slice_t, nine_slice_b, nine_slice_tiling) = texture_options_gpu(params.texture, params.texture_options);
 
         let index = self.shapes.segments.len();
@@ -1008,7 +1003,7 @@ impl Renderer {
     }
 
     pub fn draw_grid(&mut self, params: Grid) {
-        let gradient_index = push_gradient(&mut self.shapes.gradients, params.fill);
+        let gradient_index = push_gradient(&mut self.resources, &mut self.shapes.gradient_indices, params.fill);
         let (texture_uv_origin, texture_uv_size, texture_page, nine_slice_l, nine_slice_r, nine_slice_t, nine_slice_b, nine_slice_tiling) = texture_options_gpu(params.texture, params.texture_options);
 
         let index = self.shapes.grids.len();
@@ -1039,7 +1034,7 @@ impl Renderer {
     }
 
     pub fn draw_triangle(&mut self, params: Triangle) {
-        let gradient_index = push_gradient(&mut self.shapes.gradients, params.fill);
+        let gradient_index = push_gradient(&mut self.resources, &mut self.shapes.gradient_indices, params.fill);
         let (texture_uv_origin, texture_uv_size, texture_page, nine_slice_l, nine_slice_r, nine_slice_t, nine_slice_b, nine_slice_tiling) = texture_options_gpu(params.texture, params.texture_options);
 
         let index = self.shapes.triangles.len();
@@ -1066,7 +1061,7 @@ impl Renderer {
     }
 
     pub fn draw_hexagon(&mut self, params: Hexagon) {
-        let gradient_index = push_gradient(&mut self.shapes.gradients, params.fill);
+        let gradient_index = push_gradient(&mut self.resources, &mut self.shapes.gradient_indices, params.fill);
         let (texture_uv_origin, texture_uv_size, texture_page, nine_slice_l, nine_slice_r, nine_slice_t, nine_slice_b, nine_slice_tiling) = texture_options_gpu(params.texture, params.texture_options);
 
         let index = self.shapes.hexagons.len();
@@ -1096,7 +1091,7 @@ impl Renderer {
     }
 
     pub fn draw_quadratic_bezier(&mut self, params: QuadraticBezier) {
-        let gradient_index = push_gradient(&mut self.shapes.gradients, ColorFill::Color(params.color));
+        let gradient_index = push_gradient(&mut self.resources, &mut self.shapes.gradient_indices, ColorFill::Color(params.color));
         let index = self.shapes.quadratic_beziers.len();
         self.shapes.quadratic_beziers.push(shapes::QuadraticBezierGpu {
             p0: params.p0,
@@ -1402,6 +1397,9 @@ impl Renderer {
     /// Clear all the render data, including shapes, deferred instances, transforms, and clip_rects, and begin a new frame from scratch.
     pub fn clear_for_new_frame(&mut self) {
         self.instances.clear();
+        for idx in self.shapes.gradient_indices.drain(..) {
+            self.resources.remove(idx);
+        }
         self.shapes.clear();
         self.deferred_instances.clear();
         self.current_transform = TransformHandle::IDENTITY;
@@ -1461,7 +1459,7 @@ impl Renderer {
     /// Create a retained transform.
     /// The returned `TransformHandle` is valid until [`Renderer::remove_transform()`] is called on it.
     pub fn insert_transform(&mut self, transform: Transform) -> TransformHandle {
-        let draw_index = self.clip_rects_or_transforms.insert(transform.into());
+        let draw_index = self.resources.insert(transform.into());
         // Also create a keru_text GroupTransform
         let text_transform = keru_text::GroupTransform {
             offset: transform.offset,
@@ -1474,7 +1472,7 @@ impl Renderer {
 
     /// Remove a retained transform.
     pub fn remove_transform(&mut self, handle: TransformHandle) {
-        self.clip_rects_or_transforms.remove(handle.index);
+        self.resources.remove(handle.index);
         // Also remove from keru_text group transforms
         self.text.remove_group_transform(handle.text_transform);
     }
@@ -1482,7 +1480,7 @@ impl Renderer {
     /// Modify a transform.
     /// All instances using this transform will be affected.
     pub fn update_transform(&mut self, handle: TransformHandle, transform: Transform) {
-        self.clip_rects_or_transforms[handle.index] = transform.into();
+        self.resources[handle.index] = transform.into();
         // Also update keru_text group transform
         let text_transform = keru_text::GroupTransform {
             offset: transform.offset,
@@ -1494,7 +1492,7 @@ impl Renderer {
 
     /// Get the value of a transform.
     pub fn get_transform(&self, handle: TransformHandle) -> Transform {
-        self.clip_rects_or_transforms[handle.index].into()
+        self.resources[handle.index].into()
     }
 
     /// Set the current clip rect to an existing clip rect handle.
@@ -1511,30 +1509,30 @@ impl Renderer {
     /// Create a retained clip rect.
     /// The returned `ClipRectHandle` is valid until [`Renderer::remove_clip_rect()`] is called on it.
     pub fn insert_clip_rect(&mut self, clip_rect: ClipRect) -> ClipRectHandle {
-        let index = self.clip_rects_or_transforms.insert(clip_rect.into());
+        let index = self.resources.insert(clip_rect.into());
         ClipRectHandle(index)
     }
 
     /// Remove a retained clip rect.
     pub fn remove_clip_rect(&mut self, handle: ClipRectHandle) {
-        self.clip_rects_or_transforms.remove(handle.0);
+        self.resources.remove(handle.0);
     }
 
     /// Modify a clip rect.
     /// All instances using this clip rect will be affected.
     pub fn update_clip_rect(&mut self, handle: ClipRectHandle, clip_rect: ClipRect) {
-        self.clip_rects_or_transforms[handle.0] = clip_rect.into();
+        self.resources[handle.0] = clip_rect.into();
     }
 
     /// Get the value of a clip rect.
     pub fn get_clip_rect(&self, handle: ClipRectHandle) -> ClipRect {
-        self.clip_rects_or_transforms[handle.0].into()
+        self.resources[handle.0].into()
     }
 
     /// Render into a render pass.
     pub fn render(&mut self, render_pass: &mut wgpu::RenderPass) {
         // Upload resources to GPU
-        let slots_realloc = self.clip_rects_or_transforms.load_to_gpu(&self.device, &self.queue);
+        let slots_realloc = self.resources.load_to_gpu(&self.device, &self.queue);
         let shapes_realloc = self.shapes.load_to_gpu(&self.device, &self.queue);
         let images_realloc = self.image_renderer.load_to_gpu(&self.device, &self.queue);
 
@@ -1544,7 +1542,7 @@ impl Renderer {
             self.shapes_bind_group = Self::create_shapes_bind_group(
                 &self.device,
                 &layout,
-                &self.clip_rects_or_transforms,
+                &self.resources,
                 &self.shapes,
                 &self.image_renderer,
             );
@@ -1560,7 +1558,7 @@ impl Renderer {
 
     pub fn load_to_gpu(&mut self) {
         // Upload resources to GPU
-        let slots_changed = self.clip_rects_or_transforms.load_to_gpu(&self.device, &self.queue);
+        let slots_changed = self.resources.load_to_gpu(&self.device, &self.queue);
         let shapes_changed = self.shapes.load_to_gpu(&self.device, &self.queue);
         let images_changed = self.image_renderer.load_to_gpu(&self.device, &self.queue);
 
@@ -1570,7 +1568,7 @@ impl Renderer {
             self.shapes_bind_group = Self::create_shapes_bind_group(
                 &self.device,
                 &layout,
-                &self.clip_rects_or_transforms,
+                &self.resources,
                 &self.shapes,
                 &self.image_renderer,
             );

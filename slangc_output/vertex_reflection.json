@@ -10,17 +10,51 @@
                     "name": "ShapesGpu",
                     "fields": [
                         {
-                            "name": "clip_rects_or_transforms",
+                            "name": "resources",
                             "type": {
                                 "kind": "resource",
                                 "baseShape": "structuredBuffer",
                                 "resultType": {
-                                    "kind": "vector",
-                                    "elementCount": 4,
-                                    "elementType": {
-                                        "kind": "scalar",
-                                        "scalarType": "float32"
-                                    }
+                                    "kind": "struct",
+                                    "name": "ResourceSlot",
+                                    "fields": [
+                                        {
+                                            "name": "a",
+                                            "type": {
+                                                "kind": "vector",
+                                                "elementCount": 4,
+                                                "elementType": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                }
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 0, "size": 16, "elementStride": 4}
+                                        },
+                                        {
+                                            "name": "b",
+                                            "type": {
+                                                "kind": "vector",
+                                                "elementCount": 4,
+                                                "elementType": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                }
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 16, "size": 16, "elementStride": 4}
+                                        },
+                                        {
+                                            "name": "c",
+                                            "type": {
+                                                "kind": "vector",
+                                                "elementCount": 4,
+                                                "elementType": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                }
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 32, "size": 16, "elementStride": 4}
+                                        }
+                                    ]
                                 }
                             },
                             "binding": {"kind": "descriptorTableSlot", "index": 0}
@@ -1286,72 +1320,6 @@
                                 "kind": "samplerState"
                             },
                             "binding": {"kind": "descriptorTableSlot", "index": 9}
-                        },
-                        {
-                            "name": "gradients",
-                            "type": {
-                                "kind": "resource",
-                                "baseShape": "structuredBuffer",
-                                "resultType": {
-                                    "kind": "struct",
-                                    "name": "GradientGpu",
-                                    "fields": [
-                                        {
-                                            "name": "color_start",
-                                            "type": {
-                                                "kind": "vector",
-                                                "elementCount": 4,
-                                                "elementType": {
-                                                    "kind": "scalar",
-                                                    "scalarType": "float32"
-                                                }
-                                            },
-                                            "binding": {"kind": "uniform", "offset": 0, "size": 16, "elementStride": 4}
-                                        },
-                                        {
-                                            "name": "color_end",
-                                            "type": {
-                                                "kind": "vector",
-                                                "elementCount": 4,
-                                                "elementType": {
-                                                    "kind": "scalar",
-                                                    "scalarType": "float32"
-                                                }
-                                            },
-                                            "binding": {"kind": "uniform", "offset": 16, "size": 16, "elementStride": 4}
-                                        },
-                                        {
-                                            "name": "gradient_direction",
-                                            "type": {
-                                                "kind": "vector",
-                                                "elementCount": 2,
-                                                "elementType": {
-                                                    "kind": "scalar",
-                                                    "scalarType": "float32"
-                                                }
-                                            },
-                                            "binding": {"kind": "uniform", "offset": 32, "size": 8, "elementStride": 4}
-                                        },
-                                        {
-                                            "name": "gradient_type",
-                                            "type": {
-                                                "kind": "scalar",
-                                                "scalarType": "uint32"
-                                            },
-                                            "binding": {"kind": "uniform", "offset": 40, "size": 4, "elementStride": 0}
-                                        },
-                                        {
-                                            "name": "_pad",
-                                            "type": {
-                                                "kind": "scalar",
-                                                "scalarType": "uint32"
-                                            },
-                                            "binding": {"kind": "uniform", "offset": 44, "size": 4, "elementStride": 0}
-                                        }
-                                    ]
-                                }
-                            },
-                            "binding": {"kind": "descriptorTableSlot", "index": 10}
                         }
                     ]
                 },
@@ -1364,17 +1332,51 @@
                         "name": "ShapesGpu",
                         "fields": [
                             {
-                                "name": "clip_rects_or_transforms",
+                                "name": "resources",
                                 "type": {
                                     "kind": "resource",
                                     "baseShape": "structuredBuffer",
                                     "resultType": {
-                                        "kind": "vector",
-                                        "elementCount": 4,
-                                        "elementType": {
-                                            "kind": "scalar",
-                                            "scalarType": "float32"
-                                        }
+                                        "kind": "struct",
+                                        "name": "ResourceSlot",
+                                        "fields": [
+                                            {
+                                                "name": "a",
+                                                "type": {
+                                                    "kind": "vector",
+                                                    "elementCount": 4,
+                                                    "elementType": {
+                                                        "kind": "scalar",
+                                                        "scalarType": "float32"
+                                                    }
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 0, "size": 16, "elementStride": 4}
+                                            },
+                                            {
+                                                "name": "b",
+                                                "type": {
+                                                    "kind": "vector",
+                                                    "elementCount": 4,
+                                                    "elementType": {
+                                                        "kind": "scalar",
+                                                        "scalarType": "float32"
+                                                    }
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 16, "size": 16, "elementStride": 4}
+                                            },
+                                            {
+                                                "name": "c",
+                                                "type": {
+                                                    "kind": "vector",
+                                                    "elementCount": 4,
+                                                    "elementType": {
+                                                        "kind": "scalar",
+                                                        "scalarType": "float32"
+                                                    }
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 32, "size": 16, "elementStride": 4}
+                                            }
+                                        ]
                                     }
                                 },
                                 "binding": {"kind": "descriptorTableSlot", "index": 0}
@@ -2640,76 +2642,10 @@
                                     "kind": "samplerState"
                                 },
                                 "binding": {"kind": "descriptorTableSlot", "index": 9}
-                            },
-                            {
-                                "name": "gradients",
-                                "type": {
-                                    "kind": "resource",
-                                    "baseShape": "structuredBuffer",
-                                    "resultType": {
-                                        "kind": "struct",
-                                        "name": "GradientGpu",
-                                        "fields": [
-                                            {
-                                                "name": "color_start",
-                                                "type": {
-                                                    "kind": "vector",
-                                                    "elementCount": 4,
-                                                    "elementType": {
-                                                        "kind": "scalar",
-                                                        "scalarType": "float32"
-                                                    }
-                                                },
-                                                "binding": {"kind": "uniform", "offset": 0, "size": 16, "elementStride": 4}
-                                            },
-                                            {
-                                                "name": "color_end",
-                                                "type": {
-                                                    "kind": "vector",
-                                                    "elementCount": 4,
-                                                    "elementType": {
-                                                        "kind": "scalar",
-                                                        "scalarType": "float32"
-                                                    }
-                                                },
-                                                "binding": {"kind": "uniform", "offset": 16, "size": 16, "elementStride": 4}
-                                            },
-                                            {
-                                                "name": "gradient_direction",
-                                                "type": {
-                                                    "kind": "vector",
-                                                    "elementCount": 2,
-                                                    "elementType": {
-                                                        "kind": "scalar",
-                                                        "scalarType": "float32"
-                                                    }
-                                                },
-                                                "binding": {"kind": "uniform", "offset": 32, "size": 8, "elementStride": 4}
-                                            },
-                                            {
-                                                "name": "gradient_type",
-                                                "type": {
-                                                    "kind": "scalar",
-                                                    "scalarType": "uint32"
-                                                },
-                                                "binding": {"kind": "uniform", "offset": 40, "size": 4, "elementStride": 0}
-                                            },
-                                            {
-                                                "name": "_pad",
-                                                "type": {
-                                                    "kind": "scalar",
-                                                    "scalarType": "uint32"
-                                                },
-                                                "binding": {"kind": "uniform", "offset": 44, "size": 4, "elementStride": 0}
-                                            }
-                                        ]
-                                    }
-                                },
-                                "binding": {"kind": "descriptorTableSlot", "index": 10}
                             }
                         ]
                     },
-                    "binding": {"kind": "descriptorTableSlot", "index": 0, "count": 11}
+                    "binding": {"kind": "descriptorTableSlot", "index": 0, "count": 10}
                 }
             }
         },

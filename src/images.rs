@@ -271,7 +271,6 @@ impl ImageRenderer {
             return Some(self.store_in_atlas(rgba_data, alloc, new_page_idx, width, height, id));
         }
 
-        dbg!("Doesn't fit in atlas KEK");
         // Image too large even for new page
         None
     }

@@ -1,7 +1,13 @@
 import quad;
 
+struct ResourceSlot {
+    float4 a;
+    float4 b;
+    float4 c;
+}
+
 struct ShapesGpu {
-    StructuredBuffer<float4> clip_rects_or_transforms;
+    StructuredBuffer<ResourceSlot> resources;
     StructuredBuffer<RectangleGpu> boxes;
     StructuredBuffer<CircleGpu> circles;
     StructuredBuffer<SegmentGpu> segments;
@@ -11,7 +17,6 @@ struct ShapesGpu {
     StructuredBuffer<QuadraticBezierGpu> quadratic_beziers;
     Texture2DArray<float4> atlas_texture;
     SamplerState atlas_sampler;
-    StructuredBuffer<GradientGpu> gradients;
 }
 
 ParameterBlock<ShapesGpu> shapes;
@@ -347,7 +352,7 @@ float sd_rounded_box(float2 p, float2 size, float4 r) {
 
 float4 box_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, float2 screen_pos, bool surface_is_srgb, float transform_scale): SV_Target {
     var box: RectangleGpu = shapes.boxes[primitiveIndex];
-    var clip: ClipRect = reinterpret<ClipRect>(shapes.clip_rects_or_transforms[clipRectIndex]);
+    var clip: ClipRect = reinterpret<ClipRect>(shapes.resources[clipRectIndex].a);
 
     if (screen_pos.x < clip.x_clip.x || screen_pos.x > clip.x_clip.y ||
         screen_pos.y < clip.y_clip.x || screen_pos.y > clip.y_clip.y) {
@@ -392,7 +397,7 @@ float4 box_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, float2 s
     }
 
     // Calculate gradient/solid color
-    var grad: GradientGpu = shapes.gradients[box.gradient_index];
+    var grad: GradientGpu = reinterpret<GradientGpu>(shapes.resources[box.gradient_index]);
     float4 color;
     if (grad.gradient_type == 1) {
         // Linear gradient
@@ -540,7 +545,7 @@ float sd_circle_variant(float2 p, CircleGpu circle) {
 
 float4 circle_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, float2 screen_pos, bool srgb, float transform_scale): SV_Target {
     var circle: CircleGpu = shapes.circles[primitiveIndex];
-    var clip: ClipRect = reinterpret<ClipRect>(shapes.clip_rects_or_transforms[clipRectIndex]);
+    var clip: ClipRect = reinterpret<ClipRect>(shapes.resources[clipRectIndex].a);
 
     if (screen_pos.x < clip.x_clip.x || screen_pos.x > clip.x_clip.y ||
         screen_pos.y < clip.y_clip.x || screen_pos.y > clip.y_clip.y) {
@@ -609,7 +614,7 @@ float4 circle_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, float
     }
 
     // Calculate gradient color
-    var grad: GradientGpu = shapes.gradients[circle.gradient_index];
+    var grad: GradientGpu = reinterpret<GradientGpu>(shapes.resources[circle.gradient_index]);
     float4 color;
     if (grad.gradient_type == 1) {
         // Linear gradient
@@ -700,7 +705,7 @@ float sd_segment(float2 p, float2 a, float2 b) {
 
 float4 segment_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, float2 screen_pos, bool srgb, float transform_scale): SV_Target {
     var seg: SegmentGpu = shapes.segments[primitiveIndex];
-    var clip: ClipRect = reinterpret<ClipRect>(shapes.clip_rects_or_transforms[clipRectIndex]);
+    var clip: ClipRect = reinterpret<ClipRect>(shapes.resources[clipRectIndex].a);
 
     if (screen_pos.x < clip.x_clip.x || screen_pos.x > clip.x_clip.y ||
         screen_pos.y < clip.y_clip.x || screen_pos.y > clip.y_clip.y) {
@@ -774,7 +779,7 @@ float4 segment_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, floa
     }
 
     // Calculate gradient color
-    var grad: GradientGpu = shapes.gradients[seg.gradient_index];
+    var grad: GradientGpu = reinterpret<GradientGpu>(shapes.resources[seg.gradient_index]);
     float4 color;
     if (grad.gradient_type == 1) {
         // Linear gradient along segment
@@ -843,7 +848,7 @@ void grid_vertex(
 // Thanks leftofzen. https://www.shadertoy.com/view/wtdSzX
 float4 grid_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, float2 screen_pos, bool surface_is_srgb, float transform_scale): SV_Target {
     var grid: GridGpu = shapes.grids[primitiveIndex];
-    var clip: ClipRect = reinterpret<ClipRect>(shapes.clip_rects_or_transforms[clipRectIndex]);
+    var clip: ClipRect = reinterpret<ClipRect>(shapes.resources[clipRectIndex].a);
 
     // Apply clipping
     if (screen_pos.x < clip.x_clip.x || screen_pos.x > clip.x_clip.y ||
@@ -906,7 +911,7 @@ float4 grid_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, float2 
     }
 
     // Calculate gradient/solid color
-    var grad: GradientGpu = shapes.gradients[grid.gradient_index];
+    var grad: GradientGpu = reinterpret<GradientGpu>(shapes.resources[grid.gradient_index]);
     float4 color;
     float2 p = uv * grid.size - grid.size * 0.5;
     if (grad.gradient_type == 1) {
@@ -999,7 +1004,7 @@ float sd_triangle(float2 p, float2 p0, float2 p1, float2 p2) {
 
 float4 triangle_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, float2 screen_pos, bool surface_is_srgb, float transform_scale): SV_Target {
     var tri: TriangleGpu = shapes.triangles[primitiveIndex];
-    var clip: ClipRect = reinterpret<ClipRect>(shapes.clip_rects_or_transforms[clipRectIndex]);
+    var clip: ClipRect = reinterpret<ClipRect>(shapes.resources[clipRectIndex].a);
 
     if (screen_pos.x < clip.x_clip.x || screen_pos.x > clip.x_clip.y ||
         screen_pos.y < clip.y_clip.x || screen_pos.y > clip.y_clip.y) {
@@ -1032,7 +1037,7 @@ float4 triangle_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, flo
     }
 
     // Calculate gradient color
-    var grad: GradientGpu = shapes.gradients[tri.gradient_index];
+    var grad: GradientGpu = reinterpret<GradientGpu>(shapes.resources[tri.gradient_index]);
     float4 color;
     if (grad.gradient_type == 1) {
         // Linear gradient
@@ -1125,7 +1130,7 @@ float sd_hexagon(float2 p, float r) {
 
 float4 hexagon_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, float2 screen_pos, bool surface_is_srgb, float transform_scale): SV_Target {
     var hex: HexagonGpu = shapes.hexagons[primitiveIndex];
-    var clip: ClipRect = reinterpret<ClipRect>(shapes.clip_rects_or_transforms[clipRectIndex]);
+    var clip: ClipRect = reinterpret<ClipRect>(shapes.resources[clipRectIndex].a);
 
     if (screen_pos.x < clip.x_clip.x || screen_pos.x > clip.x_clip.y ||
         screen_pos.y < clip.y_clip.x || screen_pos.y > clip.y_clip.y) {
@@ -1166,7 +1171,7 @@ float4 hexagon_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, floa
     }
 
     // Calculate gradient color
-    var grad: GradientGpu = shapes.gradients[hex.gradient_index];
+    var grad: GradientGpu = reinterpret<GradientGpu>(shapes.resources[hex.gradient_index]);
     float4 color;
     if (grad.gradient_type == 1) {
         // Linear gradient
@@ -1308,7 +1313,7 @@ float sd_quadratic_bezier(float2 pos, float2 p0, float2 p1, float2 p2) {
 
 float4 quadratic_bezier_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, float2 screen_pos, bool srgb, float transform_scale): SV_Target {
     var seg: QuadraticBezierGpu = shapes.quadratic_beziers[primitiveIndex];
-    var clip: ClipRect = reinterpret<ClipRect>(shapes.clip_rects_or_transforms[clipRectIndex]);
+    var clip: ClipRect = reinterpret<ClipRect>(shapes.resources[clipRectIndex].a);
 
     if (screen_pos.x < clip.x_clip.x || screen_pos.x > clip.x_clip.y ||
         screen_pos.y < clip.y_clip.x || screen_pos.y > clip.y_clip.y) {
@@ -1341,7 +1346,7 @@ float4 quadratic_bezier_fragment(uint primitiveIndex, uint clipRectIndex, float2
         discard;
     }
 
-    var grad: GradientGpu = shapes.gradients[seg.gradient_index];
+    var grad: GradientGpu = reinterpret<GradientGpu>(shapes.resources[seg.gradient_index]);
     float4 color = grad.color_start;
 
     if (srgb) {

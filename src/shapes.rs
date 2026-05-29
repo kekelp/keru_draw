@@ -173,7 +173,7 @@ pub struct QuadraticBezierGpu {
 }
 
 pub struct Shapes {
-    pub(crate) gradients: GpuVec<GradientGpu>,
+    pub(crate) gradient_indices: Vec<usize>,
     pub(crate) boxes: GpuVec<RectangleGpu>,
     pub(crate) circles: GpuVec<CircleGpu>,
     pub(crate) segments: GpuVec<SegmentGpu>,
@@ -185,7 +185,6 @@ pub struct Shapes {
 
 impl Shapes {
     pub fn new(device: &wgpu::Device) -> Self {
-        let gradients = GpuVec::new(device, 256, "keru_draw gradients");
         let boxes = GpuVec::new(device, 64, "keru_draw boxes");
         let circles = GpuVec::new(device, 64, "keru_draw circles");
         let segments = GpuVec::new(device, 64, "keru_draw segments");
@@ -195,7 +194,7 @@ impl Shapes {
         let quadratic_beziers = GpuVec::new(device, 64, "keru_draw quadratic_beziers");
 
         Self {
-            gradients,
+            gradient_indices: Vec::new(),
             boxes,
             circles,
             segments,
@@ -207,7 +206,7 @@ impl Shapes {
     }
 
     pub fn clear(&mut self) {
-        self.gradients.clear();
+        // gradient_indices are drained by Renderer::clear_for_new_frame before calling this
         self.boxes.clear();
         self.circles.clear();
         self.segments.clear();
@@ -218,7 +217,6 @@ impl Shapes {
     }
 
     pub fn load_to_gpu(&mut self, device: &wgpu::Device, queue: &wgpu::Queue) -> bool {
-        let gradients_changed = self.gradients.load_to_gpu(device, queue);
         let boxes_changed = self.boxes.load_to_gpu(device, queue);
         let circles_changed = self.circles.load_to_gpu(device, queue);
         let segments_changed = self.segments.load_to_gpu(device, queue);
@@ -227,6 +225,6 @@ impl Shapes {
         let hexagons_changed = self.hexagons.load_to_gpu(device, queue);
         let quadratic_beziers_changed = self.quadratic_beziers.load_to_gpu(device, queue);
 
-        gradients_changed || boxes_changed || circles_changed || segments_changed || grids_changed || triangles_changed || hexagons_changed || quadratic_beziers_changed
+        boxes_changed || circles_changed || segments_changed || grids_changed || triangles_changed || hexagons_changed || quadratic_beziers_changed
     }
 }

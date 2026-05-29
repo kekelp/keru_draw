@@ -79,7 +79,7 @@ VertexOutput vertexMain(
         float2 screen_pos = (output.position.xy * float2(1.0, -1.0) + 1.0) * resolution * 0.5;
 
         // Apply the transform
-        Transform transform = reinterpret<Transform>(shapes.clip_rects_or_transforms[input.transformIndex]);
+        Transform transform = reinterpret<Transform>(shapes.resources[input.transformIndex].a);
         float2 transformed_pos = screen_pos * transform.scale + transform.offset;
 
         // Store the scale factor for antialiasing
