@@ -404,23 +404,31 @@ pub struct DashedHexagonOutline {
     pub blur: f32,
 }
 
-fn push_gradient(resources: &mut GpuSlab<ResourceSlot>, gradient_indices: &mut Vec<usize>, fill: ColorFill) -> u32 {
-    let gradient = match fill {
-        ColorFill::Color(color) => shapes::GradientGpu {
+fn gradient_gpu(fill: ColorFill) -> Option<shapes::GradientGpu> {
+    match fill {
+        ColorFill::StoredGradient(_) => None,
+        ColorFill::Color(color) => Some(shapes::GradientGpu {
             color_start: color,
             color_end: color,
             gradient_direction: [1.0, 0.0],
             gradient_type: 0,
             _pad: 0,
-        },
-        ColorFill::Gradient(g) => shapes::GradientGpu {
+        }),
+        ColorFill::Gradient(g) => Some(shapes::GradientGpu {
             color_start: g.color_start,
             color_end: g.color_end,
             gradient_direction: [g.angle.cos(), g.angle.sin()],
             gradient_type: g.gradient_type as u32,
             _pad: 0,
-        },
-    };
+        }),
+    }
+}
+
+fn push_gradient(resources: &mut GpuSlab<ResourceSlot>, gradient_indices: &mut Vec<usize>, fill: ColorFill) -> u32 {
+    if let ColorFill::StoredGradient(handle) = fill {
+        return handle.0;
+    }
+    let gradient = gradient_gpu(fill).unwrap();
     let index = resources.insert(gradient.into());
     gradient_indices.push(index);
     index as u32
@@ -1504,6 +1512,22 @@ impl Renderer {
     /// Reset the current clip rect back to "no clip".
     pub fn clear_current_clip_rect(&mut self) {
         self.current_clip_rect = 0;
+    }
+
+    /// Store a gradient in the resource buffer and return a handle for reuse within the frame.
+    /// The handle can be used with [`ColorFill::StoredGradient`] to apply the same gradient
+    /// to multiple shapes.
+    pub fn create_gradient(&mut self, fill: ColorFill) -> GradientHandle {
+        let gradient = gradient_gpu(fill).unwrap_or_else(|| {
+            if let ColorFill::StoredGradient(h) = fill {
+                bytemuck::cast(self.resources[h.0 as usize])
+            } else {
+                unreachable!()
+            }
+        });
+        let index = self.resources.insert(gradient.into());
+        self.shapes.gradient_indices.push(index);
+        GradientHandle(index as u32)
     }
 
     /// Create a retained clip rect.

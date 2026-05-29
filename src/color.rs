@@ -110,11 +110,18 @@ impl Color {
     });
 }
 
+/// A handle to a gradient that has already been stored in the renderer's resource buffer.
+/// Obtained from [`Renderer::create_gradient`]. Can be reused across many shapes per frame.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct GradientHandle(pub(crate) u32);
+
 /// Fill style for shapes - solid color or gradient
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum ColorFill {
     Color(Color),
     Gradient(Gradient),
+    /// A gradient that was already stored via [`Renderer::create_gradient`].
+    StoredGradient(GradientHandle),
 }
 
 impl Hash for ColorFill {
@@ -130,6 +137,10 @@ impl Hash for ColorFill {
             ColorFill::Gradient(gradient) => {
                 1u8.hash(state);
                 gradient.hash(state);
+            },
+            ColorFill::StoredGradient(handle) => {
+                2u8.hash(state);
+                handle.0.hash(state);
             },
         }
     }
