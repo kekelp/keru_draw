@@ -86,72 +86,20 @@ bitflags::bitflags! {
     }
 }
 
-/// Gradient type for shapes
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum GradientType {
-    Linear = 1,
-    Radial = 2,
-}
-
-/// Gradient definition for shapes
+/// A linear gradient.
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub struct Gradient {
+pub struct LinearGradient {
     pub color_start: Color,
     pub color_end: Color,
-    pub gradient_type: GradientType,
     pub angle: f32,
-    /// For radial gradients: radius (in pixels) of the flat `color_start` region at the center.
-    /// Pixels inside this radius get `color_start` with no blending. Defaults to 0.
-    pub inner_radius: f32,
 }
 
-impl Gradient {
-    pub const fn new(color_start: Color, color_end: Color) -> Self {
-        Self {
-            color_start,
-            color_end,
-            gradient_type: GradientType::Linear,
-            angle: 0.0,
-            inner_radius: 0.0,
-        }
+impl LinearGradient {
+    pub const fn new(color_start: Color, color_end: Color, angle: f32) -> Self {
+        Self { color_start, color_end, angle }
     }
 
-    pub const fn with_type(mut self, gradient_type: GradientType) -> Self {
-        self.gradient_type = gradient_type;
-        self
-    }
-
-    pub const fn with_angle(mut self, angle: f32) -> Self {
-        self.angle = angle;
-        self
-    }
-
-    pub const fn linear(color_start: Color, color_end: Color, angle: f32) -> Self {
-        Self {
-            color_start,
-            color_end,
-            gradient_type: GradientType::Linear,
-            angle,
-            inner_radius: 0.0,
-        }
-    }
-
-    pub const fn radial(color_start: Color, color_end: Color) -> Self {
-        Self {
-            color_start,
-            color_end,
-            gradient_type: GradientType::Radial,
-            angle: 0.0,
-            inner_radius: 0.0,
-        }
-    }
-
-    pub const fn with_inner_radius(mut self, inner_radius: f32) -> Self {
-        self.inner_radius = inner_radius;
-        self
-    }
-
-    pub fn with_alpha(self, alpha: f32) -> Gradient {
+    pub fn with_alpha(self, alpha: f32) -> Self {
         Self {
             color_start: self.color_start.with_alpha(alpha),
             color_end: self.color_end.with_alpha(alpha),
@@ -160,18 +108,58 @@ impl Gradient {
     }
 }
 
-impl std::hash::Hash for Gradient {
+impl std::hash::Hash for LinearGradient {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.color_start.r.to_bits().hash(state);
         self.color_start.g.to_bits().hash(state);
-        self.color_start.g.to_bits().hash(state);
+        self.color_start.b.to_bits().hash(state);
         self.color_start.a.to_bits().hash(state);
         self.color_end.r.to_bits().hash(state);
         self.color_end.g.to_bits().hash(state);
-        self.color_end.g.to_bits().hash(state);
+        self.color_end.b.to_bits().hash(state);
         self.color_end.a.to_bits().hash(state);
-        self.gradient_type.hash(state);
         self.angle.to_bits().hash(state);
+    }
+}
+
+/// Radial gradient 
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct RadialGradient {
+    pub color_start: Color,
+    pub color_end: Color,
+    pub inner_radius: f32,
+}
+
+impl RadialGradient {
+    pub const fn new(color_start: Color, color_end: Color) -> Self {
+        Self { color_start, color_end, inner_radius: 0.0 }
+    }
+
+    pub const fn with_inner_radius(mut self, inner_radius: f32) -> Self {
+        self.inner_radius = inner_radius;
+        self
+    }
+
+    pub fn with_alpha(self, alpha: f32) -> Self {
+        Self {
+            color_start: self.color_start.with_alpha(alpha),
+            color_end: self.color_end.with_alpha(alpha),
+            ..self
+        }
+    }
+}
+
+impl std::hash::Hash for RadialGradient {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.color_start.r.to_bits().hash(state);
+        self.color_start.g.to_bits().hash(state);
+        self.color_start.b.to_bits().hash(state);
+        self.color_start.a.to_bits().hash(state);
+        self.color_end.r.to_bits().hash(state);
+        self.color_end.g.to_bits().hash(state);
+        self.color_end.b.to_bits().hash(state);
+        self.color_end.a.to_bits().hash(state);
+        self.inner_radius.to_bits().hash(state);
     }
 }
 
@@ -421,19 +409,18 @@ fn gradient_gpu_circle(fill: ColorFill, center: [f32; 2], outer_radius: f32) -> 
             color_start: color, color_end: color,
             p0: center, p1: center, gradient_type: 0, _pad: [0; 3],
         },
-        ColorFill::Gradient(g) => {
-            let (p0, p1) = match g.gradient_type {
-                GradientType::Linear => {
-                    let (dx, dy) = (g.angle.cos() * outer_radius, g.angle.sin() * outer_radius);
-                    ([center[0] - dx, center[1] - dy], [center[0] + dx, center[1] + dy])
-                }
-                GradientType::Radial => (center, [outer_radius, g.inner_radius]),
-            };
+        ColorFill::Linear(g) => {
+            let (dx, dy) = (g.angle.cos() * outer_radius, g.angle.sin() * outer_radius);
+            let (p0, p1) = ([center[0] - dx, center[1] - dy], [center[0] + dx, center[1] + dy]);
             shapes::GradientGpu {
                 color_start: g.color_start, color_end: g.color_end,
-                p0, p1, gradient_type: g.gradient_type as u32, _pad: [0; 3],
+                p0, p1, gradient_type: 1, _pad: [0; 3],
             }
         }
+        ColorFill::Radial(g) => shapes::GradientGpu {
+            color_start: g.color_start, color_end: g.color_end,
+            p0: center, p1: [outer_radius, g.inner_radius], gradient_type: 2, _pad: [0; 3],
+        },
         ColorFill::StoredGradient(_) => unreachable!(),
     }
 }
@@ -445,22 +432,23 @@ fn gradient_gpu_rect(fill: ColorFill, top_left: [f32; 2], size: [f32; 2]) -> sha
             color_start: color, color_end: color,
             p0: center, p1: center, gradient_type: 0, _pad: [0; 3],
         },
-        ColorFill::Gradient(g) => {
-            let (p0, p1) = match g.gradient_type {
-                GradientType::Linear => {
-                    let dir = [g.angle.cos(), g.angle.sin()];
-                    let half_ext = dir[0].abs() * size[0] * 0.5 + dir[1].abs() * size[1] * 0.5;
-                    ([center[0] - dir[0] * half_ext, center[1] - dir[1] * half_ext],
-                     [center[0] + dir[0] * half_ext, center[1] + dir[1] * half_ext])
-                }
-                GradientType::Radial => {
-                    let r = (size[0] * size[0] + size[1] * size[1]).sqrt() * 0.5;
-                    (center, [r, g.inner_radius])
-                }
-            };
+        ColorFill::Linear(g) => {
+            let dir = [g.angle.cos(), g.angle.sin()];
+            let half_ext = dir[0].abs() * size[0] * 0.5 + dir[1].abs() * size[1] * 0.5;
+            let (p0, p1) = (
+                [center[0] - dir[0] * half_ext, center[1] - dir[1] * half_ext],
+                [center[0] + dir[0] * half_ext, center[1] + dir[1] * half_ext],
+            );
             shapes::GradientGpu {
                 color_start: g.color_start, color_end: g.color_end,
-                p0, p1, gradient_type: g.gradient_type as u32, _pad: [0; 3],
+                p0, p1, gradient_type: 1, _pad: [0; 3],
+            }
+        }
+        ColorFill::Radial(g) => {
+            let r = (size[0] * size[0] + size[1] * size[1]).sqrt() * 0.5;
+            shapes::GradientGpu {
+                color_start: g.color_start, color_end: g.color_end,
+                p0: center, p1: [r, g.inner_radius], gradient_type: 2, _pad: [0; 3],
             }
         }
         ColorFill::StoredGradient(_) => unreachable!(),
@@ -474,19 +462,17 @@ fn gradient_gpu_segment(fill: ColorFill, start: [f32; 2], end: [f32; 2]) -> shap
             color_start: color, color_end: color,
             p0: center, p1: center, gradient_type: 0, _pad: [0; 3],
         },
-        ColorFill::Gradient(g) => {
-            let (p0, p1) = match g.gradient_type {
-                GradientType::Linear => (start, end),
-                GradientType::Radial => {
-                    let dx = end[0] - start[0];
-                    let dy = end[1] - start[1];
-                    let r = (dx * dx + dy * dy).sqrt() * 0.5;
-                    (center, [r, g.inner_radius])
-                }
-            };
+        ColorFill::Linear(g) => shapes::GradientGpu {
+            color_start: g.color_start, color_end: g.color_end,
+            p0: start, p1: end, gradient_type: 1, _pad: [0; 3],
+        },
+        ColorFill::Radial(g) => {
+            let dx = end[0] - start[0];
+            let dy = end[1] - start[1];
+            let r = (dx * dx + dy * dy).sqrt() * 0.5;
             shapes::GradientGpu {
                 color_start: g.color_start, color_end: g.color_end,
-                p0, p1, gradient_type: g.gradient_type as u32, _pad: [0; 3],
+                p0: center, p1: [r, g.inner_radius], gradient_type: 2, _pad: [0; 3],
             }
         }
         ColorFill::StoredGradient(_) => unreachable!(),
@@ -1651,10 +1637,10 @@ impl Renderer {
     /// Store a gradient in the resource buffer and return a handle for reuse within the frame.
     /// The handle can be used with [`ColorFill::StoredGradient`] to apply the same gradient
     /// to multiple shapes.
-    pub fn create_gradient(&mut self, gradient: shapes::GradientGpu) -> GradientHandle {
+    pub fn create_gradient(&mut self, gradient: shapes::GradientGpu) -> SharedGradient {
         let index = self.resources.insert(gradient.into());
         self.shapes.gradient_indices.push(index);
-        GradientHandle(index as u32)
+        SharedGradient(index as u32)
     }
 
     /// Create a retained clip rect.

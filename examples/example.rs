@@ -277,7 +277,12 @@ impl State {
         self.renderer.draw_circle(Circle {
             center: [140.0, 150.0],
             radius: 30.0,
-            fill: ColorFill::Gradient(Gradient::linear(Color::new(0.3, 0.7, 1.0, 1.0), Color::new(1.0, 0.3, 0.7, 1.0), PI * 0.5)),
+            fill: ColorFill::Linear(
+                LinearGradient { 
+                    color_start: Color::new(0.3, 0.7, 1.0, 1.0),
+                    color_end: Color::new(1.0, 0.3, 0.7, 1.0), 
+                    angle: PI * 0.5,
+                }),
             blur: 0.0,
             texture: None,
             texture_options: None,

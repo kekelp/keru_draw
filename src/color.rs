@@ -95,34 +95,32 @@ impl Color {
         ]
     }
 
-    pub const KERU_GRAD: ColorFill = ColorFill::Gradient(Gradient {
+    pub const KERU_GRAD: ColorFill = ColorFill::Linear(LinearGradient {
         color_start: Self::KERU_BLUE,
         color_end: Self::KERU_RED,
-        gradient_type: GradientType::Linear,
         angle: -0.785398, // -45 degrees
-        inner_radius: 0.0,
     });
 
-    pub const KERU_GRAD_FW: ColorFill = ColorFill::Gradient(Gradient {
+    pub const KERU_GRAD_FW: ColorFill = ColorFill::Linear(LinearGradient {
         color_start: Self::KERU_BLUE,
         color_end: Self::KERU_RED,
-        gradient_type: GradientType::Linear,
         angle: 0.785398, // 45 degrees
-        inner_radius: 0.0,
     });
 }
 
-/// A handle to a gradient that has already been stored in the renderer's resource buffer.
-/// Obtained from [`Renderer::create_gradient`]. Can be reused across many shapes per frame.
+/// A handle to a shared gradient that can be created in absolute space and used by multiple shapes.
+/// 
+/// Obtained by calling [Canvas::create_gradient()] or [Renderer::create_gradient()];
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct GradientHandle(pub(crate) u32);
+pub struct SharedGradient(pub(crate) u32);
 
 /// Fill style for shapes - solid color or gradient
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum ColorFill {
     Color(Color),
-    Gradient(Gradient),
-    StoredGradient(GradientHandle),
+    Linear(LinearGradient),
+    Radial(RadialGradient),
+    StoredGradient(SharedGradient),
 }
 
 impl Hash for ColorFill {
@@ -135,12 +133,16 @@ impl Hash for ColorFill {
                 color.b.to_bits().hash(state);
                 color.a.to_bits().hash(state);
             },
-            ColorFill::Gradient(gradient) => {
+            ColorFill::Linear(gradient) => {
                 1u8.hash(state);
                 gradient.hash(state);
             },
-            ColorFill::StoredGradient(handle) => {
+            ColorFill::Radial(gradient) => {
                 2u8.hash(state);
+                gradient.hash(state);
+            },
+            ColorFill::StoredGradient(handle) => {
+                3u8.hash(state);
                 handle.0.hash(state);
             },
         }

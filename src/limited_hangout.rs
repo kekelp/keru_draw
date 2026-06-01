@@ -3,18 +3,18 @@ use crate::*;
 /// A context for custom drawing.
 /// 
 /// This is a limited version of the `keru_draw` [`Renderer`] that exposes the methods for drawing, but not the internal ones like [`Renderer::clear_for_new_frame`].
-pub struct DrawContext<'a> {
+pub struct Canvas<'a> {
     renderer: &'a mut Renderer,
 }
 
 impl Renderer {
     /// Get a restricted drawing context that only exposes the drawing methods, but not the methods like [`Self::begin_frame()`] and [`Self::clear_for_new_frame()`].
-    pub fn get_draw_context(&mut self) -> DrawContext<'_> {
-        DrawContext { renderer: self }
+    pub fn get_draw_context(&mut self) -> Canvas<'_> {
+        Canvas { renderer: self }
     }
 }
 
-impl<'a> DrawContext<'a> {
+impl<'a> Canvas<'a> {
     /// Draw a box/rectangle.
     pub fn draw_box(&mut self, params: Rectangle) {
         self.renderer.draw_box(params);
@@ -153,7 +153,7 @@ impl<'a> DrawContext<'a> {
 
     /// Store a gradient in the resource buffer and return a handle that can be reused
     /// across multiple draw calls via [`ColorFill::StoredGradient`].
-    pub fn create_gradient(&mut self, gradient: crate::shapes::GradientGpu) -> GradientHandle {
+    pub fn create_gradient(&mut self, gradient: crate::shapes::GradientGpu) -> SharedGradient {
         self.renderer.create_gradient(gradient)
     }
 }
