@@ -95,32 +95,53 @@ impl Color {
         ]
     }
 
-    pub const KERU_GRAD: ColorFill = ColorFill::Linear(LinearGradient {
-        color_start: Self::KERU_BLUE,
-        color_end: Self::KERU_RED,
-        angle: -0.785398, // -45 degrees
-    });
+}
 
-    pub const KERU_GRAD_FW: ColorFill = ColorFill::Linear(LinearGradient {
-        color_start: Self::KERU_BLUE,
-        color_end: Self::KERU_RED,
-        angle: 0.785398, // 45 degrees
-    });
+/// The type of gradient.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum GradientKind {
+    /// Linear gradient from `p0` to `p1`.
+    Linear,
+    /// Radial gradient centered at `p0`, from `inner_radius` to `outer_radius`.
+    Radial,
+}
+
+/// A gradient that can be used as a fill, defined in absolute screen coordinates.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Gradient {
+    pub color_start: Color,
+    pub color_end: Color,
+    /// Linear: start point. Radial: center point.
+    pub p0: [f32; 2],
+    /// Linear: end point. Radial: `[outer_radius, inner_radius]`.
+    pub p1: [f32; 2],
+    pub kind: GradientKind,
+}
+
+impl Gradient {
+    /// Linear gradient from absolute point `p0` (color_start) to `p1` (color_end).
+    pub fn linear(p0: [f32; 2], p1: [f32; 2], color_start: Color, color_end: Color) -> Self {
+        Self { color_start, color_end, p0, p1, kind: GradientKind::Linear }
+    }
+
+    /// Radial gradient centered at `center`, transitioning from `inner_radius` (color_start) to `outer_radius` (color_end).
+    pub fn radial(center: [f32; 2], outer_radius: f32, inner_radius: f32, color_start: Color, color_end: Color) -> Self {
+        Self { color_start, color_end, p0: center, p1: [outer_radius, inner_radius], kind: GradientKind::Radial }
+    }
 }
 
 /// A handle to a shared gradient that can be created in absolute space and used by multiple shapes.
-/// 
+///
 /// Obtained by calling [Canvas::create_gradient()] or [Renderer::create_gradient()];
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct SharedGradient(pub(crate) u32);
 
-/// Fill style for shapes - solid color or gradient
+/// Fill style for shapes
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum ColorFill {
     Color(Color),
-    Linear(LinearGradient),
-    Radial(RadialGradient),
-    StoredGradient(SharedGradient),
+    Gradient(Gradient),
+    SharedGradient(SharedGradient),
 }
 
 impl Hash for ColorFill {
@@ -133,16 +154,24 @@ impl Hash for ColorFill {
                 color.b.to_bits().hash(state);
                 color.a.to_bits().hash(state);
             },
-            ColorFill::Linear(gradient) => {
+            ColorFill::Gradient(g) => {
                 1u8.hash(state);
-                gradient.hash(state);
+                g.color_start.r.to_bits().hash(state);
+                g.color_start.g.to_bits().hash(state);
+                g.color_start.b.to_bits().hash(state);
+                g.color_start.a.to_bits().hash(state);
+                g.color_end.r.to_bits().hash(state);
+                g.color_end.g.to_bits().hash(state);
+                g.color_end.b.to_bits().hash(state);
+                g.color_end.a.to_bits().hash(state);
+                g.p0[0].to_bits().hash(state);
+                g.p0[1].to_bits().hash(state);
+                g.p1[0].to_bits().hash(state);
+                g.p1[1].to_bits().hash(state);
+                (g.kind as u8).hash(state);
             },
-            ColorFill::Radial(gradient) => {
+            ColorFill::SharedGradient(handle) => {
                 2u8.hash(state);
-                gradient.hash(state);
-            },
-            ColorFill::StoredGradient(handle) => {
-                3u8.hash(state);
                 handle.0.hash(state);
             },
         }

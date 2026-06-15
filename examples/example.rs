@@ -160,6 +160,39 @@ impl State {
         self.renderer.begin_frame();
         self.renderer.prepare_text();
 
+        let grad_box_horiz = self.renderer.create_gradient(Gradient::linear(
+            [20.0, 50.0], [100.0, 50.0],
+            Color::new(1.0, 0.3, 0.3, 1.0), Color::new(0.3, 0.3, 1.0, 1.0),
+        ));
+        let grad_box_diag = self.renderer.create_gradient(Gradient::linear(
+            [125.0, 15.0], [195.0, 85.0],
+            Color::new(1.0, 0.5, 0.3, 1.0), Color::new(0.3, 1.0, 0.5, 1.0),
+        ));
+        let grad_circle_radial = self.renderer.create_gradient(Gradient::radial(
+            [50.0, 150.0], 20.0, 0.0,
+            Color::new(1.0, 1.0, 0.3, 1.0), Color::new(1.0, 0.3, 0.3, 1.0),
+        ));
+        let grad_circle_linear = self.renderer.create_gradient(Gradient::linear(
+            [140.0, 120.0], [140.0, 180.0],
+            Color::new(0.3, 0.7, 1.0, 1.0), Color::new(1.0, 0.3, 0.7, 1.0),
+        ));
+        let grad_segment1 = self.renderer.create_gradient(Gradient::linear(
+            [370.0, 500.0], [430.0, 540.0],
+            Color::new(1.0, 0.9, 0.2, 0.7), Color::new(0.2, 0.9, 1.0, 0.7),
+        ));
+        let grad_segment2 = self.renderer.create_gradient(Gradient::linear(
+            [370.0, 540.0], [430.0, 500.0],
+            Color::new(1.0, 0.2, 0.9, 0.8), Color::new(0.2, 1.0, 0.9, 0.8),
+        ));
+        let grad_grid = self.renderer.create_gradient(Gradient::linear(
+            [850.0, 120.0], [1050.0, 120.0],
+            Color::new(0.2, 0.2, 1.0, 1.0), Color::new(1.0, 0.2, 0.2, 1.0),
+        ));
+        let grad_hexagon = self.renderer.create_gradient(Gradient::linear(
+            [591.7, 471.7], [648.3, 528.3],
+            Color::new(1.0, 0.3, 0.5, 1.0), Color::new(0.5, 0.3, 1.0, 1.0),
+        ));
+
         // Gradient box - horizontal
         self.renderer.draw_box(Rectangle {
             top_left: [20.0, 20.0],
@@ -167,7 +200,7 @@ impl State {
             corner_radius: 0.0,
             rounded_corners: RoundedCorners::ALL,
             border_thickness: 0.0,
-            fill: ColorFill::Gradient(Gradient::linear(Color::new(1.0, 0.3, 0.3, 1.0), Color::new(0.3, 0.3, 1.0, 1.0), 0.0)),
+            fill: ColorFill::SharedGradient(grad_box_horiz),
             blur: 10.0,
             texture: Some(self.texture_handle),
             texture_options: None,
@@ -180,7 +213,7 @@ impl State {
             corner_radius: 5.0,
             rounded_corners: RoundedCorners::ALL,
             border_thickness: 0.0,
-            fill: ColorFill::Gradient(Gradient::linear(Color::new(1.0, 0.5, 0.3, 1.0), Color::new(0.3, 1.0, 0.5, 1.0), PI * 0.25)),
+            fill: ColorFill::SharedGradient(grad_box_diag),
             blur: 0.0,
             texture: None,
             texture_options: None,
@@ -267,7 +300,7 @@ impl State {
         self.renderer.draw_circle(Circle {
             center: [50.0, 150.0],
             radius: 20.0,
-            fill: ColorFill::Gradient(Gradient::radial(Color::new(1.0, 1.0, 0.3, 1.0), Color::new(1.0, 0.3, 0.3, 1.0))),
+            fill: ColorFill::SharedGradient(grad_circle_radial),
             blur: 0.0,
             texture: None,
             texture_options: None,
@@ -277,12 +310,7 @@ impl State {
         self.renderer.draw_circle(Circle {
             center: [140.0, 150.0],
             radius: 30.0,
-            fill: ColorFill::Linear(
-                LinearGradient { 
-                    color_start: Color::new(0.3, 0.7, 1.0, 1.0),
-                    color_end: Color::new(1.0, 0.3, 0.7, 1.0), 
-                    angle: PI * 0.5,
-                }),
+            fill: ColorFill::SharedGradient(grad_circle_linear),
             blur: 0.0,
             texture: None,
             texture_options: None,
@@ -546,7 +574,7 @@ impl State {
             start: [370.0, 500.0],
             end: [430.0, 540.0],
             thickness: 5.0,
-            fill: ColorFill::Gradient(Gradient::linear(Color::new(1.0, 0.9, 0.2, 0.7), Color::new(0.2, 0.9, 1.0, 0.7), 0.0)), // angle is ignored for segments
+            fill: ColorFill::SharedGradient(grad_segment1),
             dash_length: Some(8.0),
             dash_offset: 0.0,
             blur: 0.0,
@@ -557,7 +585,7 @@ impl State {
             start: [370.0, 540.0],
             end: [430.0, 500.0],
             thickness: 5.0,
-            fill: ColorFill::Gradient(Gradient::linear(Color::new(1.0, 0.2, 0.9, 0.8), Color::new(0.2, 1.0, 0.9, 0.8), 0.0)), // angle is ignored for segments
+            fill: ColorFill::SharedGradient(grad_segment2),
             dash_length: None,
             dash_offset: 0.0,
             blur: 0.0,
@@ -596,7 +624,7 @@ impl State {
             lattice_size: 20.0,
             offset: [0.0, 0.0],
             line_thickness: 2.0,
-            fill: ColorFill::Gradient(Gradient::linear(Color::new(0.2, 0.2, 1.0, 1.0), Color::new(1.0, 0.2, 0.2, 1.0), 0.0)),
+            fill: ColorFill::SharedGradient(grad_grid),
             grid_type: GridType::Square,
             blur: 0.0,
             texture: None,
@@ -648,11 +676,8 @@ impl State {
             center: [620.0, 400.0 + 100.0],
             size: 40.0,
             rotation: PI / 2.0,
-            fill: ColorFill::Gradient(Gradient::linear(
-                Color::new(1.0, 0.3, 0.5, 1.0),
-                Color::new(0.5, 0.3, 1.0, 1.0),
-                PI * 0.25,
-            )),            stroke_thickness: 0.0,
+            fill: ColorFill::SharedGradient(grad_hexagon),
+            stroke_thickness: 0.0,
             blur: 0.0,
             texture: None,
             texture_options: None,

@@ -1,10 +1,10 @@
 use crate::gpu_vec::GpuVec;
-use crate::Color;
+use crate::{Color, Gradient, GradientKind};
 
 
 #[repr(C)]
 #[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable, Default)]
-pub struct GradientGpu {
+pub(crate) struct GradientGpu {
     pub color_start: Color,
     pub color_end: Color,
     pub p0: [f32; 2], // gradient start point (absolute screen coords); for radial: center
@@ -13,7 +13,28 @@ pub struct GradientGpu {
     pub _pad: [u32; 3],
 }
 
+impl GradientGpu {
+    pub fn solid(color: Color) -> Self {
+        Self { color_start: color, color_end: color, p0: [0.0; 2], p1: [0.0; 2], gradient_type: 0, _pad: [0; 3] }
+    }
+}
 
+impl Gradient {
+    pub(crate) fn to_gpu(self) -> GradientGpu {
+        let gradient_type = match self.kind {
+            GradientKind::Linear => 1,
+            GradientKind::Radial => 2,
+        };
+        GradientGpu {
+            color_start: self.color_start,
+            color_end: self.color_end,
+            p0: self.p0,
+            p1: self.p1,
+            gradient_type,
+            _pad: [0; 3],
+        }
+    }
+}
 
 
 

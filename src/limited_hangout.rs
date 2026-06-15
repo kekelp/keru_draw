@@ -152,8 +152,8 @@ impl<'a> Canvas<'a> {
     }
 
     /// Store a gradient in the resource buffer and return a handle that can be reused
-    /// across multiple draw calls via [`ColorFill::StoredGradient`].
-    pub fn create_gradient(&mut self, gradient: crate::shapes::GradientGpu) -> SharedGradient {
+    /// across multiple draw calls via [`ColorFill::SharedGradient`].
+    pub fn create_gradient(&mut self, gradient: Gradient) -> SharedGradient {
         self.renderer.create_gradient(gradient)
     }
 }
