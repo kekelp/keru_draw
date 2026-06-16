@@ -467,7 +467,7 @@
                                             "binding": {"kind": "uniform", "offset": 116, "size": 4, "elementStride": 0}
                                         },
                                         {
-                                            "name": "_ns_pad0",
+                                            "name": "pie_stroke_thickness",
                                             "type": {
                                                 "kind": "scalar",
                                                 "scalarType": "float32"
@@ -475,7 +475,7 @@
                                             "binding": {"kind": "uniform", "offset": 120, "size": 4, "elementStride": 0}
                                         },
                                         {
-                                            "name": "_ns_pad1",
+                                            "name": "pie_corner_radius",
                                             "type": {
                                                 "kind": "scalar",
                                                 "scalarType": "float32"
@@ -1023,6 +1023,38 @@
                                                 "scalarType": "uint32"
                                             },
                                             "binding": {"kind": "uniform", "offset": 108, "size": 4, "elementStride": 0}
+                                        },
+                                        {
+                                            "name": "stroke_thickness",
+                                            "type": {
+                                                "kind": "scalar",
+                                                "scalarType": "float32"
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 112, "size": 4, "elementStride": 0}
+                                        },
+                                        {
+                                            "name": "_tri_pad0",
+                                            "type": {
+                                                "kind": "scalar",
+                                                "scalarType": "float32"
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 116, "size": 4, "elementStride": 0}
+                                        },
+                                        {
+                                            "name": "_tri_pad1",
+                                            "type": {
+                                                "kind": "scalar",
+                                                "scalarType": "float32"
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 120, "size": 4, "elementStride": 0}
+                                        },
+                                        {
+                                            "name": "_tri_pad2",
+                                            "type": {
+                                                "kind": "scalar",
+                                                "scalarType": "float32"
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 124, "size": 4, "elementStride": 0}
                                         }
                                     ]
                                 }
@@ -1281,7 +1313,7 @@
                                             "binding": {"kind": "uniform", "offset": 32, "size": 4, "elementStride": 0}
                                         },
                                         {
-                                            "name": "_cu1",
+                                            "name": "stroke_thickness",
                                             "type": {
                                                 "kind": "scalar",
                                                 "scalarType": "float32"
@@ -1801,7 +1833,7 @@
                                                 "binding": {"kind": "uniform", "offset": 116, "size": 4, "elementStride": 0}
                                             },
                                             {
-                                                "name": "_ns_pad0",
+                                                "name": "pie_stroke_thickness",
                                                 "type": {
                                                     "kind": "scalar",
                                                     "scalarType": "float32"
@@ -1809,7 +1841,7 @@
                                                 "binding": {"kind": "uniform", "offset": 120, "size": 4, "elementStride": 0}
                                             },
                                             {
-                                                "name": "_ns_pad1",
+                                                "name": "pie_corner_radius",
                                                 "type": {
                                                     "kind": "scalar",
                                                     "scalarType": "float32"
@@ -2357,6 +2389,38 @@
                                                     "scalarType": "uint32"
                                                 },
                                                 "binding": {"kind": "uniform", "offset": 108, "size": 4, "elementStride": 0}
+                                            },
+                                            {
+                                                "name": "stroke_thickness",
+                                                "type": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 112, "size": 4, "elementStride": 0}
+                                            },
+                                            {
+                                                "name": "_tri_pad0",
+                                                "type": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 116, "size": 4, "elementStride": 0}
+                                            },
+                                            {
+                                                "name": "_tri_pad1",
+                                                "type": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 120, "size": 4, "elementStride": 0}
+                                            },
+                                            {
+                                                "name": "_tri_pad2",
+                                                "type": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 124, "size": 4, "elementStride": 0}
                                             }
                                         ]
                                     }
@@ -2615,7 +2679,7 @@
                                                 "binding": {"kind": "uniform", "offset": 32, "size": 4, "elementStride": 0}
                                             },
                                             {
-                                                "name": "_cu1",
+                                                "name": "stroke_thickness",
                                                 "type": {
                                                     "kind": "scalar",
                                                     "scalarType": "float32"

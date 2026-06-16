@@ -75,8 +75,8 @@ struct CircleGpu {
     float nine_slice_t;        // top inset in pixels
     float nine_slice_b;        // bottom inset in pixels
     uint nine_slice_tiling;    // bit 0=enabled; bits 1-2=h mode; bits 3-4=v mode (0=stretch,1=tile,2=tile_fit)
-    float _ns_pad0;
-    float _ns_pad1;
+    float pie_stroke_thickness; // pie only: 0=filled, >0=hollow outline
+    float pie_corner_radius;    // pie only: rounds center point and arc-edge corners
 }
 
 struct SegmentGpu {
@@ -84,7 +84,7 @@ struct SegmentGpu {
     float2 end;
     float4 color_start;  // unused
     float4 color_end;    // unused
-    float4 thickness_dash;
+    float4 thickness_dash; // [thickness, dash_length, dash_offset, stroke_thickness]
     uint gradient_index; // index into gradients buffer
     uint texture_page;        // atlas layer, 0xFFFFFFFF = no texture
     float2 texture_uv_origin; // pixel coords in atlas (top-left corner)
@@ -137,6 +137,10 @@ struct TriangleGpu {
     float nine_slice_t;        // top inset in pixels
     float nine_slice_b;        // bottom inset in pixels
     uint nine_slice_tiling;    // bit 0=enabled; bits 1-2=h mode; bits 3-4=v mode (0=stretch,1=tile,2=tile_fit)
+    float stroke_thickness;    // 0 = filled, >0 = stroke only
+    float _tri_pad0;
+    float _tri_pad1;
+    float _tri_pad2;
 }
 
 struct HexagonGpu {
@@ -167,7 +171,7 @@ struct QuadraticBezierGpu {
     float thickness;
     float blur_radius;
     uint gradient_index; // index into gradients buffer (replaces color: float4, same 16 bytes)
-    float _cu1;
+    float stroke_thickness; // 0 = filled, >0 = stroke only
     float _cu2;
     float _cu3;
 }
@@ -279,6 +283,7 @@ void box_vertex(
 
 float linear(float a, float b, float x) { return (x-a)/(b-a); }
 float linearstep(float a, float b, float x) { return clamp(linear(a,b,x), 0.0, 1.0); }
+float annular(float dist, float thickness) { return abs(dist + thickness * 0.5) - thickness * 0.5; }
 
 // LOD for texture blur matching the shape's blur_radius (in screen pixels).
 // tex_uv_size is in atlas pixels; shape_size is in screen pixels.
@@ -382,9 +387,8 @@ float4 box_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, float2 s
     float2 half_size = box.size * 0.5;
     float dist = sd_rounded_box(p, half_size, corner_radii);
 
-    // Handle border-only rendering when border_thickness > 0
     if (box.border_thickness > 0.001) {
-        dist = abs(dist + box.border_thickness * 0.5) - box.border_thickness * 0.5;
+        dist = annular(dist, box.border_thickness);
     }
 
     float alpha;
@@ -466,11 +470,12 @@ void circle_vertex(
 ) {
     var circle: CircleGpu = shapes.circles[instanceIndex];
 
-    // Create bounding box for the circle, expanded for blur falloff
+    // Create bounding box for the circle, expanded for blur falloff and pie corner rounding.
     float outer_radius = circle.radii.y;
     float blur_margin = circle.blur_radius * 3.0;
-    float2 top_left = circle.center - float2(outer_radius + blur_margin, outer_radius + blur_margin);
-    float2 size = float2((outer_radius + blur_margin) * 2.0, (outer_radius + blur_margin) * 2.0);
+    float expand = blur_margin + circle.pie_corner_radius;
+    float2 top_left = circle.center - float2(outer_radius + expand, outer_radius + expand);
+    float2 size = float2((outer_radius + expand) * 2.0, (outer_radius + expand) * 2.0);
 
     quad_vertex(top_left, size, vertexIndex, resolution, position, uv);
     screen_pos = top_left + uv * size;
@@ -499,14 +504,7 @@ float sd_circle_variant(float2 p, CircleGpu circle) {
     bool is_full_circle = abs(angle_span - TAU) < 0.01;
 
     if (is_full_circle) {
-        // Simple ring/circle case
-        if (inner_radius < 0.001) {
-            // Filled circle
-            return dist_from_center - outer_radius;
-        } else {
-            // Ring (annulus)
-            return abs(dist_from_center - (inner_radius + outer_radius) * 0.5) - (outer_radius - inner_radius) * 0.5;
-        }
+        return dist_from_center - outer_radius;
     }
 
     // Normalize the pixel's angle relative to start_angle, into [0, span]
@@ -515,18 +513,30 @@ float sd_circle_variant(float2 p, CircleGpu circle) {
     float span = normalize_angle(end_angle - start_angle);
 
     if (inner_radius < 0.001) {
-        // Pie slice
-        bool in_angle = (angle_rel <= span);
-        if (in_angle) {
+        // Pie slice - proper IQ sdPie, rotated to handle arbitrary start/end angles.
+        // Normalize span into (0, TAU].
+        float span = normalize_angle(end_angle - start_angle);
+        if (span < 0.001) span = TAU;
+
+        if (abs(span - TAU) < 0.01) {
+            // Full circle
             return dist_from_center - outer_radius;
-        } else {
-            // Distance to nearest radial edge (segment from origin to arc endpoint)
-            float2 dir_start = float2(cos(start_angle), sin(start_angle));
-            float2 dir_end = float2(cos(end_angle), sin(end_angle));
-            float t_start = clamp(dot(p, dir_start), 0.0, outer_radius);
-            float t_end = clamp(dot(p, dir_end), 0.0, outer_radius);
-            return min(length(p - dir_start * t_start), length(p - dir_end * t_end));
         }
+
+        // Rotate p so the arc midpoint aligns with +Y.
+        float mid_angle = start_angle + span * 0.5;
+        float rot = 1.5707963268 - mid_angle; // PI/2 - mid_angle
+        float cr = cos(rot);
+        float sr = sin(rot);
+        float2 rp = float2(p.x * cr - p.y * sr, p.x * sr + p.y * cr);
+
+        // IQ sdPie: c = (sin, cos) of half-aperture.
+        float half_span = span * 0.5;
+        float2 c = float2(sin(half_span), cos(half_span));
+        rp.x = abs(rp.x);
+        float l = length(rp) - outer_radius;
+        float m = length(rp - c * clamp(dot(rp, c), 0.0, outer_radius));
+        return max(l, m * sign(c.y * rp.x - c.x * rp.y));
     } else {
         // Arc: nearest point on arc centerline (proper SDF).
         // clamp() alone is wrong for the start cap: angle_rel just before start wraps to ~2π,
@@ -559,9 +569,27 @@ float4 circle_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, float
     float outer_radius = circle.radii.y;
     float inner_radius = circle.radii.x;
     float blur_margin = circle.blur_radius * 3.0;
-    float2 p = (uv - 0.5) * float2((outer_radius + blur_margin) * 2.0);
+    float expand = blur_margin + circle.pie_corner_radius;
+    float2 p = (uv - 0.5) * float2((outer_radius + expand) * 2.0);
 
     float dist = sd_circle_variant(p, circle);
+
+    // Apply ring transform for full circles with an inner radius; arcs already encode thickness in their SDF.
+    float angle_span = abs(circle.angles.y - circle.angles.x);
+    bool is_full_circle = abs(angle_span - 6.28318530718) < 0.01;
+    if (is_full_circle && inner_radius > 0.001) {
+        dist = annular(dist, outer_radius - inner_radius);
+    }
+
+    // Pie-specific rounding and stroke.
+    if (inner_radius < 0.001) {
+        if (circle.pie_corner_radius > 0.001) {
+            dist -= circle.pie_corner_radius;
+        }
+        if (circle.pie_stroke_thickness > 0.001) {
+            dist = annular(dist, circle.pie_stroke_thickness);
+        }
+    }
 
     float aa_width = 0.5 / max(transform_scale, 0.001);
     float alpha;
@@ -724,8 +752,11 @@ float4 segment_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, floa
 
     float2 p = top_left + uv * size;
 
-    // Calculate distance to segment
     float dist = sd_segment(p, seg.start, seg.end) - half_thickness;
+
+    if (seg.thickness_dash[3] > 0.001) {
+        dist = annular(dist, seg.thickness_dash[3]);
+    }
 
     float aa_width = 0.5 / max(transform_scale, 0.001);
     float alpha;
@@ -1020,8 +1051,11 @@ float4 triangle_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, flo
     float2 size = max_point - min_point;
     float2 p = top_left + uv * size;
 
-    // Calculate distance to triangle
     float dist = sd_triangle(p, tri.p0, tri.p1, tri.p2);
+
+    if (tri.stroke_thickness > 0.001) {
+        dist = annular(dist, tri.stroke_thickness);
+    }
 
     float alpha;
     if (tri.blur_radius > 0.5) {
@@ -1146,9 +1180,8 @@ float4 hexagon_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, floa
     // Calculate distance to hexagon
     float dist = sd_hexagon(rotated_p, hex.size);
 
-    // Handle stroke-only rendering when stroke_thickness > 0
     if (hex.stroke_thickness > 0.001) {
-        dist = abs(dist + hex.stroke_thickness * 0.5) - hex.stroke_thickness * 0.5;
+        dist = annular(dist, hex.stroke_thickness);
     }
 
     float alpha;
@@ -1319,8 +1352,11 @@ float4 quadratic_bezier_fragment(uint primitiveIndex, uint clipRectIndex, float2
 
     float2 p = top_left + uv * size;
 
-    // Calculate distance to the curve
     float dist = sd_quadratic_bezier(p, seg.p0, seg.p1, seg.p2) - half_thickness;
+
+    if (seg.stroke_thickness > 0.001) {
+        dist = annular(dist, seg.stroke_thickness);
+    }
 
     float alpha;
     if (seg.blur_radius > 0.5) {

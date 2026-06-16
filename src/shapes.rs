@@ -100,7 +100,7 @@ pub struct SegmentGpu {
     pub end: [f32; 2],
     pub color_start: Color,
     pub color_end: Color,
-    pub thickness_dash: [f32; 4], // [thickness, dash_length, dash_offset, unused]
+    pub thickness_dash: [f32; 4], // [thickness, dash_length, dash_offset, stroke_thickness]
     pub gradient_index: u32, // index into gradients buffer
     pub texture_page: u32,           // atlas layer, u32::MAX = no texture
     pub texture_uv_origin: [f32; 2], // pixel coords in atlas (top-left corner)
@@ -157,6 +157,8 @@ pub struct TriangleGpu {
     pub nine_slice_t: f32,           // top inset in pixels
     pub nine_slice_b: f32,           // bottom inset in pixels
     pub nine_slice_tiling: u32,      // bit 0=enabled; bits 1-2=h mode; bits 3-4=v mode (0=stretch,1=tile,2=tile_fit)
+    pub stroke_thickness: f32,       // 0 = filled, >0 = stroke only
+    pub _tri_pad: [f32; 3],
 }
 
 #[repr(C)]
@@ -191,7 +193,8 @@ pub struct QuadraticBezierGpu {
     pub thickness: f32,
     pub blur_radius: f32,
     pub gradient_index: u32, // index into gradients buffer (replaces color: Color, same 16 bytes)
-    pub _color_unused: [f32; 3],
+    pub stroke_thickness: f32,  // 0 = filled, >0 = stroke only
+    pub _cu_pad: [f32; 2],
 }
 
 pub struct Shapes {

@@ -133,7 +133,7 @@ impl Gradient {
 /// A handle to a shared gradient that can be created in absolute space and used by multiple shapes.
 ///
 /// Obtained by calling [Canvas::create_gradient()] or [Renderer::create_gradient()];
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct SharedGradient(pub(crate) u32);
 
 /// Fill style for shapes

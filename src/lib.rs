@@ -227,6 +227,8 @@ pub struct CirclePie {
     pub texture: Option<LoadedImage>,
     pub texture_options: Option<TextureOptions>,
     pub blur: f32,
+    pub stroke_thickness: f32,  // 0 = filled, >0 = hollow wedge outline
+    pub corner_radius: f32,     // rounds the center point and arc-edge corners
 }
 
 /// Parameters for drawing a line segment
@@ -235,6 +237,7 @@ pub struct Segment {
     pub start: [f32; 2],
     pub end: [f32; 2],
     pub thickness: f32,
+    pub stroke_thickness: f32,  // 0 = filled capsule, >0 = hollow capsule outline
     pub fill: ColorFill,
     pub dash_length: Option<f32>,
     pub dash_offset: f32,
@@ -272,6 +275,7 @@ pub struct Triangle {
     pub p1: [f32; 2],
     pub p2: [f32; 2],
     pub fill: ColorFill,
+    pub stroke_thickness: f32,  // 0 = filled, >0 = stroke only
     pub texture: Option<LoadedImage>,
     pub texture_options: Option<TextureOptions>,
     pub blur: f32,
@@ -299,6 +303,7 @@ pub struct QuadraticBezier {
     pub p1: [f32; 2],
     pub p2: [f32; 2],
     pub thickness: f32,
+    pub stroke_thickness: f32,  // 0 = filled tube, >0 = hollow tube outline
     pub color: Color,
     pub blur: f32,
 }
@@ -882,7 +887,7 @@ impl Renderer {
             dash_offset: 0.0,
             blur_radius: params.blur,
             nine_slice_l, nine_slice_r, nine_slice_t, nine_slice_b, nine_slice_tiling,
-            _ns_pad: [0.0; 2],
+            _ns_pad: [params.stroke_thickness, params.corner_radius],
         });
         self.push_instance(Instance {
             p_type: primitive::CIRCLE,
@@ -902,7 +907,7 @@ impl Renderer {
             end: params.end,
             color_start: Color::default(),
             color_end: Color::default(),
-            thickness_dash: [params.thickness, params.dash_length.unwrap_or(0.0), params.dash_offset, 0.0],
+            thickness_dash: [params.thickness, params.dash_length.unwrap_or(0.0), params.dash_offset, params.stroke_thickness],
             gradient_index,
             texture_page,
             texture_uv_origin,
@@ -967,6 +972,8 @@ impl Renderer {
             texture_uv_size,
             blur_radius: params.blur,
             nine_slice_l, nine_slice_r, nine_slice_t, nine_slice_b, nine_slice_tiling,
+            stroke_thickness: params.stroke_thickness,
+            _tri_pad: [0.0; 3],
         });
         self.push_instance(Instance {
             p_type: primitive::TRIANGLE,
@@ -1016,7 +1023,8 @@ impl Renderer {
             thickness: params.thickness,
             blur_radius: params.blur,
             gradient_index,
-            _color_unused: [0.0; 3],
+            stroke_thickness: params.stroke_thickness,
+            _cu_pad: [0.0; 2],
         });
         self.push_instance(Instance {
             p_type: primitive::QUADRATIC_BEZIER,
@@ -1041,6 +1049,7 @@ impl Renderer {
                 start: [x, y],
                 end: [x + w, y],
                 thickness: params.thickness,
+                stroke_thickness: 0.0,
                 fill,
                 dash_length: Some(params.dash_length),
                 dash_offset: offset,
@@ -1054,6 +1063,7 @@ impl Renderer {
                 start: [x + w, y],
                 end: [x + w, y + h],
                 thickness: params.thickness,
+                stroke_thickness: 0.0,
                 fill,
                 dash_length: Some(params.dash_length),
                 dash_offset: offset,
@@ -1067,6 +1077,7 @@ impl Renderer {
                 start: [x + w, y + h],
                 end: [x, y + h],
                 thickness: params.thickness,
+                stroke_thickness: 0.0,
                 fill,
                 dash_length: Some(params.dash_length),
                 dash_offset: offset,
@@ -1080,6 +1091,7 @@ impl Renderer {
                 start: [x, y + h],
                 end: [x, y],
                 thickness: params.thickness,
+                stroke_thickness: 0.0,
                 fill,
                 dash_length: Some(params.dash_length),
                 dash_offset: offset,
@@ -1098,6 +1110,7 @@ impl Renderer {
                 start: [x + r, y],
                 end: [x + w - r, y],
                 thickness: params.thickness,
+                stroke_thickness: 0.0,
                 fill,
                 dash_length: Some(params.dash_length),
                 dash_offset: offset,
@@ -1127,6 +1140,7 @@ impl Renderer {
                 start: [x + w, y + r],
                 end: [x + w, y + h - r],
                 thickness: params.thickness,
+                stroke_thickness: 0.0,
                 fill,
                 dash_length: Some(params.dash_length),
                 dash_offset: offset,
@@ -1155,6 +1169,7 @@ impl Renderer {
                 start: [x + w - r, y + h],
                 end: [x + r, y + h],
                 thickness: params.thickness,
+                stroke_thickness: 0.0,
                 fill,
                 dash_length: Some(params.dash_length),
                 dash_offset: offset,
@@ -1183,6 +1198,7 @@ impl Renderer {
                 start: [x, y + h - r],
                 end: [x, y + r],
                 thickness: params.thickness,
+                stroke_thickness: 0.0,
                 fill,
                 dash_length: Some(params.dash_length),
                 dash_offset: offset,
@@ -1234,6 +1250,7 @@ impl Renderer {
                 start: vertices[i],
                 end: vertices[next],
                 thickness: params.thickness,
+                stroke_thickness: 0.0,
                 fill,
                 dash_length: Some(params.dash_length),
                 dash_offset: offset,
