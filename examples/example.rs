@@ -474,6 +474,8 @@ impl State {
             blur: 0.0,
             texture: None,
             texture_options: None,
+            stroke_thickness: 0.0,
+            corner_radius: 0.0,
         });
 
         self.renderer.draw_pie(CirclePie {
@@ -485,6 +487,8 @@ impl State {
             blur: 0.0,
             texture: None,
             texture_options: None,
+            stroke_thickness: 0.0,
+            corner_radius: 0.0,
         });
 
         self.renderer.draw_pie(CirclePie {
@@ -496,6 +500,8 @@ impl State {
             blur: 0.0,
             texture: None,
             texture_options: None,
+            stroke_thickness: 0.0,
+            corner_radius: 0.0,
         });
 
         self.renderer.draw_pie(CirclePie {
@@ -507,6 +513,8 @@ impl State {
             blur: 0.0,
             texture: None,
             texture_options: None,
+            stroke_thickness: 0.0,
+            corner_radius: 0.0,
         });
 
         // Blurred pie
@@ -519,6 +527,8 @@ impl State {
             blur: 10.0,
             texture: None,
             texture_options: None,
+            stroke_thickness: 0.0,
+            corner_radius: 0.0,
         });
 
         self.renderer.draw_segment(Segment {
@@ -623,6 +633,7 @@ impl State {
             blur: 8.0,
             texture: Some(self.texture_handle),
             texture_options: None,
+            corner_radius: 0.0,
         });
 
         // Square grid
@@ -677,6 +688,7 @@ impl State {
             blur: 0.0,
             texture: None,
             texture_options: None,
+            corner_radius: 0.0,
         });
 
         // Hexagon - gradient filled
@@ -689,6 +701,7 @@ impl State {
             blur: 0.0,
             texture: None,
             texture_options: None,
+            corner_radius: 0.0,
         });
 
         // Hexagon - stroke only
@@ -701,6 +714,7 @@ impl State {
             blur: 0.0,
             texture: None,
             texture_options: None,
+            corner_radius: 0.0,
         });
 
         // Hexagon - rotated (pointy-top)
@@ -713,6 +727,7 @@ impl State {
             blur: 0.0,
             texture: None,
             texture_options: None,
+            corner_radius: 0.0,
         });
 
         // Hexagon with texture
@@ -725,6 +740,7 @@ impl State {
             blur: 10.0,
             texture: Some(self.texture_handle),
             texture_options: None,
+            corner_radius: 0.0,
         });
 
         // Blurred hexagon
@@ -737,6 +753,7 @@ impl State {
             blur: 10.0,
             texture: None,
             texture_options: None,
+            corner_radius: 0.0,
         });
 
         // Dashed box outline (no rounded corners)
@@ -908,6 +925,7 @@ impl State {
                 tile_y: TileMode::Tile,
             }),
             blur: 0.0,
+            corner_radius: 0.0,
         });
 
         // SVG rendered as image

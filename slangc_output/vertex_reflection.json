@@ -1033,7 +1033,7 @@
                                             "binding": {"kind": "uniform", "offset": 112, "size": 4, "elementStride": 0}
                                         },
                                         {
-                                            "name": "_tri_pad0",
+                                            "name": "corner_radius",
                                             "type": {
                                                 "kind": "scalar",
                                                 "scalarType": "float32"
@@ -1231,7 +1231,7 @@
                                             "binding": {"kind": "uniform", "offset": 104, "size": 4, "elementStride": 0}
                                         },
                                         {
-                                            "name": "_ns_pad",
+                                            "name": "corner_radius",
                                             "type": {
                                                 "kind": "scalar",
                                                 "scalarType": "float32"
@@ -2399,7 +2399,7 @@
                                                 "binding": {"kind": "uniform", "offset": 112, "size": 4, "elementStride": 0}
                                             },
                                             {
-                                                "name": "_tri_pad0",
+                                                "name": "corner_radius",
                                                 "type": {
                                                     "kind": "scalar",
                                                     "scalarType": "float32"
@@ -2597,7 +2597,7 @@
                                                 "binding": {"kind": "uniform", "offset": 104, "size": 4, "elementStride": 0}
                                             },
                                             {
-                                                "name": "_ns_pad",
+                                                "name": "corner_radius",
                                                 "type": {
                                                     "kind": "scalar",
                                                     "scalarType": "float32"

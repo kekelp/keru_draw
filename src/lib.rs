@@ -276,6 +276,7 @@ pub struct Triangle {
     pub p2: [f32; 2],
     pub fill: ColorFill,
     pub stroke_thickness: f32,  // 0 = filled, >0 = stroke only
+    pub corner_radius: f32,
     pub texture: Option<LoadedImage>,
     pub texture_options: Option<TextureOptions>,
     pub blur: f32,
@@ -289,6 +290,7 @@ pub struct Hexagon {
     pub rotation: f32,          // rotation in radians (0 = flat-top)
     pub fill: ColorFill,
     pub stroke_thickness: f32,  // 0 = filled, >0 = stroke only
+    pub corner_radius: f32,
     pub texture: Option<LoadedImage>,
     pub texture_options: Option<TextureOptions>,
     pub blur: f32,
@@ -973,7 +975,7 @@ impl Renderer {
             blur_radius: params.blur,
             nine_slice_l, nine_slice_r, nine_slice_t, nine_slice_b, nine_slice_tiling,
             stroke_thickness: params.stroke_thickness,
-            _tri_pad: [0.0; 3],
+            _tri_pad: [params.corner_radius, 0.0, 0.0],
         });
         self.push_instance(Instance {
             p_type: primitive::TRIANGLE,
@@ -1003,7 +1005,7 @@ impl Renderer {
             texture_uv_size,
             blur_radius: params.blur,
             nine_slice_r, nine_slice_t, nine_slice_b, nine_slice_tiling,
-            _ns_pad: 0.0,
+            _ns_pad: params.corner_radius,
         });
         self.push_instance(Instance {
             p_type: primitive::HEXAGON,

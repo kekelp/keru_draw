@@ -138,7 +138,7 @@ struct TriangleGpu {
     float nine_slice_b;        // bottom inset in pixels
     uint nine_slice_tiling;    // bit 0=enabled; bits 1-2=h mode; bits 3-4=v mode (0=stretch,1=tile,2=tile_fit)
     float stroke_thickness;    // 0 = filled, >0 = stroke only
-    float _tri_pad0;
+    float corner_radius;
     float _tri_pad1;
     float _tri_pad2;
 }
@@ -161,7 +161,7 @@ struct HexagonGpu {
     float nine_slice_t;        // top inset in pixels
     float nine_slice_b;        // bottom inset in pixels
     uint nine_slice_tiling;    // bit 0=enabled; bits 1-2=h mode; bits 3-4=v mode (0=stretch,1=tile,2=tile_fit)
-    float _ns_pad;
+    float corner_radius;
 }
 
 struct QuadraticBezierGpu {
@@ -998,10 +998,11 @@ void triangle_vertex(
 ) {
     var tri: TriangleGpu = shapes.triangles[instanceIndex];
 
-    // Create bounding box for the triangle, expanded for blur falloff
+    // Create bounding box for the triangle, expanded for blur falloff and corner rounding
     float blur_margin = tri.blur_radius * 3.0;
-    float2 min_point = min(tri.p0, min(tri.p1, tri.p2)) - float2(blur_margin, blur_margin);
-    float2 max_point = max(tri.p0, max(tri.p1, tri.p2)) + float2(blur_margin, blur_margin);
+    float tri_expand = blur_margin + tri.corner_radius;
+    float2 min_point = min(tri.p0, min(tri.p1, tri.p2)) - float2(tri_expand, tri_expand);
+    float2 max_point = max(tri.p0, max(tri.p1, tri.p2)) + float2(tri_expand, tri_expand);
 
     float2 top_left = min_point;
     float2 size = max_point - min_point;
@@ -1041,18 +1042,22 @@ float4 triangle_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, flo
         discard;
     }
 
-    // Convert UV to world position, accounting for blur-expanded bounding quad
+    // Convert UV to world position, accounting for blur-expanded and corner-rounded bounding quad
     float blur_margin = tri.blur_radius * 3.0;
+    float tri_expand = blur_margin + tri.corner_radius;
     float2 orig_min = min(tri.p0, min(tri.p1, tri.p2));
     float2 orig_max = max(tri.p0, max(tri.p1, tri.p2));
-    float2 min_point = orig_min - float2(blur_margin, blur_margin);
-    float2 max_point = orig_max + float2(blur_margin, blur_margin);
+    float2 min_point = orig_min - float2(tri_expand, tri_expand);
+    float2 max_point = orig_max + float2(tri_expand, tri_expand);
     float2 top_left = min_point;
     float2 size = max_point - min_point;
     float2 p = top_left + uv * size;
 
     float dist = sd_triangle(p, tri.p0, tri.p1, tri.p2);
 
+    if (tri.corner_radius > 0.001) {
+        dist -= tri.corner_radius;
+    }
     if (tri.stroke_thickness > 0.001) {
         dist = annular(dist, tri.stroke_thickness);
     }
@@ -1135,9 +1140,9 @@ void hexagon_vertex(
 ) {
     var hex: HexagonGpu = shapes.hexagons[instanceIndex];
 
-    // Create bounding box for the hexagon, expanded for blur falloff
+    // Create bounding box for the hexagon, expanded for blur falloff and corner rounding
     float blur_margin = hex.blur_radius * 3.0;
-    float extent = hex.size + blur_margin;
+    float extent = hex.size + blur_margin + hex.corner_radius;
     float2 top_left = hex.center - float2(extent, extent);
     float2 size = float2(extent * 2.0, extent * 2.0);
 
@@ -1166,7 +1171,7 @@ float4 hexagon_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, floa
 
     // Convert UV to position relative to hexagon center, accounting for blur-expanded bounding quad
     float blur_margin = hex.blur_radius * 3.0;
-    float extent = (hex.size + blur_margin) * 1.1547;
+    float extent = (hex.size + blur_margin + hex.corner_radius) * 1.1547;
     float2 p = (uv - 0.5) * 2.0 * extent;
 
     // Apply rotation
@@ -1180,6 +1185,9 @@ float4 hexagon_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, floa
     // Calculate distance to hexagon
     float dist = sd_hexagon(rotated_p, hex.size);
 
+    if (hex.corner_radius > 0.001) {
+        dist -= hex.corner_radius;
+    }
     if (hex.stroke_thickness > 0.001) {
         dist = annular(dist, hex.stroke_thickness);
     }

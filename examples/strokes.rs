@@ -265,6 +265,7 @@ impl State {
             p0, p1, p2,
             fill: ColorFill::Color(Color::new(0.5, 1.0, 0.4, 1.0)),
             stroke_thickness: 0.0,
+            corner_radius: 0.0,
             blur: 0.0,
             texture: None,
             texture_options: None,
@@ -275,6 +276,7 @@ impl State {
             p0, p1, p2,
             fill: ColorFill::Color(Color::new(0.5, 1.0, 0.4, 1.0)),
             stroke_thickness: 4.0,
+            corner_radius: 0.0,
             blur: 0.0,
             texture: None,
             texture_options: None,
@@ -285,6 +287,7 @@ impl State {
             p0, p1, p2,
             fill: ColorFill::Color(Color::new(0.5, 1.0, 0.4, 1.0)),
             stroke_thickness: 22.0,
+            corner_radius: 0.0,
             blur: 0.0,
             texture: None,
             texture_options: None,
@@ -295,6 +298,7 @@ impl State {
             p0, p1, p2,
             fill: ColorFill::Color(Color::new(0.5, 1.0, 0.4, 1.0)),
             stroke_thickness: 8.0,
+            corner_radius: 0.0,
             blur: 8.0,
             texture: None,
             texture_options: None,
@@ -309,14 +313,86 @@ impl State {
             p0, p1, p2,
             fill: ColorFill::SharedGradient(grad),
             stroke_thickness: 10.0,
+            corner_radius: 0.0,
             blur: 0.0,
             texture: None,
             texture_options: None,
         });
 
-        // --- Row 3: Capsule, Hexagon, Bezier ---
+        // --- Row 3: Rounded triangles and hexagons ---
 
-        let seg_y = cy(3);
+        let [p0, p1, p2] = tri(cx(0), cy(3), cell * 0.44);
+        self.renderer.draw_triangle(Triangle {
+            p0, p1, p2,
+            fill: ColorFill::Color(Color::new(0.5, 1.0, 0.4, 1.0)),
+            stroke_thickness: 0.0,
+            corner_radius: 12.0,
+            blur: 0.0,
+            texture: None,
+            texture_options: None,
+        });
+
+        let [p0, p1, p2] = tri(cx(1), cy(3), cell * 0.44);
+        self.renderer.draw_triangle(Triangle {
+            p0, p1, p2,
+            fill: ColorFill::Color(Color::new(0.5, 1.0, 0.4, 1.0)),
+            stroke_thickness: 5.0,
+            corner_radius: 12.0,
+            blur: 0.0,
+            texture: None,
+            texture_options: None,
+        });
+
+        let [p0, p1, p2] = tri(cx(2), cy(3), cell * 0.44);
+        self.renderer.draw_triangle(Triangle {
+            p0, p1, p2,
+            fill: ColorFill::Color(Color::new(0.5, 1.0, 0.4, 1.0)),
+            stroke_thickness: 18.0,
+            corner_radius: 12.0,
+            blur: 0.0,
+            texture: None,
+            texture_options: None,
+        });
+
+        self.renderer.draw_hexagon(Hexagon {
+            center: [cx(3), cy(3)],
+            size: cell * 0.44,
+            rotation: PI / 6.0,
+            fill: ColorFill::Color(Color::new(0.8, 0.5, 1.0, 1.0)),
+            stroke_thickness: 0.0,
+            corner_radius: 10.0,
+            blur: 0.0,
+            texture: None,
+            texture_options: None,
+        });
+
+        self.renderer.draw_hexagon(Hexagon {
+            center: [cx(4), cy(3)],
+            size: cell * 0.44,
+            rotation: PI / 6.0,
+            fill: ColorFill::Color(Color::new(0.8, 0.5, 1.0, 1.0)),
+            stroke_thickness: 5.0,
+            corner_radius: 10.0,
+            blur: 0.0,
+            texture: None,
+            texture_options: None,
+        });
+
+        self.renderer.draw_hexagon(Hexagon {
+            center: [cx(5), cy(3)],
+            size: cell * 0.44,
+            rotation: PI / 6.0,
+            fill: ColorFill::Color(Color::new(0.8, 0.5, 1.0, 1.0)),
+            stroke_thickness: 18.0,
+            corner_radius: 10.0,
+            blur: 0.0,
+            texture: None,
+            texture_options: None,
+        });
+
+        // --- Row 4: Capsule, Hexagon, Bezier ---
+
+        let seg_y = cy(4);
         let seg_h = cell * 0.35;
         let seg_t = cell * 0.38;
 
@@ -373,18 +449,19 @@ impl State {
         });
 
         self.renderer.draw_hexagon(Hexagon {
-            center: [cx(4), cy(3)],
+            center: [cx(4), cy(4)],
             size: cell * 0.44,
             rotation: PI / 6.0,
             fill: ColorFill::Color(Color::new(0.8, 0.5, 1.0, 1.0)),
             stroke_thickness: 10.0,
+            corner_radius: 0.0,
             blur: 0.0,
             texture: None,
             texture_options: None,
         });
 
         let bx = cx(5);
-        let by = cy(3);
+        let by = cy(4);
         let br = cell * 0.38;
         self.renderer.draw_quadratic_bezier(QuadraticBezier {
             p0: [bx - br, by + br * 0.5],
@@ -396,10 +473,10 @@ impl State {
             color: Color::new(0.3, 0.8, 1.0, 1.0),
         });
 
-        // --- Row 4: Circle Arc ---
+        // --- Row 5: Circle Arc ---
 
         self.renderer.draw_arc(CircleArc {
-            center: [cx(0), cy(4)],
+            center: [cx(0), cy(5)],
             radius: cell * 0.45,
             start_angle: 0.0,
             end_angle: PI * 1.5,
@@ -413,7 +490,7 @@ impl State {
         });
 
         self.renderer.draw_arc(CircleArc {
-            center: [cx(1), cy(4)],
+            center: [cx(1), cy(5)],
             radius: cell * 0.45,
             start_angle: 0.0,
             end_angle: PI * 1.5,
@@ -427,7 +504,7 @@ impl State {
         });
 
         self.renderer.draw_arc(CircleArc {
-            center: [cx(2), cy(4)],
+            center: [cx(2), cy(5)],
             radius: cell * 0.45,
             start_angle: 0.0,
             end_angle: PI * 1.5,
@@ -441,7 +518,7 @@ impl State {
         });
 
         self.renderer.draw_arc(CircleArc {
-            center: [cx(3), cy(4)],
+            center: [cx(3), cy(5)],
             radius: cell * 0.45,
             start_angle: 0.0,
             end_angle: PI * 1.5,
@@ -455,11 +532,11 @@ impl State {
         });
 
         let grad = self.renderer.create_gradient(Gradient::linear(
-            [cx(4) - cell * 0.45, cy(4)], [cx(4) + cell * 0.45, cy(4)],
+            [cx(4) - cell * 0.45, cy(5)], [cx(4) + cell * 0.45, cy(5)],
             Color::new(0.2, 0.8, 1.0, 1.0), Color::new(0.8, 0.2, 1.0, 1.0),
         ));
         self.renderer.draw_arc(CircleArc {
-            center: [cx(4), cy(4)],
+            center: [cx(4), cy(5)],
             radius: cell * 0.45,
             start_angle: 0.0,
             end_angle: PI * 1.5,
@@ -472,11 +549,11 @@ impl State {
             texture_options: None,
         });
 
-        // --- Row 5: Pie ---
+        // --- Row 6: Pie ---
 
         // filled
         self.renderer.draw_pie(CirclePie {
-            center: [cx(0), cy(5)],
+            center: [cx(0), cy(6)],
             radius: cell * 0.45,
             start_angle: 0.0,
             end_angle: PI * 0.75,
@@ -490,7 +567,7 @@ impl State {
 
         // stroke only
         self.renderer.draw_pie(CirclePie {
-            center: [cx(1), cy(5)],
+            center: [cx(1), cy(6)],
             radius: cell * 0.45,
             start_angle: -PI * 0.5,
             end_angle: PI * 0.5,
@@ -504,7 +581,7 @@ impl State {
 
         // rounded corners
         self.renderer.draw_pie(CirclePie {
-            center: [cx(2), cy(5)],
+            center: [cx(2), cy(6)],
             radius: cell * 0.45,
             start_angle: 0.0,
             end_angle: PI * 0.75,
@@ -518,7 +595,7 @@ impl State {
 
         // rounded + stroke
         self.renderer.draw_pie(CirclePie {
-            center: [cx(3), cy(5)],
+            center: [cx(3), cy(6)],
             radius: cell * 0.45,
             start_angle: 0.0,
             end_angle: PI * 0.75,
@@ -531,12 +608,12 @@ impl State {
         });
 
         let grad = self.renderer.create_gradient(Gradient::radial(
-            [cx(4), cy(5)], cell * 0.45, 0.0,
+            [cx(4), cy(6)], cell * 0.45, 0.0,
             Color::new(1.0, 0.9, 0.2, 1.0), Color::new(1.0, 0.2, 0.5, 1.0),
         ));
         // gradient + blur
         self.renderer.draw_pie(CirclePie {
-            center: [cx(4), cy(5)],
+            center: [cx(4), cy(6)],
             radius: cell * 0.45,
             start_angle: 0.0,
             end_angle: PI * 1.5,
