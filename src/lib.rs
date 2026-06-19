@@ -45,6 +45,11 @@ impl TransformHandle {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ClipRectHandle(usize);
 
+impl ClipRectHandle {
+    /// A handle to the always-present "no clip" rect.
+    pub const NO_CLIP: Self = Self(1);
+}
+
 pub use keru_text;
 
 pub use keru_text::{
@@ -538,8 +543,10 @@ impl Renderer {
         let image_renderer = ImageRenderer::new(&device, &queue);
 
         let mut resources: GpuSlab<ResourceSlot> = GpuSlab::new(&device, 64, "keru_draw clip_rects and transforms");
-        let _ = resources.insert(Transform::identity().into()); // index 0: identity transform
-        let _ = resources.insert(ClipRect::NO_CLIPPING.into()); // index 1: no clip
+        let identity_index = resources.insert(Transform::identity().into()); // index 0: identity transform
+        let no_clip_index = resources.insert(ClipRect::NO_CLIPPING.into()); // index 1: no clip
+        debug_assert_eq!(identity_index, TransformHandle::IDENTITY.index);
+        debug_assert_eq!(no_clip_index, ClipRectHandle::NO_CLIP.0);
 
         // Create merged bind group layout for shapes + images
         let shapes_bind_group_layout = Self::create_shapes_bind_group_layout(&device);
@@ -642,8 +649,8 @@ impl Renderer {
             deferred_instances: Vec::with_capacity(5),
             device: device.clone(),
             queue: queue.clone(),
-            current_transform: TransformHandle { index: 0, text_transform: keru_text::GroupTransformHandle::IDENTITY },
-            current_clip_rect: 1, // "No clip" is at slot index 1
+            current_transform: TransformHandle::IDENTITY,
+            current_clip_rect: ClipRectHandle::NO_CLIP.0,
             render_pipeline, shapes, resources, image_renderer, text, shapes_bind_group, instances
         }
     }
@@ -1324,7 +1331,7 @@ impl Renderer {
     pub fn begin_frame(&mut self) {
         self.instances.clear();
         self.current_transform = TransformHandle::IDENTITY;
-        self.current_clip_rect = 1; // Reset to "no clip"
+        self.current_clip_rect = ClipRectHandle::NO_CLIP.0;
         self.deferred_mode = false;
         self.deferred_mode_start = 0;
     }
@@ -1338,7 +1345,7 @@ impl Renderer {
         self.shapes.clear();
         self.deferred_instances.clear();
         self.current_transform = TransformHandle::IDENTITY;
-        self.current_clip_rect = 1;
+        self.current_clip_rect = ClipRectHandle::NO_CLIP.0;
     }
 
     pub fn prepare_text(&mut self) {
@@ -1438,7 +1445,7 @@ impl Renderer {
 
     /// Reset the current clip rect back to "no clip".
     pub fn clear_current_clip_rect(&mut self) {
-        self.current_clip_rect = 0;
+        self.current_clip_rect = ClipRectHandle::NO_CLIP.0;
     }
 
     /// Store a gradient in the resource buffer and return a handle for reuse within the frame.
