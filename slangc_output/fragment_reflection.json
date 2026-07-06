@@ -721,18 +721,14 @@
                                         {
                                             "name": "lattice_size",
                                             "type": {
-                                                "kind": "scalar",
-                                                "scalarType": "float32"
+                                                "kind": "vector",
+                                                "elementCount": 2,
+                                                "elementType": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "float32"
+                                                }
                                             },
-                                            "binding": {"kind": "uniform", "offset": 56, "size": 4, "elementStride": 0}
-                                        },
-                                        {
-                                            "name": "line_thickness",
-                                            "type": {
-                                                "kind": "scalar",
-                                                "scalarType": "float32"
-                                            },
-                                            "binding": {"kind": "uniform", "offset": 60, "size": 4, "elementStride": 0}
+                                            "binding": {"kind": "uniform", "offset": 56, "size": 8, "elementStride": 4}
                                         },
                                         {
                                             "name": "gradient_direction",
@@ -747,7 +743,7 @@
                                             "binding": {"kind": "uniform", "offset": 64, "size": 8, "elementStride": 4}
                                         },
                                         {
-                                            "name": "_pad",
+                                            "name": "line_thickness",
                                             "type": {
                                                 "kind": "scalar",
                                                 "scalarType": "float32"
@@ -2087,18 +2083,14 @@
                                             {
                                                 "name": "lattice_size",
                                                 "type": {
-                                                    "kind": "scalar",
-                                                    "scalarType": "float32"
+                                                    "kind": "vector",
+                                                    "elementCount": 2,
+                                                    "elementType": {
+                                                        "kind": "scalar",
+                                                        "scalarType": "float32"
+                                                    }
                                                 },
-                                                "binding": {"kind": "uniform", "offset": 56, "size": 4, "elementStride": 0}
-                                            },
-                                            {
-                                                "name": "line_thickness",
-                                                "type": {
-                                                    "kind": "scalar",
-                                                    "scalarType": "float32"
-                                                },
-                                                "binding": {"kind": "uniform", "offset": 60, "size": 4, "elementStride": 0}
+                                                "binding": {"kind": "uniform", "offset": 56, "size": 8, "elementStride": 4}
                                             },
                                             {
                                                 "name": "gradient_direction",
@@ -2113,7 +2105,7 @@
                                                 "binding": {"kind": "uniform", "offset": 64, "size": 8, "elementStride": 4}
                                             },
                                             {
-                                                "name": "_pad",
+                                                "name": "line_thickness",
                                                 "type": {
                                                     "kind": "scalar",
                                                     "scalarType": "float32"

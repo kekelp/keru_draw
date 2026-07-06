@@ -640,7 +640,7 @@ impl State {
         self.renderer.draw_grid(Grid {
             top_left: [850.0, 20.0],
             size: [200.0, 200.0],
-            lattice_size: 20.0,
+            lattice_size: [30.0, 20.0],
             offset: [0.0, 0.0],
             line_thickness: 2.0,
             fill: ColorFill::SharedGradient(grad_grid),
@@ -654,7 +654,7 @@ impl State {
         self.renderer.draw_grid(Grid {
             top_left: [850.0, 250.0],
             size: [300.0, 300.0],
-            lattice_size: 50.0,
+            lattice_size: [50.0, 50.0],
             offset: [0.0, 0.0],
             line_thickness: 2.0,
             fill: ColorFill::Color(Color::new(1.0, 0.0, 0.0, 0.5)),
@@ -668,7 +668,7 @@ impl State {
         self.renderer.draw_grid(Grid {
             top_left: [850.0, 580.0],
             size: [200.0, 150.0],
-            lattice_size: 20.0,
+            lattice_size: [20.0, 20.0],
             offset: [0.0, 0.0],
             line_thickness: 2.0,
             fill: ColorFill::Color(Color::new(0.3, 0.8, 0.5, 1.0)),

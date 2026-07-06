@@ -121,10 +121,9 @@ pub struct GridGpu {
     pub top_left: [f32; 2],
     pub size: [f32; 2],
     pub offset: [f32; 2],
-    pub lattice_size: f32,
-    pub line_thickness: f32,
+    pub lattice_size: [f32; 2],
     pub gradient_direction: [f32; 2],
-    pub _pad: f32,
+    pub line_thickness: f32,
     pub gradient_index: u32, // index into gradients buffer
     pub grid_type: u32, // 0=square, 1=hex
     pub texture_page: u32,           // atlas layer, u32::MAX = no texture

@@ -103,10 +103,9 @@ struct GridGpu {
     float2 top_left;
     float2 size;
     float2 offset;
-    float lattice_size;
-    float line_thickness;
+    float2 lattice_size;
     float2 gradient_direction; // unused (kept for layout compatibility)
-    float _pad;
+    float line_thickness;
     uint gradient_index; // index into gradients buffer
     uint grid_type; // 0=square, 1=hex
     uint texture_page;        // atlas layer, 0xFFFFFFFF = no texture
@@ -891,14 +890,15 @@ float4 grid_fragment(uint primitiveIndex, uint clipRectIndex, float2 uv, float2 
 
     float dist;
     if (grid.grid_type == 0) {
-        // Square grid
+        // Rectangular grid
         float2 p = p_pixels / grid.lattice_size;
         float2 grid_pos = fmod(p, 1.0);
         float2 dist_to_line = min(grid_pos, 1.0 - grid_pos);
-        dist = min(dist_to_line.x, dist_to_line.y) * grid.lattice_size;
+        float2 dist_pixels = dist_to_line * grid.lattice_size;
+        dist = min(dist_pixels.x, dist_pixels.y);
     } else {
         const float COS30 = 0.8660254;
-        float lattice_size = grid.lattice_size * COS30;
+        float lattice_size = grid.lattice_size.x * COS30;
 
         // Scale by lattice_size to work in normalized hex space
         float2 p = p_pixels / lattice_size;

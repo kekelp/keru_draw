@@ -263,7 +263,9 @@ pub enum GridType {
 pub struct Grid {
     pub top_left: [f32; 2],
     pub size: [f32; 2],
-    pub lattice_size: f32,
+    /// Cell spacing in pixels. Separate x and y for rectangular grids.
+    /// Hexagonal grids only use the x component.
+    pub lattice_size: [f32; 2],
     pub offset: [f32; 2],
     pub line_thickness: f32,
     pub fill: ColorFill,
@@ -944,7 +946,6 @@ impl Renderer {
             lattice_size: params.lattice_size,
             line_thickness: params.line_thickness,
             gradient_direction: [0.0; 2],
-            _pad: 0.0,
             color_start: Color::default(),
             color_end: Color::default(),
             gradient_index,
