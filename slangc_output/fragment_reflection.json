@@ -3066,6 +3066,22 @@
                                                 "scalarType": "float32"
                                             },
                                             "binding": {"kind": "uniform", "offset": 68, "size": 4, "elementStride": 0}
+                                        },
+                                        {
+                                            "name": "color_override",
+                                            "type": {
+                                                "kind": "scalar",
+                                                "scalarType": "uint32"
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 72, "size": 4, "elementStride": 0}
+                                        },
+                                        {
+                                            "name": "_padding",
+                                            "type": {
+                                                "kind": "scalar",
+                                                "scalarType": "uint32"
+                                            },
+                                            "binding": {"kind": "uniform", "offset": 76, "size": 4, "elementStride": 0}
                                         }
                                     ]
                                 }
@@ -3452,6 +3468,22 @@
                                                     "scalarType": "float32"
                                                 },
                                                 "binding": {"kind": "uniform", "offset": 68, "size": 4, "elementStride": 0}
+                                            },
+                                            {
+                                                "name": "color_override",
+                                                "type": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "uint32"
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 72, "size": 4, "elementStride": 0}
+                                            },
+                                            {
+                                                "name": "_padding",
+                                                "type": {
+                                                    "kind": "scalar",
+                                                    "scalarType": "uint32"
+                                                },
+                                                "binding": {"kind": "uniform", "offset": 76, "size": 4, "elementStride": 0}
                                             }
                                         ]
                                     }
